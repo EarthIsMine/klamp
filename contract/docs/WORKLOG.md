@@ -354,3 +354,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/`의 Fee cap preview와 `/demo/`의 Canonical route, Pool verification, Fee cap preview 문구를 확인하고 개발 페이즈 번호가 노출되지 않는지 확인한다.
 - 남은 문제: 실제 GitHub Pages 배포 화면과 모바일 실기기 검증은 미실행이다.
+
+## WEB14 — 공격 payload와 clamp 충돌 애니메이션
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1440×756 검증 / Codex, Anthropic `frontend-design` skill
+- AI 수행: 30% 요청 장면을 단순 수치 확대에서 `Malicious hook`이 `feeOverride(3000)` payload를 pool 방향으로 전송하는 공격 시퀀스로 변경했다. 요청선과 세 개의 이동 packet, 30% payload 충돌과 짧은 화면 반동을 사용자 입력 직후 한 번만 실행한다. cap 적용 장면에서는 incoming 30%가 중앙 클램프에 충돌하고 반동한 뒤 1% 결과가 나타나도록 동작을 연결했다. 공격은 Brick Red, 방어는 Clamp Orange로 역할을 구분했으며 reduced-motion 환경에서는 기존과 같이 모든 애니메이션을 제거한다.
+- 사람의 결정/수정: 수치 변화만으로는 공격자의 공격이 충분히 역동적으로 느껴지지 않으므로 공격과 방어 애니메이션을 강화하도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `frontend-design` skill.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome 1440×756에서 Request 30% 입력 직후 payload 이동·충돌 프레임과 Apply 1% 입력 직후 clamp 충돌·반동 프레임, 최종 1% 결과를 확인했다. 완료 화면의 문서 높이와 viewport 높이가 756px로 일치했다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/demo/`의 세 번째 버튼을 눌러 공격 packet과 30% 충돌을 확인하고, 네 번째 버튼에서 30%가 clamp에 부딪힌 뒤 1%가 나타나는지 확인한다. OS의 동작 줄이기를 켰을 때는 전환이 즉시 완료되어야 한다.
+- 남은 문제: 실제 GitHub Pages 배포 화면과 모바일 실기기의 애니메이션 검증은 미실행이다.

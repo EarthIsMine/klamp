@@ -114,29 +114,102 @@ const MatchResult = styled.div`
   strong { font-weight: 700; }
 `;
 
-const FeeRequest = styled.div`text-align: center;`;
-const FeeValue = styled.div`
-  font: 500 clamp(64px, 9vw, 112px)/.9 ${mono}; letter-spacing: -.075em; color: ${colors.danger};
-  animation: valueIn .34s cubic-bezier(.2,.8,.3,1);
-  @keyframes valueIn { from { opacity: 0; transform: scale(.88); } to { opacity: 1; transform: scale(1); } }
+const AttackSequence = styled.div`
+  width: min(940px, 100%); display: grid; grid-template-columns: 180px minmax(150px, 1fr) minmax(270px, auto); align-items: center;
+  animation: impactShake .22s linear .62s both;
+  @keyframes impactShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-7px); }
+    55% { transform: translateX(5px); }
+    78% { transform: translateX(-2px); }
+  }
+  @media (max-width: 720px) { grid-template-columns: 1fr; gap: 18px; text-align: center; }
 `;
+const AttackOrigin = styled.div`
+  padding: 16px 18px; background: ${colors.textPrimary}; color: white; animation: attackerIn .28s ease-out both;
+  span { display: block; color: ${colors.border}; font-size: 12px; margin-bottom: 7px; }
+  strong { display: block; font-size: 17px; }
+  code { display: block; margin-top: 7px; color: ${colors.primary}; font: 500 12px/1.3 ${mono}; }
+  @keyframes attackerIn { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: translateX(0); } }
+`;
+const AttackRail = styled.div`
+  position: relative; height: 76px; overflow: hidden;
+  &::before {
+    content: ""; position: absolute; top: 50%; left: 0; width: 100%; height: 3px; background: ${colors.danger};
+    transform: scaleX(0); transform-origin: left; animation: attackLine .38s ease-in .2s forwards;
+  }
+  i { position: absolute; top: calc(50% - 8px); width: 16px; height: 16px; background: ${colors.danger}; transform: rotate(45deg); opacity: 0; }
+  i:nth-of-type(1) { animation: packetRush .44s ease-in .22s forwards; }
+  i:nth-of-type(2) { animation: packetRush .44s ease-in .31s forwards; }
+  i:nth-of-type(3) { animation: packetRush .44s ease-in .4s forwards; }
+  @keyframes attackLine { to { transform: scaleX(1); } }
+  @keyframes packetRush {
+    0% { left: -16px; opacity: 0; }
+    15% { opacity: 1; }
+    82% { opacity: 1; }
+    100% { left: calc(100% - 16px); opacity: 0; }
+  }
+  @media (max-width: 720px) { height: 34px; transform: rotate(90deg); width: 76px; justify-self: center; margin: -18px 0; }
+`;
+const AttackPayload = styled.div`
+  position: relative; text-align: center; padding-left: 28px; animation: payloadStrike .68s cubic-bezier(.15,.72,.2,1.16) .18s both;
+  &::before {
+    content: ""; position: absolute; inset: -14px auto -14px 0; width: 5px; background: ${colors.danger};
+    animation: impactBar .18s ease-out .63s both;
+  }
+  @keyframes payloadStrike {
+    0% { opacity: 0; transform: translateX(-110px) scale(.68); }
+    62% { opacity: 1; transform: translateX(13px) scale(1.08); }
+    78% { transform: translateX(-6px) scale(.98); }
+    100% { opacity: 1; transform: translateX(0) scale(1); }
+  }
+  @keyframes impactBar { from { transform: scaleY(.1); } to { transform: scaleY(1); } }
+  @media (max-width: 720px) { padding: 18px 0 0; &::before { inset: 0 12% auto; width: auto; height: 5px; } }
+`;
+const FeeValue = styled.div`font: 500 clamp(64px, 9vw, 112px)/.9 ${mono}; letter-spacing: -.075em; color: ${colors.danger};`;
 const FeeCaption = styled.p`margin: 20px 0 0; color: ${colors.textSecondary}; font-size: 16px;`;
 
-const Enforcement = styled.div`width: min(820px, 100%); display: grid; grid-template-columns: 1fr 120px 1fr; align-items: center; text-align: center;`;
+const Enforcement = styled.div`
+  width: min(860px, 100%); display: grid; grid-template-columns: 1fr 140px 1fr; align-items: center; text-align: center;
+  animation: clampImpact .24s linear .42s both;
+  @keyframes clampImpact {
+    0%, 100% { transform: translateX(0); }
+    30% { transform: translateX(6px); }
+    65% { transform: translateX(-4px); }
+  }
+  @media (max-width: 620px) { grid-template-columns: 1fr 92px 1fr; }
+`;
 const FeeSide = styled.div`
   span { display: block; color: ${colors.textMuted}; font-size: 14px; margin-bottom: 13px; }
   strong { font: 500 clamp(48px, 7vw, 82px)/1 ${mono}; letter-spacing: -.07em; }
 `;
-const Cap = styled.div`
-  display: grid; place-items: center; gap: 8px;
-  span { color: ${colors.primaryHover}; font-size: 13px; font-weight: 650; }
-  img { animation: capSet .45s cubic-bezier(.2,.8,.3,1); }
-  @keyframes capSet { 0% { transform: translateX(-12px) scale(1.12); } 70% { transform: translateX(3px) scale(.96); } 100% { transform: translateX(0) scale(1); } }
+const IncomingFee = styled(FeeSide)`
+  animation: feeCollision .64s cubic-bezier(.2,.72,.24,1) both;
+  @keyframes feeCollision {
+    0% { opacity: .2; transform: translateX(-72px) scale(.82); }
+    58% { opacity: 1; transform: translateX(34px) scale(1.08); }
+    76% { transform: translateX(-8px) scale(.97); }
+    100% { transform: translateX(0) scale(1); }
+  }
 `;
-const AppliedFee = styled(FeeSide)`strong { color: ${colors.primaryHover}; animation: valueIn .38s cubic-bezier(.2,.8,.3,1); }`;
+const Cap = styled.div`
+  position: relative; display: grid; place-items: center; gap: 8px;
+  &::before { content: ""; position: absolute; width: 104px; height: 104px; background: ${colors.primarySoft}; transform: scale(.15); animation: stopForce .46s ease-out .34s both; }
+  span { color: ${colors.primaryHover}; font-size: 13px; font-weight: 650; }
+  img, span { position: relative; z-index: 1; }
+  img { animation: capSet .64s cubic-bezier(.2,.8,.3,1) both; }
+  @keyframes stopForce { 0% { opacity: 0; transform: scale(.15); } 45% { opacity: 1; transform: scale(1.18); } 100% { opacity: 1; transform: scale(1); } }
+  @keyframes capSet { 0% { transform: translateX(22px) scale(1.22); } 55% { transform: translateX(-5px) scale(.9); } 78% { transform: translateX(3px) scale(1.04); } 100% { transform: translateX(0) scale(1); } }
+`;
+const AppliedFee = styled(FeeSide)`
+  animation: appliedReveal .38s ease-out .58s both;
+  strong { color: ${colors.primaryHover}; }
+  @keyframes appliedReveal { from { opacity: 0; transform: translateX(-26px) scale(.84); } to { opacity: 1; transform: translateX(0) scale(1); } }
+`;
 const EnforcementResult = styled.div`
-  grid-column: 1 / -1; margin-top: 28px; color: ${colors.textSecondary}; font-size: 15px;
+  grid-column: 1 / -1; margin-top: 28px; color: ${colors.textSecondary}; font-size: 15px; animation: resultIn .28s ease-out .72s both;
   strong { color: ${colors.textPrimary}; }
+  @keyframes resultIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
 `;
 
 const Bottom = styled.div`
@@ -258,14 +331,18 @@ export function DemoTerminal() {
 
             {stage === "request" && (
               <Scene key={sceneKey}>
-                <FeeRequest><SceneLabel>Simulated hook request</SceneLabel><FeeValue>30.00%</FeeValue><FeeCaption>3,000 bps requested before the cap is applied.</FeeCaption></FeeRequest>
+                <AttackSequence>
+                  <AttackOrigin><span>Request source</span><strong>Malicious hook</strong><code>feeOverride(3000)</code></AttackOrigin>
+                  <AttackRail aria-hidden="true"><i /><i /><i /></AttackRail>
+                  <AttackPayload><SceneLabel>Incoming fee request</SceneLabel><FeeValue>30.00%</FeeValue><FeeCaption>3,000 bps sent toward the pool.</FeeCaption></AttackPayload>
+                </AttackSequence>
               </Scene>
             )}
 
             {(stage === "enforce" || stage === "complete") && (
               <Scene key={sceneKey}>
                 <Enforcement>
-                  <FeeSide><span>Requested</span><strong style={{ color: colors.danger }}>30.00%</strong></FeeSide>
+                  <IncomingFee><span>Incoming</span><strong style={{ color: colors.danger }}>30.00%</strong></IncomingFee>
                   <Cap><Mark size={76} /><span>maximum 1%</span></Cap>
                   <AppliedFee><span>Applied</span><strong>{enforced ? "1.00%" : "…"}</strong></AppliedFee>
                   <EnforcementResult>{enforced ? <><strong>Cap enforced.</strong> The simulated quote keeps the configured maximum.</> : "Calculating min(requested fee, configured cap)…"}</EnforcementResult>
