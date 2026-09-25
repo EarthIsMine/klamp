@@ -156,3 +156,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: Anvil과 로컬 배포를 준비한 상태에서 `npm run demo`, http://127.0.0.1:4173 접속. 기본 경로 일치, poolId 변경 시 불일치, 미등록 토큰은 기록 없음 예상. RPC 중단 시 조회 실패 표시.
 - 남은 문제: 실제 quote builder/거래 calldata와 결합하지 않았으므로 거래 실행 풀의 보장으로 사용하지 않는다. 일반 거래 모드는 구현되어 있지 않다.
+
+## C10a — 재개 가능한 ENS 등록 절차
+
+- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경 / Codex
+- AI 수행: ETHRegistrar의 실제 commitment 시간·등록 가격·결제 balance/allowance를 사용하는 등록 상태 머신과 스크립트 추가. 타인 소유 이름·다른 기존 namespace를 덮어쓰지 않음.
+- 사람의 결정/수정: 작은 책임의 커밋 요구를 반영해 [C10 분할 계획](plans/C10-deployment-steps.md) 작성.
+- 참고 문서 및 버전: C01 고정 ETHRegistrar/IETHRegistrar/AbstractETHRegistrar 소스.
+- AI 실행 검증: `forge test --match-contract RegistrationFlowTest -vv` 4 통과/0 실패, `forge build` 통과. 실제 registrar와 registry 사용, 결제 토큰·가격 oracle만 테스트 fixture. commit/wait/register/setParent/이미 등록/만료 commitment/타인 소유/가격 상한/잔액 부족 검증.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: 위 Foundry 명령. 공개 체인에서는 동일 secret과 설정으로 RegisterRoot 스크립트를 readyAt 이후 재실행한다.
+- 남은 문제: Sepolia 실실행 미실행. 재배포 중복 방지·manifest/preflight/smoke는 다음 C10 단위.
