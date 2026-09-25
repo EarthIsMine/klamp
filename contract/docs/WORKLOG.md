@@ -111,3 +111,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `forge test --match-contract NamespacePermissionsTest -vv`, 운영자 변경·재위임·업그레이드 거절, hooks 격리, 잘못된 체인 거절 및 재봉인 확인.
 - 남은 문제: 네트워크 프로토콜 코드 신뢰·root 만료·상위 권한은 별도 운영 가정. 네트워크 broadcast 미실행.
+
+## C06 — 실제 ENS 와일드카드 통합
+
+- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경 / Codex
+- AI 수행: 실제 UserRegistry·PermissionedResolver·UniversalResolverV2·v4 상태를 통합한 와일드카드 text/data 대조, 봉인 후 두 등록 경로, 편집 권한 위임 실패 rollback 테스트 추가.
+- 사람의 결정/수정: 추가 확인 사항 없음.
+- 참고 문서 및 버전: C01 고정 UniversalResolverV2/AbstractUniversalResolver/NameCoder 소스.
+- AI 실행 검증: `forge test --match-contract CanonicalPoolEnsIntegrationTest -vv` 3 통과/0 실패. text/data의 chainId·PoolKey hash 일치, 토큰 라벨 미등록, 양 경로 봉인 후 성공, 위임 실패 시 mapping·두 레코드·편집 권한 부재 확인. C03의 data 쓰기 실패 rollback도 유지.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: 위 명령 실행. 이것은 Solidity 통합 검증이며 viem 실행 완료를 뜻하지 않는다.
+- 남은 문제: viem 실제 왕복 호출은 C07에서 실행.
