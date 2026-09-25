@@ -1,0 +1,6 @@
+[submodule "contract/lib/ens-contracts"]
+	path = contract/lib/ens-contracts
+	url = https://github.com/ensdomains/contracts-v2.git
+[submodule "contract/lib/liquidity-launcher"]
+	path = contract/lib/liquidity-launcher
+	url = https://github.com/Uniswap/liquidity-launcher.git

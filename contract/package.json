@@ -1,0 +1,13 @@
+{
+  "name": "klamp-phase1",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test sdk/*.test.ts",
+    "test:contracts": "forge test"
+  },
+  "dependencies": { "viem": "2.56.9" },
+  "devDependencies": { "typescript": "5.9.3", "tsx": "4.20.6", "@types/node": "24.10.1" }
+}
