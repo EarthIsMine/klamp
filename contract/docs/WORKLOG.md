@@ -190,3 +190,13 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `npm run test:e2e`, 예상: found/missing/namespace 구분과 ENS text/data·editor·overwrite·operator denial·sealed roles 모두 통과. Sepolia는 문서의 preflight와 단계별 dry-run부터 실행.
 - 남은 문제: Sepolia 주소·프로토콜 버전 실조회와 서명/broadcast 미실행, ENS 앱 UI 미확인. RPC/검증 코드 해시/자금·서명 계정이 준비되어야 공개 체인 검증 가능. 로컬 fixture oracle을 실제 Sepolia 가격 검증으로 간주하지 않는다.
+
+## C10 보완 — 기존 로컬 RPC 보호
+
+- 날짜 / 도구: 2026-09-26 / Codex
+- AI 수행: E2E의 선택 포트에 기존 Ethereum RPC가 있으면 새 테스트 체인으로 오인하여 배포하지 않도록 시작 전에 거절.
+- 사람의 결정/수정: 추가 확인 사항 없음.
+- 참고: C10 로컬 재현 스크립트 자체 리뷰.
+- AI 실행 검증: 기존 테스트 Anvil(18545)이 켜진 상태에서 Node spawn/assert로 `KLAMP_LOCAL_PORT=18545 ./scripts/local-e2e.sh`가 종료 1과 거절 메시지를 반환함을 확인. 배포 호출 전 종료.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: 이미 사용 중인 RPC 포트를 KLAMP_LOCAL_PORT로 지정하면 실행을 거절해야 한다.
