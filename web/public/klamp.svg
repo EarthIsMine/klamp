@@ -3,13 +3,13 @@
   xmlns="http://www.w3.org/2000/svg"
   width="256"
   height="256"
-  viewBox="0 0 256 256"
+  viewBox="28 20 210 210"
   fill="none"
   role="img"
   aria-labelledby="title desc"
 >
   <title id="title">Klamp icon</title>
-  <desc id="desc">A flat G-clamp with a long T-handle and two orange pressure pads.</desc>
+  <desc id="desc">An industrial G-clamp with a long T-handle and two orange pressure pads.</desc>
 
   <!-- Main frame, rebuilt to match the reference silhouette. -->
   <g id="clamp-body" fill="#34373D">

@@ -11,8 +11,11 @@ const NavMeta = styled.div`display: flex; align-items: center; gap: 22px; font: 
 const Status = styled.span`display: inline-flex; align-items: center; gap: 7px; &::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: ${colors.success}; }`;
 
 const Hero = styled.main`max-width: ${layout.maxWidth}; margin: 0 auto; padding: 114px 24px 92px; @media (max-width: 720px) { padding: 72px 16px 64px; }`;
+const HeroIdentity = styled.div`display: grid; grid-template-columns: minmax(0, 1fr) clamp(160px, 18vw, 224px); gap: clamp(34px, 5vw, 72px); align-items: center; @media (max-width: 900px) { grid-template-columns: 1fr; }`;
+const HeroCopy = styled.div`min-width: 0;`;
+const HeroMark = styled(Mark)`width: 100%; height: auto; justify-self: end; @media (max-width: 900px) { display: none; }`;
 const Kicker = styled.div`display: flex; align-items: center; gap: 12px; font: 650 11px/1 ${mono}; letter-spacing: .08em; color: ${colors.primary}; &::before { content: ""; display: block; width: 28px; height: 2px; background: ${colors.primary}; }`;
-const Headline = styled.h1`font-size: clamp(49px, 8.4vw, 106px); line-height: .94; letter-spacing: -.067em; margin: 30px 0 32px; max-width: 1020px; font-weight: 730; span { color: ${colors.primary}; }`;
+const Headline = styled.h1`font-size: clamp(49px, 7.7vw, 96px); line-height: .94; letter-spacing: -.067em; margin: 30px 0 32px; max-width: 900px; font-weight: 730; span { color: ${colors.primary}; }`;
 const Intro = styled.div`display: grid; grid-template-columns: minmax(0, 610px) 1fr; gap: 60px; align-items: end; @media (max-width: 800px) { grid-template-columns: 1fr; gap: 34px; }`;
 const Lead = styled.p`font-size: clamp(18px, 2.2vw, 25px); line-height: 1.45; letter-spacing: -.023em; color: ${colors.textSecondary}; margin: 0;`;
 const HeroAction = styled.a`justify-self: end; display: inline-flex; align-items: center; justify-content: space-between; gap: 35px; min-width: 205px; padding: 15px 17px; border: 1px solid ${colors.textPrimary}; border-radius: 7px; font: 700 12px/1 ${mono}; transition: background .15s, color .15s; &:hover { background: ${colors.textPrimary}; color: white; } @media (max-width: 800px) { justify-self: start; }`;
@@ -33,6 +36,7 @@ const PrincipleText = styled.div`h3 { font-size: 17px; margin: 0 0 6px; } p { ma
 
 const DemoIntro = styled.div`max-width: ${layout.maxWidth}; margin: 0 auto; padding: 0 24px 31px; display: flex; justify-content: space-between; align-items: end; gap: 30px; h2 { margin: 12px 0 0; font-size: clamp(31px, 5vw, 58px); letter-spacing: -.05em; line-height: 1.04; } p { max-width: 430px; margin: 0; color: ${colors.textSecondary}; font-size: 14px; line-height: 1.6; } @media (max-width: 720px) { padding: 0 16px 26px; display: block; p { margin-top: 20px; } }`;
 const Footer = styled.footer`max-width: ${layout.maxWidth}; margin: 0 auto; padding: 29px 24px 48px; border-top: 1px solid ${colors.border}; display: flex; justify-content: space-between; color: ${colors.textMuted}; font: 500 10px/1.5 ${mono}; @media (max-width: 620px) { margin: 0 16px; padding: 24px 0 36px; flex-direction: column; gap: 8px; }`;
+const FooterBrand = styled.span`display: inline-flex; align-items: center; gap: 8px;`;
 
 export default function Home() {
   return (
@@ -42,8 +46,13 @@ export default function Home() {
         <NavMeta><a href="#architecture">Architecture</a><a href="#demo">Demo</a><Status>Sepolia ready</Status></NavMeta>
       </Nav>
       <Hero id="top">
-        <Kicker>CANONICAL POOL IDENTITY · VERIFIABLE FEE BOUNDS</Kicker>
-        <Headline>Fees should be<br />a promise, <span>not a trap.</span></Headline>
+        <HeroIdentity>
+          <HeroCopy>
+            <Kicker>CANONICAL POOL IDENTITY · VERIFIABLE FEE BOUNDS</Kicker>
+            <Headline>Fees should be<br />a promise, <span>not a trap.</span></Headline>
+          </HeroCopy>
+          <HeroMark size={224} priority />
+        </HeroIdentity>
         <Intro>
           <Lead>Klamp proves who issued a token, resolves its permanent canonical pool through ENSv2, and mechanically caps what a hook can charge.</Lead>
           <HeroAction href="#demo"><span>RUN PROTOCOL</span><span>↘</span></HeroAction>
@@ -64,7 +73,7 @@ export default function Home() {
       </StoryInner></Story>
       <DemoIntro><div><SectionLabel>LIVE HAPPY PATH</SectionLabel><h2>Watch the clamp engage.</h2></div><p>Phase 1 mirrors the implemented SDK: strict ENS resolution and route match. The fee-cap scene remains an explicit Phase 2 mock.</p></DemoIntro>
       <DemoTerminal />
-      <Footer><span>KLAMP · ETHGLOBAL TOKYO 2026</span><span>ENSv2 IDENTITY / UNISWAP v4 ENFORCEMENT</span></Footer>
+      <Footer><FooterBrand><Mark size={20} />KLAMP · ETHGLOBAL TOKYO 2026</FooterBrand><span>ENSv2 IDENTITY / UNISWAP v4 ENFORCEMENT</span></Footer>
     </>
   );
 }

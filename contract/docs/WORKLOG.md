@@ -233,3 +233,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm install --frozen-lockfile && pnpm lint && pnpm build`; `out/index.html`이 생성되어야 한다. GitHub에서는 Pages source를 GitHub Actions로 지정하고 custom domain과 DNS/HTTPS 상태를 확인한다.
 - 남은 문제: 조직 도메인 TXT 검증, 저장소 Pages custom domain 등록, DNS CNAME, 실제 Actions 실행과 공개 URL 육안 검증은 GitHub/DNS 외부 설정이 필요해 미실행이다.
+
+## WEB03 — 클램프 브랜드 아이콘 적용
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26, pnpm 12.6.0, Chrome 로컬 반응형 검증 / Codex
+- AI 수행: `public/klamp.svg`의 과한 외곽 여백을 viewBox에서 줄이고 기존 임시 사각 마크를 대표 클램프 자산으로 교체했다. 같은 벡터를 헤더, 히어로, 푸터와 favicon metadata에 적용하고 모바일에서는 큰 히어로 마크를 숨겨 정보 밀도를 유지했다.
+- 사람의 결정/수정: public의 대표 아이콘을 검토하고 적합하면 수정해 적절한 위치에 배치하도록 요청함.
+- 참고 문서 및 버전: 저장소의 `web/public/klamp.svg`, Next.js 15 Metadata/Image API.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. 로컬 Chrome에서 데스크톱과 390×844 모바일 배치를 확인하고 페이지 내 세 개의 `/klamp.svg` 이미지가 256×256 자연 크기로 정상 로드됨을 확인했다. Chrome 자동 번역 확장이 `lang`과 DOM을 바꿔 발생시킨 hydration 경고는 앱 소스 오류가 아니다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`, 헤더·데스크톱 히어로·푸터 및 브라우저 탭 아이콘 확인. 900px 이하에서는 히어로 대형 아이콘이 숨고 헤더 아이콘은 유지되어야 한다.
+- 남은 문제: 실제 GitHub Pages 배포 후 favicon 캐시 갱신과 다양한 브라우저의 육안 검증은 미실행이다.
