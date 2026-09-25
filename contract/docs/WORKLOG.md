@@ -100,3 +100,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `forge test --match-contract MetadataEditorTest -vv`, 4 통과 예상.
 - 남은 문제: namespace 구성·권한 봉인은 C05에서 구현.
+
+## C05 — namespace 셋업과 권한 봉인
+
+- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경 / Codex
+- AI 수행: 실제 ENS UserRegistry·resolver 프록시 셋업, hooks 분리, 봉인 라이브러리와 Deploy/Seal 스크립트, 호출 기반 권한 테스트 추가.
+- 사람의 결정/수정: 추가 확인 사항 없음.
+- 참고 문서 및 버전: C01 고정 RegistryRolesLib/PermissionedResolver/VerifiableFactory 소스, [권한 제약](phase1-permissions.md).
+- AI 실행 검증: 최초 컴파일 stack-too-deep를 지역변수 수명 분리로 해결. 프록시 동일 salt 충돌을 별도 salt로 해결. 테스트의 동일 호출 깊이 expectRevert 오류를 외부 wrapper로 수정. 최종 `forge test` 20 통과/0 실패, `forge build` 통과.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `forge test --match-contract NamespacePermissionsTest -vv`, 운영자 변경·재위임·업그레이드 거절, hooks 격리, 잘못된 체인 거절 및 재봉인 확인.
+- 남은 문제: 네트워크 프로토콜 코드 신뢰·root 만료·상위 권한은 별도 운영 가정. 네트워크 broadcast 미실행.
