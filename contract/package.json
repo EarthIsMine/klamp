@@ -6,8 +6,16 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "tsx --test sdk/*.test.ts",
-    "test:contracts": "forge test"
+    "test:contracts": "forge test",
+    "demo": "tsx scripts/demo-server.ts",
+    "test:e2e": "bash scripts/local-e2e.sh"
   },
-  "dependencies": { "viem": "2.56.9" },
-  "devDependencies": { "typescript": "5.9.3", "tsx": "4.20.6", "@types/node": "24.10.1" }
+  "dependencies": {
+    "viem": "2.56.9"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "tsx": "4.20.6",
+    "@types/node": "24.10.1"
+  }
 }

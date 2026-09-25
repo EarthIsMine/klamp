@@ -145,3 +145,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `npm test`. 외부 배포 검증 전 sources는 빈 목록을 사용한다.
 - 남은 문제: 실제 Sepolia strategy 주소·배포 블록·runtime code hash 검증 미실행. 이벤트 테스트는 mock RPC 입력으로 수행했고 공개 체인 성공으로 기록하지 않는다.
+
+## C09 — 경로 비교와 최소 조회 데모
+
+- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경, 로컬 HTTP/Anvil / Codex
+- AI 수행: 체인·PoolManager·PoolId 비교, 모든 분할 branch의 대상 hop 검사, 공통 자산 hop 제외, 상태별 차단, 토큰/ENS 이름/출처/대표·후보 ID를 보여주는 최소 HTML 데모 추가. 거래 전송 기능은 없으며 선언된 경로 비교 범위를 화면에 명시.
+- 사람의 결정/수정: 추가 확인 사항 없음.
+- 참고 문서 및 버전: 명세 C09와 C07/C08 SDK.
+- AI 실행 검증: `npm test` 17 통과/0 실패, `npm run typecheck` 통과. `npm run demo` 후 Node fetch/assert로 `/api/check`의 match·mismatch·missing 및 HTML 응답 확인 통과. 브라우저 육안 검사는 미실행.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: Anvil과 로컬 배포를 준비한 상태에서 `npm run demo`, http://127.0.0.1:4173 접속. 기본 경로 일치, poolId 변경 시 불일치, 미등록 토큰은 기록 없음 예상. RPC 중단 시 조회 실패 표시.
+- 남은 문제: 실제 quote builder/거래 calldata와 결합하지 않았으므로 거래 실행 풀의 보장으로 사용하지 않는다. 일반 거래 모드는 구현되어 있지 않다.
