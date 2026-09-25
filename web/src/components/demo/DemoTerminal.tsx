@@ -102,7 +102,7 @@ const CheckResult = styled.div`
 `;
 
 const FeeSimulation = styled.section`
-  margin-top: 34px; padding: 24px; background: ${colors.surfaceSecondary}; border-left: 5px solid ${colors.borderStrong};
+  margin-top: 34px; padding: 24px; background: ${colors.surfaceSecondary};
   @media (max-width: 620px) { padding: 20px 16px; }
 `;
 const FeeHead = styled.div`

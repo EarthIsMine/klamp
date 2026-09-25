@@ -277,3 +277,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/`에서 비교 도식과 책임 경계를 확인하고 `/demo/`에서 `Run trace`를 실행해 route match와 Phase 2 simulation 표기가 분리되는지 확인한다.
 - 남은 문제: 실제 GitHub Pages 배포 화면과 사람의 모바일 실기기 검증은 미실행이다.
+
+## WEB07 — 히어로 프로토콜 콘솔과 면 강조 전환
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 로컬 검증 / Codex, Anthropic `frontend-design` skill
+- AI 수행: 랜딩 히어로 우측 비교 도식을 실제 `klamp verify` 명령, ENSv2 조회, chain/manager/PoolId 비교, route match 결과가 보이는 라이트 프로토콜 콘솔로 교체했다. 운영체제 창 장식, 다크 터미널, 트래픽 라이트는 사용하지 않았다. CTA의 세로 오렌지 보더 조각과 데모 Phase 2 영역의 두꺼운 좌측 보더를 제거하고, CTA 전체 면과 검증 결과 배경색으로 강조 방식을 변경했다.
+- 사람의 결정/수정: 히어로 우측을 터미널처럼 구성하고 손톱형 보더 강조를 제거하며 필요한 강조는 다른 방식으로 바꾸도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, `frontend-design` skill.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 랜딩 전체 화면의 라이트 터미널, CTA 면 강조, 데모의 Phase 2 영역에서 좌측 강조 보더 제거를 확인했다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/`의 우측 콘솔 데이터와 결과 행을 확인하고 `/demo/`의 Phase 2 simulation 영역에 두꺼운 좌측 보더가 없는지 확인한다.
+- 남은 문제: 실제 GitHub Pages 배포와 모바일 실기기 검증은 미실행이다.

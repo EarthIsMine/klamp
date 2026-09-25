@@ -36,38 +36,39 @@ const Lead = styled.p`
   margin: 0; max-width: 620px;
 `;
 const HeroAction = styled.a`
-  display: inline-grid; grid-template-columns: 7px auto; align-items: stretch; gap: 13px; margin-top: 36px;
-  border: 1px solid ${colors.textPrimary}; min-height: 44px; padding: 0 16px 0 0; font-size: 14px; font-weight: 600;
-  span:first-of-type { background: ${colors.primary}; width: 7px; }
-  span:last-of-type { display: flex; align-items: center; }
-  &:hover { border-color: ${colors.primary}; color: ${colors.primaryHover}; }
+  display: inline-flex; align-items: center; margin-top: 36px; min-height: 44px; padding: 0 17px;
+  background: ${colors.primary}; color: ${colors.textPrimary}; font-size: 14px; font-weight: 650;
+  &:hover { background: ${colors.primaryHover}; color: white; }
 `;
 
-const Verification = styled.figure`margin: 0; min-width: 0;`;
-const VerificationHead = styled.div`
-  display: flex; align-items: baseline; justify-content: space-between; gap: 20px; padding-bottom: 14px;
-  border-bottom: 2px solid ${colors.textPrimary};
-  h2 { margin: 0; font-size: 16px; letter-spacing: -.01em; }
-  span { color: ${colors.textMuted}; font-size: 12px; }
+const ProtocolTerminal = styled.aside`
+  min-width: 0; border: 1px solid ${colors.borderStrong}; background: ${colors.surface};
 `;
-const Compare = styled.div`display: grid; grid-template-columns: minmax(0, 1fr) 72px minmax(0, 1fr); align-items: stretch;`;
-const DataColumn = styled.div`padding: 22px 0 18px; min-width: 0;`;
-const DataColumnRight = styled(DataColumn)`text-align: right;`;
-const DataTitle = styled.h3`font-size: 13px; line-height: 1.3; margin: 0 0 18px; font-weight: 600; color: ${colors.textSecondary};`;
-const DataRow = styled.div`
-  margin-top: 13px;
-  span { display: block; color: ${colors.textMuted}; font-size: 11px; margin-bottom: 4px; }
-  code { display: block; color: ${colors.textPrimary}; font: 500 11px/1.45 ${mono}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+const TerminalBar = styled.div`
+  display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 44px; padding: 0 15px;
+  border-bottom: 1px solid ${colors.border}; font-size: 12px; color: ${colors.textSecondary};
+  strong { color: ${colors.textPrimary}; font-weight: 600; }
 `;
-const ClampJoin = styled.div`
-  position: relative; display: grid; place-items: center;
-  &::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: ${colors.primary}; }
-  img { position: relative; z-index: 1; background: ${colors.background}; padding: 7px; }
+const Command = styled.div`
+  padding: 17px 18px; background: ${colors.surfaceSecondary}; border-bottom: 1px solid ${colors.border};
+  font: 500 12px/1.5 ${mono}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  span { color: ${colors.primaryHover}; margin-right: 10px; }
 `;
-const Match = styled.figcaption`
-  border-top: 1px solid ${colors.borderStrong}; padding: 14px 0 0 15px; position: relative; font-size: 13px; color: ${colors.textSecondary};
-  &::before { content: ""; position: absolute; left: 0; top: 16px; width: 7px; height: 7px; background: ${colors.primary}; }
-  strong { color: ${colors.textPrimary}; font-weight: 650; }
+const TerminalOutput = styled.div`padding: 21px 18px 19px; display: grid; gap: 12px;`;
+const OutputLine = styled.div`
+  display: grid; grid-template-columns: 142px minmax(0, 1fr) auto; gap: 14px; align-items: baseline; font: 400 11px/1.5 ${mono};
+  span:first-of-type { color: ${colors.textMuted}; }
+  code { color: ${colors.textPrimary}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  span:last-of-type { color: ${colors.textSecondary}; }
+  @media (max-width: 520px) { grid-template-columns: 116px minmax(0, 1fr); span:last-of-type { display: none; } }
+`;
+const TerminalResult = styled.div`
+  margin: 2px 18px 18px; padding: 15px 16px; background: ${colors.primarySoft}; display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center;
+  strong { display: block; font-size: 14px; margin-bottom: 2px; }
+  p { margin: 0; color: ${colors.textSecondary}; font-size: 12px; line-height: 1.5; }
+`;
+const ResultCode = styled.span`
+  min-width: 52px; color: ${colors.primaryHover}; font: 600 11px/1 ${mono};
 `;
 
 const Boundary = styled.section`border-top: 1px solid ${colors.border}; padding: 92px 24px 100px;`;
@@ -118,27 +119,20 @@ export default function Home() {
           <HeroCopy>
             <Headline>A token issuer declares one canonical pool.</Headline>
             <Lead>Klamp lets clients compare every proposed route against that ENSv2 record before execution.</Lead>
-            <HeroAction href="/demo/"><span aria-hidden="true" /><span>View a verification trace</span></HeroAction>
+            <HeroAction href="/demo/">View a verification trace</HeroAction>
           </HeroCopy>
-          <Verification>
-            <VerificationHead><h2>Canonical route check</h2><span>Illustrative Sepolia fixture</span></VerificationHead>
-            <Compare>
-              <DataColumn>
-                <DataTitle>ENSv2 record</DataTitle>
-                <DataRow><span>Chain</span><code>11155111</code></DataRow>
-                <DataRow><span>PoolManager</span><code>0xE03A…3543</code></DataRow>
-                <DataRow><span>PoolId</span><code>0x91f6…e46b0</code></DataRow>
-              </DataColumn>
-              <ClampJoin aria-hidden="true"><Mark size={58} priority /></ClampJoin>
-              <DataColumnRight>
-                <DataTitle>Proposed route</DataTitle>
-                <DataRow><span>Chain</span><code>11155111</code></DataRow>
-                <DataRow><span>PoolManager</span><code>0xE03A…3543</code></DataRow>
-                <DataRow><span>PoolId</span><code>0x91f6…e46b0</code></DataRow>
-              </DataColumnRight>
-            </Compare>
-            <Match><strong>Match.</strong> The route uses the issuer&apos;s recorded pool.</Match>
-          </Verification>
+          <ProtocolTerminal aria-label="Illustrative Klamp verification output">
+            <TerminalBar><strong>Klamp verifier</strong><span>Sepolia fixture</span></TerminalBar>
+            <Command><span>$</span>klamp verify 0x7A4b…d135 --route route.json</Command>
+            <TerminalOutput>
+              <OutputLine><span>resolve ensv2</span><code>tokens.klamp.eth</code><span>found</span></OutputLine>
+              <OutputLine><span>record chain</span><code>11155111</code><span>ok</span></OutputLine>
+              <OutputLine><span>record manager</span><code>0xE03A…3543</code><span>ok</span></OutputLine>
+              <OutputLine><span>record poolId</span><code>0x91f6…e46b0</code><span>ok</span></OutputLine>
+              <OutputLine><span>compare route[0]</span><code>chain / manager / poolId</code><span>match</span></OutputLine>
+            </TerminalOutput>
+            <TerminalResult><ResultCode>match</ResultCode><div><strong>Route verified</strong><p>The proposed route uses the issuer&apos;s canonical pool.</p></div></TerminalResult>
+          </ProtocolTerminal>
         </HeroGrid>
       </Hero>
       <Boundary id="architecture">
