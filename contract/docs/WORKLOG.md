@@ -211,3 +211,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: README의 설치·테스트 명령과 docs/phase1-verification.md의 수동 확인 절차. 예상 결과와 공개 네트워크 미실행 사항을 분리해 기재.
 - 남은 문제: Sepolia 실배포·실제 strategy 로그·ENS 앱 UI·사람 직접 검증·팀/멘토 피드백은 미실행/미수신. 로컬 통과를 이 항목의 완료로 대체하지 않는다.
+
+## WEB01 — 프로토콜 터미널 이식과 SDK 상태 모델 동기화
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15, pnpm 12.6.0 / Codex
+- AI 수행: 별도 프론트 작업본을 저장소의 `web/`으로 이식하고, 대표 풀 조회를 `found | missing | invalid | unavailable | ambiguous`, 경로 비교를 `match | mismatch | blocked`로 맞췄다. UI·Zustand 상태와 온체인 데이터 어댑터 경계를 분리하고 2단계 수수료 상한 장면을 mock으로 명시했다. 루트 작업 지침과 README에 두 워크스페이스의 책임과 도구를 기록했다.
+- 사람의 결정/수정: 프론트를 컨트랙트 저장소에 합치되 컨트랙트 작업은 건너뛰고, 프론트 명세와 실제 상태 모델부터 동기화하도록 요청함.
+- 참고 문서 및 버전: `sdk/canonicalPool.ts`, `sdk/compareRoutes.ts`, C09·C11 기록, pnpm 12.6.0.
+- AI 실행 검증: 이식 전후 각각 `pnpm lint`, `pnpm build` 통과. `pnpm install --frozen-lockfile`도 이식된 워크스페이스에서 통과했다. 컨트랙트 소스와 npm 잠금 파일은 변경하지 않았다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm install --frozen-lockfile && pnpm lint && pnpm build`, 이후 `pnpm dev`에서 Run demo 실행.
+- 남은 문제: 현재 `ProtocolClient`는 mock이다. viem 어댑터와 실제 배포 manifest 연결, Sepolia UI 육안 검증, 2단계 수수료 상한 컨트랙트 구현은 미실행이다.

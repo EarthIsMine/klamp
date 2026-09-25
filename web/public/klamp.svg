@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="256"
+  height="256"
+  viewBox="0 0 256 256"
+  fill="none"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">Klamp icon</title>
+  <desc id="desc">A flat G-clamp with a long T-handle and two orange pressure pads.</desc>
+
+  <!-- Main frame, rebuilt to match the reference silhouette. -->
+  <g id="clamp-body" fill="#34373D">
+    <path d="M140.5 74H85.5C77.9 74 70.7 77 65.3 82.4L55 92.7C49.9 97.8 47 104.8 47 112V185.2C47 192.1 49.7 198.7 54.6 203.6L64 212C68.6 214.6 73.8 216 79.1 216H162.5C171.1 216 178 209.1 178 200.5V186H138V189.5C138 190.9 136.9 192 135.5 192H99C91.8 192 86 186.2 86 179V111C86 102.7 92.7 96 101 96H138C139.7 96 141 94.7 141 93V74.5C141 74.2 140.8 74 140.5 74Z"/>
+  </g>
+
+  <!-- T-handle: long bar with the original oversized circular ends. -->
+  <g id="t-handle" fill="#34373D">
+    <rect x="112" y="42" width="92" height="9"/>
+    <circle cx="112" cy="46.5" r="12"/>
+    <circle cx="204" cy="46.5" r="12"/>
+    <rect x="146" y="37" width="25" height="21" rx="5"/>
+  </g>
+
+  <!-- Smooth screw shaft; no thread detail. -->
+  <g id="screw-shaft" fill="#34373D">
+    <rect x="151" y="55" width="15" height="79"/>
+  </g>
+
+  <!-- Block joining the upper frame and screw assembly. -->
+  <g id="connection-block" fill="#34373D">
+    <rect x="141" y="74" width="34" height="26" rx="4"/>
+  </g>
+
+  <!-- Only the two opposing pressure pads use Klamp Orange. -->
+  <g id="pressure-pads" fill="#E85D24">
+    <path id="moving-pad" d="M138 142C138 136.5 142.5 132 148 132H170C175.5 132 180 136.5 180 142V146C180 147.7 178.7 149 177 149H141C139.3 149 138 147.7 138 146V142Z"/>
+    <path id="fixed-pad" d="M133 180C133 175 137 171 142 171H175C180 171 184 175 184 180V183C184 184.7 182.7 186 181 186H136C134.3 186 133 184.7 133 183V180Z"/>
+  </g>
+</svg>
