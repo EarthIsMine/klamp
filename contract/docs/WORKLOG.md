@@ -332,3 +332,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/demo/`에서 네 버튼을 순서대로 누르고 각 단계가 한 번에 하나씩 진행되는지, 완료 상태에서도 전체 화면이 한 viewport에 들어오는지 확인한다.
 - 남은 문제: 실제 GitHub Pages 배포와 모바일 실기기 검증은 미실행이다.
+
+## WEB12 — 단계별 장면과 상호작용 애니메이션
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1440×756 검증 / Codex, Anthropic `frontend-design` skill
+- AI 수행: 한 화면에 동시에 노출되던 route, fee, 실행 readout을 제거하고 현재 단계에 필요한 정보만 보여주는 단일 장면 구조로 데모를 재구성했다. 주요 제목과 결과 수치를 확대하고 Declare receipt, Verify 비교, 30% request, 1% cap 결과가 순서대로 교체되도록 했다. 버튼 입력 후에만 장면 진입, 진행선, route 결합, fee 값 변화 애니메이션이 실행되며 `prefers-reduced-motion` 환경에서는 모든 전환을 제거한다. Phase 2 결과는 계속 simulation으로 명시했다.
+- 사람의 결정/수정: 데모의 작은 글자와 과도한 정보량을 줄이고 버튼 상호작용에 반응하는 동적 애니메이션을 추가하도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `frontend-design` skill.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome 1440×756에서 Declare, Verify, Request 30%, Apply 1% 네 장면을 순서대로 확인했으며 완료 화면과 초기 화면 모두 viewport 높이와 문서 높이가 756px로 일치했다. `Start over` 이후 첫 단계 버튼이 복구되는 것도 확인했다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 네 버튼을 순서대로 누르며 한 번에 한 장면만 보이는지, 전환 애니메이션이 클릭 직후 실행되는지, 완료 후 `Start over`가 초기 장면으로 복귀하는지 확인한다.
+- 남은 문제: 실제 GitHub Pages 배포 화면과 모바일 실기기에서의 동작 검증은 미실행이다.
