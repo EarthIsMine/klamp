@@ -36,8 +36,8 @@ export default function DemoPage() {
           <Brand href="/"><Mark />Klamp</Brand>
           <Session aria-label="Demo context">
             <strong>Protocol trace</strong>
-            <span>Phase 1 contract</span>
-            <span>Phase 2 simulation</span>
+            <span>Canonical route</span>
+            <span>Fee cap preview</span>
             <span>Sepolia fixture</span>
           </Session>
           <Back href="/">Project overview</Back>

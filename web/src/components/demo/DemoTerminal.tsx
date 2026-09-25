@@ -11,9 +11,9 @@ const copy = {
   idle: { state: "Step 1 of 4", title: "Declare the canonical pool", detail: "Write the issuer-authorized pool record once." },
   launch: { state: "Step 1 complete", title: "Canonical pool recorded", detail: "The record now has an issuer proof and permanent PoolId." },
   verify: { state: "Step 2 complete", title: "Route matched", detail: "Chain, PoolManager, and PoolId match the ENSv2 record." },
-  request: { state: "Step 3 complete", title: "Hook logic requested 30%", detail: "The local Phase 2 simulation begins with a malicious fee request." },
+  request: { state: "Step 3 complete", title: "Hook logic requested 30%", detail: "The fee cap simulation begins with a malicious request." },
   enforce: { state: "Step 4 of 4", title: "Applying the 1% cap", detail: "Klamp returns the lower of the request and configured maximum." },
-  complete: { state: "Trace complete", title: "The request was capped", detail: "Phase 1 passed. The simulated applied fee is 1%." },
+  complete: { state: "Trace complete", title: "The request was capped", detail: "The route matched. The simulated applied fee is 1%." },
 };
 
 const steps = [
@@ -178,13 +178,13 @@ function actionLabel(stage: DemoStage, busy: boolean) {
   return "Working…";
 }
 
-function phaseOneStatus(stage: DemoStage, matched: boolean) {
+function routeStatus(stage: DemoStage, matched: boolean) {
   if (matched) return "Route matched";
   if (stageIndex(stage) >= stageIndex("launch")) return "Pool declared";
   return "Not started";
 }
 
-function phaseTwoStatus(stage: DemoStage, enforced: boolean) {
+function feeCapStatus(stage: DemoStage, enforced: boolean) {
   if (enforced) return "Capped at 1%";
   if (stageIndex(stage) >= stageIndex("request")) return "30% requested";
   return "Not started";
@@ -258,7 +258,7 @@ export function DemoTerminal() {
 
             {stage === "request" && (
               <Scene key={sceneKey}>
-                <FeeRequest><SceneLabel>Requested by hook logic · Phase 2 simulation</SceneLabel><FeeValue>30.00%</FeeValue><FeeCaption>3,000 bps requested before the cap is applied.</FeeCaption></FeeRequest>
+                <FeeRequest><SceneLabel>Simulated hook request</SceneLabel><FeeValue>30.00%</FeeValue><FeeCaption>3,000 bps requested before the cap is applied.</FeeCaption></FeeRequest>
               </Scene>
             )}
 
@@ -275,8 +275,8 @@ export function DemoTerminal() {
 
             <Bottom>
               <Statuses>
-                <Status><span>Phase 1</span><strong>{phaseOneStatus(stage, matched)}</strong></Status>
-                <Status><span>Phase 2 simulation</span><strong>{phaseTwoStatus(stage, enforced)}</strong></Status>
+                <Status><span>Pool verification</span><strong>{routeStatus(stage, matched)}</strong></Status>
+                <Status><span>Fee cap preview</span><strong>{feeCapStatus(stage, enforced)}</strong></Status>
               </Statuses>
               <Actions>
                 {stage !== "idle" && <Reset onClick={reset}>Reset</Reset>}

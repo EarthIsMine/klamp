@@ -131,7 +131,7 @@ const BoundaryColumn = styled.div`
   li::before { content: ""; width: 5px; height: 5px; margin-top: 8px; background: ${colors.textPrimary}; }
   @media (max-width: 680px) { padding: 26px 0; & + & { border-left: 0; border-top: 1px solid ${colors.border}; padding: 26px 0; } }
 `;
-const PhaseTwo = styled.aside`
+const FeeCapNote = styled.aside`
   display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 72px; align-items: baseline;
   border-top: 1px solid ${colors.borderStrong}; margin-top: 26px; padding-top: 24px;
   h3 { margin: 0; font-size: 15px; }
@@ -209,10 +209,10 @@ export default function Home() {
               </ul>
             </BoundaryColumn>
           </BoundaryGrid>
-          <PhaseTwo>
-            <h3>Phase 2 is a simulation</h3>
-            <p>The demo shows a CappedHook limiting a <strong>30% request</strong> to a <strong>1% cap</strong>. That enforcement is not part of the current contract build.</p>
-          </PhaseTwo>
+          <FeeCapNote>
+            <h3>Fee cap preview</h3>
+            <p>After the route is verified, the demo simulates a CappedHook limiting a <strong>30% request</strong> to a <strong>1% cap</strong>. That enforcement is not part of the current contract build.</p>
+          </FeeCapNote>
         </BoundaryInner>
       </Boundary>
       <Footer><FooterBrand><Mark size={20} />Klamp, ETHGlobal Tokyo 2026</FooterBrand><span>ENSv2 identity and Uniswap v4 enforcement</span></Footer>

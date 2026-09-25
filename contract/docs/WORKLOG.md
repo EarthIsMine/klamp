@@ -343,3 +343,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/demo/`에서 네 버튼을 순서대로 누르며 한 번에 한 장면만 보이는지, 전환 애니메이션이 클릭 직후 실행되는지, 완료 후 `Start over`가 초기 장면으로 복귀하는지 확인한다.
 - 남은 문제: 실제 GitHub Pages 배포 화면과 모바일 실기기에서의 동작 검증은 미실행이다.
+
+## WEB13 — 개발 페이즈 대신 현재 동작을 설명하는 문구 체계
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1440×756 검증 / Codex, Anthropic `frontend-design` skill
+- AI 수행: 랜딩, 데모 헤더, 단계 설명, 상태 요약, metadata에서 `Phase 1`과 `Phase 2` 구분을 제거했다. 랜딩은 route verification 이후의 `Fee cap preview`, 데모는 `Canonical route`, `Pool verification`, `Fee cap preview`처럼 사용자가 현재 보고 있는 동작을 직접 설명하도록 변경했다. 아직 컨트랙트에 포함되지 않은 fee cap은 개발 페이즈 대신 simulation과 preview라는 실행 범위로 명시했다.
+- 사람의 결정/수정: 웹페이지 전반에서 1·2 페이즈 구분을 하지 말고 현재 수행 중인 단계를 설명하도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, `frontend-design` skill.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. `web/src`와 정적 export에서 phase 문구가 남지 않은지 검색했다. Chrome 1440×756에서 랜딩의 fee cap 설명과 데모의 context/status 문구를 확인했으며 데모 문서 높이가 viewport 높이와 동일한 756px인지 확인했다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/`의 Fee cap preview와 `/demo/`의 Canonical route, Pool verification, Fee cap preview 문구를 확인하고 개발 페이즈 번호가 노출되지 않는지 확인한다.
+- 남은 문제: 실제 GitHub Pages 배포 화면과 모바일 실기기 검증은 미실행이다.
