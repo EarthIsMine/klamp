@@ -6,6 +6,12 @@ import {Phase1Setup} from "../script/Phase1Setup.sol";
 import {RegistryRolesLib as R} from "ens-v2/registry/libraries/RegistryRolesLib.sol";
 import {PermissionedResolverLib as P} from "ens-v2/resolver/libraries/PermissionedResolverLib.sol";
 contract NamespacePermissionsTest is NamespaceFixture {
+    function testResumeAfterSealHasNoWrites() public {
+        seal(); vm.recordLogs();
+        Phase1Setup.Deployment memory again=Phase1Setup.deploy(setupConfig,registrar);
+        assertEq(address(again.registry),address(deployment.registry));
+        assertEq(vm.getRecordedLogs().length,0);
+    }
     function testSealRejectsOperatorChangesAndRegrant() public {
         seal();
         uint256 tokens = uint256(keccak256("tokens"));

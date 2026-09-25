@@ -5,7 +5,7 @@ import {Phase1Setup} from "./Phase1Setup.sol";
 import {UserRegistry} from "ens-v2/registry/UserRegistry.sol";
 import {PermissionedResolver} from "ens-v2/resolver/PermissionedResolver.sol";
 import {VerifiableFactory} from "@ensdomains/verifiable-factory/VerifiableFactory.sol";
-import {IUERC20Factory, IStateView} from "../src/CanonicalPoolRegistrar.sol";
+import {CanonicalPoolRegistrar, IUERC20Factory, IStateView} from "../src/CanonicalPoolRegistrar.sol";
 contract DeployPhase1 is Script {
     function run() external returns (Phase1Setup.Deployment memory d) {
         require(block.chainid == vm.envUint("CHAIN_ID"), "wrong chain");
@@ -22,7 +22,7 @@ contract DeployPhase1 is Script {
         c.salt = vm.envUint("DEPLOYMENT_SALT");
         require(address(c.factory).code.length > 0 && address(c.registryImpl).code.length > 0 && address(c.resolverImpl).code.length > 0, "missing protocol code");
         vm.startBroadcast(c.operator);
-        d = Phase1Setup.deploy(c);
+        d = Phase1Setup.deploy(c,CanonicalPoolRegistrar(vm.envOr("REGISTRAR",address(0))));
         vm.stopBroadcast();
     }
 }

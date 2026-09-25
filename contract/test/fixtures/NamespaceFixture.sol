@@ -16,6 +16,7 @@ import {IUERC20Factory, IStateView} from "../../src/CanonicalPoolRegistrar.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 abstract contract NamespaceFixture is RegistrarFixture, ERC1155Holder {
     Phase1Setup.Deployment internal deployment;
+    Phase1Setup.Config internal setupConfig;
     PermissionedRegistry internal root;
     PermissionedRegistry internal eth;
     UniversalResolverV2 internal universal;
@@ -29,7 +30,8 @@ abstract contract NamespaceFixture is RegistrarFixture, ERC1155Holder {
         root.register("eth",address(this),eth,address(0),Phase1Setup.HOOK_ROLES,type(uint64).max);
         eth.setParent(root,"eth");
         address[] memory launchers = new address[](1); launchers[0]=address(launcher);
-        deployment = Phase1Setup.deploy(Phase1Setup.Config(new VerifiableFactory(),new UserRegistry(labels,address(this)),new PermissionedResolver(address(this)),IStateView(address(stateView)),address(manager),IUERC20Factory(address(factory)),launchers,address(this),hooksAdmin,0));
+        setupConfig = Phase1Setup.Config(new VerifiableFactory(),new UserRegistry(labels,address(this)),new PermissionedResolver(address(this)),IStateView(address(stateView)),address(manager),IUERC20Factory(address(factory)),launchers,address(this),hooksAdmin,0);
+        deployment = Phase1Setup.deploy(setupConfig);
         eth.register("klamp",address(this),deployment.registry,address(0),Phase1Setup.HOOK_ROLES,type(uint64).max);
         deployment.registry.setParent(eth,"klamp");
         universal = new UniversalResolverV2(root,new GatewayProvider(address(this),new string[](0)),IContractNamer(address(0)));

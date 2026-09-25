@@ -167,3 +167,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: 위 Foundry 명령. 공개 체인에서는 동일 secret과 설정으로 RegisterRoot 스크립트를 readyAt 이후 재실행한다.
 - 남은 문제: Sepolia 실실행 미실행. 재배포 중복 방지·manifest/preflight/smoke는 다음 C10 단위.
+
+## C10b — namespace 배포 재개와 봉인 probe 강화
+
+- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경 / Codex
+- AI 수행: 고정 VerifiableFactory 생성 코드로 예상 프록시 주소를 계산해 이미 존재하면 구현을 검증하고 재사용. 기존 registrar를 REGISTRAR로 지정해 상태 확인 후 누락된 설정만 적용. 봉인 probe는 mapping의 PoolId·text·data를 서로 대조.
+- 사람의 결정/수정: 추가 확인 사항 없음.
+- 참고 문서 및 버전: C01 VerifiableFactory/CloneProxyBytecode 소스, C10 분할 계획.
+- AI 실행 검증: `forge test --match-contract NamespacePermissionsTest -vv` 4 통과/0 실패. 봉인 후 재배포 호출에서 주소 동일·발생 로그 0 확인. `forge build` 통과.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: 위 테스트. 실제 재개는 원래 DEPLOYMENT_SALT와 broadcast receipt의 REGISTRAR 주소를 유지한다. registrar 권한이 이미 부여되었는데 주소를 생략하면 중복 배포 대신 중단한다.
+- 남은 문제: registrar 배포 직후 권한 부여 전 중단된 경우에도 receipt에서 주소를 복구해 지정해야 불필요한 새 registrar 배포를 피한다. 운영자와 설정은 최초 배포와 같아야 한다.
