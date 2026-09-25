@@ -299,3 +299,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/` 히어로 우측에서 01 resolve, 02 compare, MATCH 순으로 읽히는지 확인한다.
 - 남은 문제: 실제 GitHub Pages 배포와 모바일 실기기 검증은 미실행이다.
+
+## WEB09 — 히어로 TUI 전용 Oh My Zsh 계열 팔레트
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 로컬 검증 / Codex, Anthropic `frontend-design` skill
+- AI 수행: 히어로 TUI 내부에만 Solarized Dark 기반의 Oh My Zsh `agnoster`/기본 prompt 색상 의미 체계를 적용했다. 배경과 패널은 Solarized base 계열, resolution 단계는 yellow, network는 blue, 경로·상태 정보는 cyan, 성공과 MATCH는 green으로 구분했다. 작은 데이터 값의 가독성을 위해 밝은 foreground와 base0를 사용했고, 랜딩과 데모의 기존 Warm White/Clamp Orange 토큰은 변경하지 않았다.
+- 사람의 결정/수정: 히어로 TUI 영역에만 Oh My Zsh 컬러 팔레트를 적용하도록 요청함.
+- 참고 문서 및 버전: Oh My Zsh `agnoster.zsh-theme` master, `robbyrussell.zsh-theme` master, Next.js 15.5.26.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 TUI 외부의 기존 팔레트가 유지되고 TUI 내부에만 Solarized/ANSI 상태색이 적용되는지 확인했다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/`에서 TUI만 dark Solarized 계열인지, 성공 상태가 green이고 외부 CTA는 Clamp Orange를 유지하는지 확인한다.
+- 남은 문제: 실제 GitHub Pages 배포와 모바일 실기기 검증은 미실행이다.
