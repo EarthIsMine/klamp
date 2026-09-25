@@ -310,3 +310,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/`에서 TUI만 dark Solarized 계열인지, 성공 상태가 green이고 외부 CTA는 Clamp Orange를 유지하는지 확인한다.
 - 남은 문제: 실제 GitHub Pages 배포와 모바일 실기기 검증은 미실행이다.
+
+## WEB10 — 히어로 TUI의 macOS 터미널 창 프레임
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 로컬 검증 / Codex, Anthropic `frontend-design` skill
+- AI 수행: 히어로 TUI에 macOS Terminal 형태의 외곽 프레임을 추가했다. 30px 높이의 밝은 타이틀바, 10px red/yellow/green window control, 중앙 세션 제목, 얇은 회색 외곽선, 10px 코너 반경과 절제된 두 단계 창 그림자를 적용했다. 컨트롤은 비기능 장식으로 두어 가짜 버튼 접근성을 만들지 않았고 내부 Oh My Zsh/Solarized TUI는 유지했다.
+- 사람의 결정/수정: 히어로 TUI 보더를 실제 Mac 창처럼 구성하도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, `frontend-design` skill.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 macOS title bar, traffic-light controls, border radius, shadow와 기존 TUI 내용의 결합을 확인했다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/` 히어로 우측 창의 타이틀바, 세 control, 둥근 외곽선과 내부 TUI가 자연스럽게 연결되는지 확인한다.
+- 남은 문제: 실제 GitHub Pages 배포와 모바일 실기기 검증은 미실행이다.

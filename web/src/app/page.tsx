@@ -53,8 +53,23 @@ const HeroAction = styled.a`
 `;
 
 const ProtocolTerminal = styled.aside`
-  min-width: 0; border: 1px solid ${omz.muted}; background: ${omz.background}; color: ${omz.text}; font-family: ${mono};
+  min-width: 0; overflow: hidden; border: 1px solid #B8B8B5; border-radius: 10px;
+  background: ${omz.background}; color: ${omz.text}; font-family: ${mono};
+  box-shadow: 0 18px 45px rgba(32, 32, 30, .14), 0 2px 7px rgba(32, 32, 30, .1);
 `;
+const MacTitleBar = styled.div`
+  min-height: 30px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 11px;
+  background: #EAEAE8; border-bottom: 1px solid #C8C8C5; color: #4F4F4C;
+  font: 500 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+`;
+const WindowControls = styled.div`
+  display: flex; align-items: center; gap: 7px;
+  i { display: block; width: 10px; height: 10px; border-radius: 50%; }
+  i:nth-of-type(1) { background: #FF5F57; border: 1px solid #E0443E; }
+  i:nth-of-type(2) { background: #FEBC2E; border: 1px solid #DFA123; }
+  i:nth-of-type(3) { background: #28C840; border: 1px solid #1AAB29; }
+`;
+const MacTitle = styled.span`grid-column: 2; white-space: nowrap;`;
 const TuiBar = styled.div`
   display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 10px 13px;
   background: ${omz.surface}; color: ${omz.cyan}; font-size: 11px; line-height: 1;
@@ -146,6 +161,10 @@ export default function Home() {
             <HeroAction href="/demo/">View a verification trace</HeroAction>
           </HeroCopy>
           <ProtocolTerminal aria-label="Illustrative Klamp verification output">
+            <MacTitleBar>
+              <WindowControls aria-hidden="true"><i /><i /><i /></WindowControls>
+              <MacTitle>klamp — zsh — 80×24</MacTitle>
+            </MacTitleBar>
             <TuiBar><span>klamp.verify</span><span>sepolia:11155111</span></TuiBar>
             <TuiTarget><span>target</span><code>0x7A4b2F65…eB02d135</code><span>route.json</span></TuiTarget>
             <TuiSection>
