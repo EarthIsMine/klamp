@@ -18,7 +18,7 @@ import {VerifiableFactory} from "@ensdomains/verifiable-factory/VerifiableFactor
 import {UERC20Factory} from "@uniswap/uerc20-factory/src/factories/UERC20Factory.sol";
 import {LiquidityLauncher} from "launcher/LiquidityLauncher.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
-import {Create2Launcher} from "../test/fixtures/RegistrarFixture.sol";
+import {ProbeLauncher} from "./ProbeLauncher.sol";
 import {PoolKey, IStateView, IUERC20Factory} from "../src/CanonicalPoolRegistrar.sol";
 
 /// @dev Local-only fixture; never use this to replace public ENS infrastructure.
@@ -51,15 +51,17 @@ contract LocalPhase1 is Script {
         eth.register("klamp",operator,d.registry,address(0),Phase1Setup.HOOK_ROLES,type(uint64).max);
         d.registry.setParent(eth,"klamp");
         universal = new UniversalResolverV2(root,new GatewayProvider(operator,new string[](0)),IContractNamer(address(0)));
-        Create2Launcher deployer = new Create2Launcher();
-        token = deployer.deploy(0);
-        manager.initialize(V4Key(Currency.wrap(address(0)),Currency.wrap(token),3000,60,IHooks(address(0))),uint160(1<<96));
-        deployer.recordWithEditor(d.registrar,token,PoolKey(address(0),token,3000,60,address(0)),0,operator);
+        ProbeLauncher deployer = new ProbeLauncher(operator,d.registrar);
+        token = deployer.launch(0);
         Phase1Setup.seal(d,eth,universal,operator,operator,31337,token);
         vm.stopBroadcast();
         string memory object = "local";
         vm.serializeUint(object,"chainId",31337);
         vm.serializeAddress(object,"operator",operator);
+        vm.serializeAddress(object,"hooksAdmin",operator);
+        vm.serializeAddress(object,"create2Launcher",address(deployer));
+        vm.serializeBytes32(object,"initCodeHash",deployer.initCodeHash());
+        vm.serializeBytes32(object,"salt",bytes32(0));
         vm.serializeAddress(object,"token",token);
         vm.serializeAddress(object,"poolManager",address(manager));
         vm.serializeAddress(object,"stateView",address(state));

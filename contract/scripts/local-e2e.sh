@@ -16,3 +16,4 @@ done
 mkdir -p deployments
 forge script script/LocalPhase1.s.sol:LocalPhase1 --rpc-url "$RPC_URL" --broadcast --unlocked --slow >"$log_dir/deploy.log" 2>&1 || { cat "$log_dir/deploy.log"; exit 1; }
 npx tsx scripts/local-smoke.ts
+npx tsx scripts/deployment-smoke.ts

@@ -1,0 +1,10 @@
+{
+  "ensV2": "48b3e2d39513b9dd32ef1850877a29009bc807b9",
+  "liquidityLauncher": "1eda9f0c0243e2fdc0cbe0d665200ffa8c2ba53a",
+  "uerc20Factory": "46290a5447844016516b4b4530013da01b6ff801",
+  "v4Core": "59d3ecf53afa9264a16bba0e38f4c5d2231f80bc",
+  "v4Periphery": "ad04c9f24a170accf5ea1b2836bbafd514537ca6",
+  "viem": "2.56.9",
+  "solidity": "0.8.26",
+  "evm": "cancun"
+}

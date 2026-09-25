@@ -178,3 +178,15 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: 위 테스트. 실제 재개는 원래 DEPLOYMENT_SALT와 broadcast receipt의 REGISTRAR 주소를 유지한다. registrar 권한이 이미 부여되었는데 주소를 생략하면 중복 배포 대신 중단한다.
 - 남은 문제: registrar 배포 직후 권한 부여 전 중단된 경우에도 receipt에서 주소를 복구해 지정해야 불필요한 새 registrar 배포를 피한다. 운영자와 설정은 최초 배포와 같아야 한다.
+
+## C10c — 배포 preflight·ERC20 probe·검증 manifest
+
+- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경, 새 Anvil 31337 / Codex
+- AI 수행: 검증 전 Sepolia 후보 설정, 코드 해시·체인·역할·연결·등록비·잔액 사전 점검, 테스트넷 전용 실제 ERC20 probe와 재개, eth_call smoke 및 공개 검증 보고서 생성 추가. 로컬 E2E도 실제 ERC20 probe 사용으로 변경.
+- 사람의 결정/수정: 추가 확인 사항 없음.
+- 참고 문서 및 버전: C01 고정 ENS Sepolia 배포 JSON과 계약 소스, [배포 재현 문서](phase1-deployment.md), deployments/versions.json.
+- AI 실행 검증: preflight TypeScript unknown 반환 비교 오류를 bigint 타입으로 수정. 최종 `forge test` 29 통과/0 실패, `forge build` 통과, `npm test` 17 통과/0 실패, `npm run typecheck` 통과. `./scripts/local-e2e.sh` 새 체인 배포·viem·권한 smoke 통과. Node spawn/assert로 미설정 후보가 tokenFactory 누락 오류로 RPC 접근 전에 거절됨을 확인.
+- 로컬 결과: 실제 ERC20 probe 풀 ID 0xe703bcf882198060d40e34384b820d425dac4359d6869fef2e5619e517c1a709. 생성된 deployments/local.verification.json에 공개 주소·버전·배포 블록·tx 해시·만료·코드 해시·봉인 상태 기록. 개인키/registration secret은 보고서에 포함하지 않는다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `npm run test:e2e`, 예상: found/missing/namespace 구분과 ENS text/data·editor·overwrite·operator denial·sealed roles 모두 통과. Sepolia는 문서의 preflight와 단계별 dry-run부터 실행.
+- 남은 문제: Sepolia 주소·프로토콜 버전 실조회와 서명/broadcast 미실행, ENS 앱 UI 미확인. RPC/검증 코드 해시/자금·서명 계정이 준비되어야 공개 체인 검증 가능. 로컬 fixture oracle을 실제 Sepolia 가격 검증으로 간주하지 않는다.

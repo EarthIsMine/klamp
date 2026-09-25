@@ -7,3 +7,6 @@ broadcast/
 !.env.example
 dist/
 deployments/local.json
+deployments/*.verification.json
+deployments/*.private.json
+deployments/probe.json
