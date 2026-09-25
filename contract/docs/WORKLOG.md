@@ -288,3 +288,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/`의 우측 콘솔 데이터와 결과 행을 확인하고 `/demo/`의 Phase 2 simulation 영역에 두꺼운 좌측 보더가 없는지 확인한다.
 - 남은 문제: 실제 GitHub Pages 배포와 모바일 실기기 검증은 미실행이다.
+
+## WEB08 — 히어로 검증 콘솔의 TUI 문법 강화
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 로컬 검증 / Codex, Anthropic `frontend-design` skill
+- AI 수행: 히어로 우측 콘솔을 고정 열, 순차 섹션, 상태 토큰, 하단 상태 바로 구성된 라이트 TUI로 재설계했다. canonical record resolution과 proposed route comparison을 실제 순서인 01/02로 구분하고 chain, PoolManager, PoolId 판정과 종료 상태를 한 화면에 표시했다. 전체 다크 테마, CRT 효과, 스캔라인, 깜빡이는 커서는 사용하지 않았다.
+- 사람의 결정/수정: 히어로 우측 영역을 일반 터미널보다 TUI에 가까운 표현으로 강화하도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, `frontend-design` skill.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 라이트 TUI의 resolution/compare 섹션, `ok` 상태, `MATCH` 상태 바, 전체 랜딩 흐름을 확인했다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/` 히어로 우측에서 01 resolve, 02 compare, MATCH 순으로 읽히는지 확인한다.
+- 남은 문제: 실제 GitHub Pages 배포와 모바일 실기기 검증은 미실행이다.

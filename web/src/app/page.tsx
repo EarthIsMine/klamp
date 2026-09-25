@@ -42,33 +42,45 @@ const HeroAction = styled.a`
 `;
 
 const ProtocolTerminal = styled.aside`
-  min-width: 0; border: 1px solid ${colors.borderStrong}; background: ${colors.surface};
+  min-width: 0; border: 1px solid ${colors.textPrimary}; background: ${colors.surface}; font-family: ${mono};
 `;
-const TerminalBar = styled.div`
-  display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 44px; padding: 0 15px;
-  border-bottom: 1px solid ${colors.border}; font-size: 12px; color: ${colors.textSecondary};
-  strong { color: ${colors.textPrimary}; font-weight: 600; }
+const TuiBar = styled.div`
+  display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 10px 13px;
+  background: ${colors.textPrimary}; color: white; font-size: 11px; line-height: 1;
+  span:last-of-type { color: #C9C8C2; }
 `;
-const Command = styled.div`
-  padding: 17px 18px; background: ${colors.surfaceSecondary}; border-bottom: 1px solid ${colors.border};
-  font: 500 12px/1.5 ${mono}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  span { color: ${colors.primaryHover}; margin-right: 10px; }
+const TuiTarget = styled.div`
+  display: grid; grid-template-columns: 78px minmax(0, 1fr) auto; gap: 12px; padding: 14px 13px; font-size: 11px; line-height: 1.4;
+  span:first-of-type, span:last-of-type { color: ${colors.textMuted}; }
+  code { font: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 520px) { grid-template-columns: 60px minmax(0, 1fr); span:last-of-type { display: none; } }
 `;
-const TerminalOutput = styled.div`padding: 21px 18px 19px; display: grid; gap: 12px;`;
-const OutputLine = styled.div`
-  display: grid; grid-template-columns: 142px minmax(0, 1fr) auto; gap: 14px; align-items: baseline; font: 400 11px/1.5 ${mono};
+const TuiSection = styled.section`border-top: 1px solid ${colors.textPrimary};`;
+const TuiSectionHead = styled.h2`
+  display: flex; align-items: center; gap: 10px; margin: 0; padding: 8px 13px; background: ${colors.surfaceSecondary};
+  color: ${colors.textSecondary}; font: 500 11px/1 ${mono};
+  span { color: ${colors.textPrimary}; }
+`;
+const TuiRows = styled.div`padding: 12px 13px 14px; display: grid; gap: 9px;`;
+const TuiRow = styled.div`
+  display: grid; grid-template-columns: 128px minmax(0, 1fr) auto; gap: 12px; align-items: baseline; font-size: 11px; line-height: 1.45;
   span:first-of-type { color: ${colors.textMuted}; }
-  code { color: ${colors.textPrimary}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  code { font: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   span:last-of-type { color: ${colors.textSecondary}; }
-  @media (max-width: 520px) { grid-template-columns: 116px minmax(0, 1fr); span:last-of-type { display: none; } }
+  @media (max-width: 520px) { grid-template-columns: 106px minmax(0, 1fr); span:last-of-type { display: none; } }
 `;
-const TerminalResult = styled.div`
-  margin: 2px 18px 18px; padding: 15px 16px; background: ${colors.primarySoft}; display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center;
-  strong { display: block; font-size: 14px; margin-bottom: 2px; }
-  p { margin: 0; color: ${colors.textSecondary}; font-size: 12px; line-height: 1.5; }
+const TuiChecks = styled.div`
+  display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid ${colors.border};
+  div { display: flex; justify-content: space-between; gap: 12px; padding: 11px 13px; color: ${colors.textSecondary}; font-size: 11px; }
+  div + div { border-left: 1px solid ${colors.border}; }
+  strong { color: ${colors.primaryHover}; font-weight: 600; }
+  @media (max-width: 520px) { grid-template-columns: 1fr; div + div { border-left: 0; border-top: 1px solid ${colors.border}; } }
 `;
-const ResultCode = styled.span`
-  min-width: 52px; color: ${colors.primaryHover}; font: 600 11px/1 ${mono};
+const TuiStatus = styled.div`
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; background: ${colors.textPrimary}; color: white; font-size: 11px;
+  strong { align-self: stretch; display: flex; align-items: center; padding: 12px 13px; background: ${colors.primary}; color: ${colors.textPrimary}; font-weight: 700; }
+  span { padding: 0 13px; }
+  span:last-of-type { color: #C9C8C2; }
 `;
 
 const Boundary = styled.section`border-top: 1px solid ${colors.border}; padding: 92px 24px 100px;`;
@@ -122,16 +134,23 @@ export default function Home() {
             <HeroAction href="/demo/">View a verification trace</HeroAction>
           </HeroCopy>
           <ProtocolTerminal aria-label="Illustrative Klamp verification output">
-            <TerminalBar><strong>Klamp verifier</strong><span>Sepolia fixture</span></TerminalBar>
-            <Command><span>$</span>klamp verify 0x7A4b…d135 --route route.json</Command>
-            <TerminalOutput>
-              <OutputLine><span>resolve ensv2</span><code>tokens.klamp.eth</code><span>found</span></OutputLine>
-              <OutputLine><span>record chain</span><code>11155111</code><span>ok</span></OutputLine>
-              <OutputLine><span>record manager</span><code>0xE03A…3543</code><span>ok</span></OutputLine>
-              <OutputLine><span>record poolId</span><code>0x91f6…e46b0</code><span>ok</span></OutputLine>
-              <OutputLine><span>compare route[0]</span><code>chain / manager / poolId</code><span>match</span></OutputLine>
-            </TerminalOutput>
-            <TerminalResult><ResultCode>match</ResultCode><div><strong>Route verified</strong><p>The proposed route uses the issuer&apos;s canonical pool.</p></div></TerminalResult>
+            <TuiBar><span>klamp.verify</span><span>sepolia:11155111</span></TuiBar>
+            <TuiTarget><span>target</span><code>0x7A4b2F65…eB02d135</code><span>route.json</span></TuiTarget>
+            <TuiSection>
+              <TuiSectionHead><span>01</span>resolve canonical record</TuiSectionHead>
+              <TuiRows>
+                <TuiRow><span>ensv2</span><code>tokens.klamp.eth</code><span>[found]</span></TuiRow>
+                <TuiRow><span>chain</span><code>11155111</code><span>[ok]</span></TuiRow>
+                <TuiRow><span>poolManager</span><code>0xE03A…3543</code><span>[ok]</span></TuiRow>
+                <TuiRow><span>poolId</span><code>0x91f6…e46b0</code><span>[ok]</span></TuiRow>
+              </TuiRows>
+            </TuiSection>
+            <TuiSection>
+              <TuiSectionHead><span>02</span>compare proposed route</TuiSectionHead>
+              <TuiChecks><div><span>chain</span><strong>ok</strong></div><div><span>manager</span><strong>ok</strong></div><div><span>poolId</span><strong>ok</strong></div></TuiChecks>
+              <TuiRows><TuiRow><span>route[0]</span><code>canonical pool</code><span>[match]</span></TuiRow></TuiRows>
+            </TuiSection>
+            <TuiStatus><strong>MATCH</strong><span>canonical route confirmed</span><span>exit 0</span></TuiStatus>
           </ProtocolTerminal>
         </HeroGrid>
       </Hero>
