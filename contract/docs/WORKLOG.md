@@ -255,3 +255,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; 히어로, Protocol boundary, Protocol trace를 데스크톱/모바일에서 확인하고 Run demo 실행 후 route가 `match · ens`인지 확인한다.
 - 남은 문제: 실제 배포 화면의 사람 육안 검증과 후속 문구·상호작용 개선은 미실행이다.
+
+## WEB05 — 100dvh 랜딩과 데모 라우트 분리
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 로컬 반응형 검증 / Codex
+- AI 수행: 랜딩 헤더에서 `Sepolia ready`를 제거하고 헤더를 full-height 히어로 위에 배치했다. 히어로를 `100dvh`로 고정하고 CTA와 헤더 Demo 링크를 별도 `/demo/` 라우트로 연결했다. 홈에서 터미널을 제거하고 데모 전용 소개, 범위 표기, 터미널, overview 복귀 링크와 전용 metadata를 구성했다.
+- 사람의 결정/수정: `Sepolia ready` 제거, 히어로 100dvh, CTA의 별도 데모 페이지 이동을 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26 App Router와 static export.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과, `out/demo/index.html` 생성 확인. Chrome에서 데스크톱 히어로 높이 754px/viewport 754px 일치, CTA의 `/demo/` 이동, 데모 제목과 Run demo 표시, 390×844 모바일 레이아웃을 확인했다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/` 첫 화면이 한 viewport를 채우고 CTA가 `/demo/`로 이동하는지, `/demo/`에서 터미널 실행과 overview 복귀가 가능한지 확인한다.
+- 남은 문제: 실제 GitHub Pages 배포 후 두 정적 경로와 새 metadata의 브라우저 캐시 갱신은 미검증이다.

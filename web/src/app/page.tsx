@@ -2,15 +2,13 @@
 
 import styled from "@emotion/styled";
 import { Mark } from "@/components/brand/Mark";
-import { DemoTerminal } from "@/components/demo/DemoTerminal";
 import { colors, layout, mono } from "@/styles/tokens";
 
-const Nav = styled.header`max-width: ${layout.maxWidth}; margin: 0 auto; padding: 22px 24px; display: flex; align-items: center; justify-content: space-between; @media (max-width: 620px) { padding: 18px 16px; }`;
+const Nav = styled.header`position: absolute; inset: 0 0 auto; z-index: 10; width: 100%; max-width: ${layout.maxWidth}; margin: 0 auto; padding: 22px 24px; display: flex; align-items: center; justify-content: space-between; @media (max-width: 620px) { padding: 18px 16px; }`;
 const Brand = styled.a`display: flex; align-items: center; gap: 10px; font-weight: 780; letter-spacing: -.025em;`;
 const NavMeta = styled.div`display: flex; align-items: center; gap: 22px; font: 600 11px/1 ${mono}; color: ${colors.textSecondary}; a:hover { color: ${colors.textPrimary}; } @media (max-width: 540px) { a:first-of-type { display: none; } }`;
-const Status = styled.span`display: inline-flex; align-items: center; gap: 7px; &::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: ${colors.success}; }`;
 
-const Hero = styled.main`max-width: ${layout.maxWidth}; margin: 0 auto; padding: 98px 24px 84px; @media (max-width: 720px) { padding: 64px 16px 58px; }`;
+const Hero = styled.main`min-height: 100dvh; max-width: ${layout.maxWidth}; margin: 0 auto; padding: 112px 24px 72px; display: grid; align-items: center; @media (max-width: 720px) { padding: 92px 16px 54px; }`;
 const HeroIdentity = styled.div`display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: clamp(44px, 7vw, 96px); align-items: start; @media (max-width: 900px) { grid-template-columns: 1fr; gap: 46px; }`;
 const HeroCopy = styled.div`min-width: 0;`;
 const Headline = styled.h1`font-size: clamp(46px, 6.3vw, 76px); line-height: .98; letter-spacing: -.058em; margin: 0 0 28px; max-width: 760px; font-weight: 720;`;
@@ -29,7 +27,6 @@ const Principles = styled.div`display: grid; gap: 0;`;
 const Principle = styled.div`display: grid; grid-template-columns: minmax(145px, .55fr) 1fr; gap: 28px; border-top: 1px solid ${colors.border}; padding: 21px 0; &:last-of-type { border-bottom: 1px solid ${colors.border}; } @media (max-width: 560px) { grid-template-columns: 1fr; gap: 7px; }`;
 const PrincipleText = styled.div`display: contents; h3 { font-size: 14px; line-height: 1.45; margin: 0; } p { margin: 0; color: ${colors.textSecondary}; line-height: 1.6; font-size: 14px; }`;
 
-const DemoIntro = styled.div`max-width: ${layout.maxWidth}; margin: 0 auto; padding: 0 24px 28px; display: grid; grid-template-columns: minmax(0, 1fr) 430px; align-items: end; gap: 48px; h2 { margin: 0; font-size: clamp(30px, 4vw, 46px); letter-spacing: -.045em; line-height: 1.08; } p { margin: 0; color: ${colors.textSecondary}; font-size: 14px; line-height: 1.65; } @media (max-width: 720px) { padding: 0 16px 24px; grid-template-columns: 1fr; gap: 16px; }`;
 const Footer = styled.footer`max-width: ${layout.maxWidth}; margin: 0 auto; padding: 29px 24px 48px; border-top: 1px solid ${colors.border}; display: flex; justify-content: space-between; color: ${colors.textMuted}; font: 500 10px/1.5 ${mono}; @media (max-width: 620px) { margin: 0 16px; padding: 24px 0 36px; flex-direction: column; gap: 8px; }`;
 const FooterBrand = styled.span`display: inline-flex; align-items: center; gap: 8px;`;
 
@@ -38,14 +35,14 @@ export default function Home() {
     <>
       <Nav>
         <Brand href="#top"><Mark />KLAMP</Brand>
-        <NavMeta><a href="#architecture">Architecture</a><a href="#demo">Demo</a><Status>Sepolia ready</Status></NavMeta>
+        <NavMeta><a href="#architecture">Architecture</a><a href="/demo/">Demo</a></NavMeta>
       </Nav>
       <Hero id="top">
         <HeroIdentity>
           <HeroCopy>
             <Headline>Verify the pool.<br />Constrain the fee.</Headline>
             <Lead>Klamp records a token issuer&apos;s canonical Uniswap v4 pool through ENSv2, then gives clients a strict route-verification result before execution.</Lead>
-            <HeroAction href="#demo"><span>Run the protocol trace</span><span>↓</span></HeroAction>
+            <HeroAction href="/demo/"><span>Open the protocol trace</span><span>→</span></HeroAction>
           </HeroCopy>
           <HeroAside>
             <HeroMark size={136} priority />
@@ -66,8 +63,6 @@ export default function Home() {
           <Principle><PrincipleText><h3>Fee cap preview</h3><p>The 30% request and 1% applied fee illustrate the Phase 2 CappedHook design. That enforcement is not part of the current contract build.</p></PrincipleText></Principle>
         </Principles>
       </StoryInner></Story>
-      <DemoIntro><h2>Protocol trace</h2><p>Replay the implemented Phase 1 resolution and route comparison, followed by an explicitly simulated Phase 2 fee-cap interaction.</p></DemoIntro>
-      <DemoTerminal />
       <Footer><FooterBrand><Mark size={20} />KLAMP · ETHGLOBAL TOKYO 2026</FooterBrand><span>ENSv2 IDENTITY / UNISWAP v4 ENFORCEMENT</span></Footer>
     </>
   );
