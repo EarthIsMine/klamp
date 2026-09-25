@@ -134,3 +134,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `./scripts/local-e2e.sh`는 독립 Anvil을 시작·종료하고 위 세 결과를 검증한다. RPC 실패와 알 수 없는 revert는 missing으로 처리하지 않는다.
 - 남은 문제: 공개 네트워크 검증 미실행. 로컬 manifest는 실행마다 생성되며 Git에서 제외한다.
+
+## C08 — 검증된 전략 이벤트 fallback
+
+- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경 / Codex
+- AI 수행: 실제 InstantLaunchStrategy TokenLaunched ABI, 명시적 신뢰 소스·코드 해시·확인 블록·범위 제한, 토큰/키/풀 초기화/블록 해시 검사와 ambiguous 처리 추가.
+- 사람의 결정/수정: 추가 확인 사항 없음.
+- 참고 문서 및 버전: [고정 소스와 설정 설명](phase1-fallback.md). 원문 이벤트의 emitter는 런처가 아닌 전략임을 반영.
+- AI 실행 검증: `npm test` 조회 7개+fallback 6개=13 통과/0 실패, `npm run typecheck` 통과. 정상 로그, 충돌 풀, 가짜 emitter·타 토큰·removed·불일치 hash 거절, 코드 불일치·reorg·RPC 오류, disabled 경로 확인.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `npm test`. 외부 배포 검증 전 sources는 빈 목록을 사용한다.
+- 남은 문제: 실제 Sepolia strategy 주소·배포 블록·runtime code hash 검증 미실행. 이벤트 테스트는 mock RPC 입력으로 수행했고 공개 체인 성공으로 기록하지 않는다.
