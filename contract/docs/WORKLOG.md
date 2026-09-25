@@ -78,3 +78,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `forge test --match-contract CanonicalPoolRegistrarTest -vv`; 6개 통과 예상.
 - 남은 문제: C03의 실제 토큰·풀 상태 검증, C04 편집자 분리는 아직 미구현.
+
+## C03 — 배포 토큰·실제 초기화 풀 검증
+
+- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경 / Codex
+- AI 수행: StateView·PoolManager immutable과 연결 getter 검증, 토큰 코드·currency 정렬·풀 초기화 검사 추가. 실제 v4 PoolManager 테스트와 data 쓰기 실패 rollback 검증 추가.
+- 사람의 결정/수정: 추가 확인 사항 없음.
+- 참고 문서 및 버전: C01 StateView/PoolManager 소스. v4-core 고정 gitlink의 solmate 4b47a19038b798b4a33d9749d25e570443520647 추가 초기화.
+- AI 실행 검증: 최초 `forge test`는 solmate 누락으로 컴파일 실패. 설치·remapping·재설치 스크립트 보완 후 `forge test` 13 통과/0 실패.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `forge test --match-contract PoolValidationTest -vv`, 6 통과 예상. 초기화만 하고 유동성이 없어도 등록 가능.
+- 남은 문제: StateView 코드 자체의 신뢰는 배포 설정의 책임이며 getter 일치만으로 악의적 구현을 인증하지 않는다.

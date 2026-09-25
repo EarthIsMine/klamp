@@ -7,6 +7,7 @@ contract CanonicalPoolRegistrarTest is RegistrarFixture {
     function testCreate2RecordsTextAndData() public {
         address token = deployer.deploy(bytes32(0));
         PoolKey memory key = keyFor(token);
+        initialize(key);
         deployer.record(registrar, token, key, bytes32(0));
         bytes32 id = keccak256(abi.encode(key));
         assertEq(registrar.canonicalPoolOf(token), id);
@@ -20,6 +21,7 @@ contract CanonicalPoolRegistrarTest is RegistrarFixture {
     }
     function testRejectOverwrite() public {
         address token = deployer.deploy(bytes32(0));
+        initialize(keyFor(token));
         deployer.record(registrar, token, keyFor(token), bytes32(0));
         vm.expectRevert(CanonicalPoolRegistrar.AlreadyRecorded.selector);
         deployer.record(registrar, token, keyFor(token), bytes32(0));
@@ -27,6 +29,7 @@ contract CanonicalPoolRegistrarTest is RegistrarFixture {
     function testRealLauncherAndFactory() public {
         address token = launchToken();
         assertEq(token, factory.getUERC20Address("Launch", "LCH", 18, address(launcher), keccak256(abi.encode(creator))));
+        initialize(keyFor(token));
         vm.prank(creator);
         registrar.recordByLiquidityLauncher(token, keyFor(token), address(launcher));
         assertEq(registrar.canonicalPoolOf(token), keccak256(abi.encode(keyFor(token))));

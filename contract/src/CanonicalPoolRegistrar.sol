@@ -36,10 +36,17 @@ interface IERC20Metadata {
     function decimals() external view returns (uint8);
 }
 
+interface IStateView {
+    function poolManager() external view returns (address);
+    function getSlot0(bytes32 poolId) external view returns (uint160, int24, uint24, uint24);
+}
+
 /// @title CanonicalPoolRegistrar
 /// @notice 토큰을 만든 주체만 그 토큰의 대표 풀을 ENS에 한 번 기록할 수 있다.
 ///         기록 위치: <토큰주소>.tokens.klamp.eth 의 text("pool"), data("pool")
 contract CanonicalPoolRegistrar {
+    IStateView public immutable stateView;
+    address public immutable poolManager;
     IPermissionedResolver public immutable resolver; // tokens.klamp.eth 의 resolver
     bytes32 public immutable tokensNode; // namehash("tokens.klamp.eth")
     bytes public tokensName; // DNS 인코딩된 "tokens.klamp.eth"
@@ -51,6 +58,10 @@ contract CanonicalPoolRegistrar {
     event CanonicalRecorded(address indexed token, bytes32 indexed poolId, address indexed deployer);
 
     error NotDeployer();
+    error TokenNotDeployed();
+    error InvalidCurrencyOrder();
+    error PoolNotInitialized();
+    error InvalidStateView();
     error LauncherDisabled();
     error TokenNotInPool();
     error AlreadyRecorded();
@@ -59,8 +70,14 @@ contract CanonicalPoolRegistrar {
         IPermissionedResolver resolver_,
         bytes memory tokensName_,
         IUERC20Factory uerc20Factory_,
-        address[] memory liquidityLaunchers
+        address[] memory liquidityLaunchers,
+        IStateView stateView_,
+        address poolManager_
     ) {
+        if (address(stateView_).code.length == 0 || poolManager_.code.length == 0
+            || stateView_.poolManager() != poolManager_) revert InvalidStateView();
+        stateView = stateView_;
+        poolManager = poolManager_;
         resolver = resolver_;
         tokensName = tokensName_;
         tokensNode = _namehash(tokensName_, 0);
@@ -86,6 +103,7 @@ contract CanonicalPoolRegistrar {
     function recordByLiquidityLauncher(address token, PoolKey calldata key, address launcher) external {
         if (address(uerc20Factory) == address(0)) revert LauncherDisabled();
         if (!isLiquidityLauncher[launcher]) revert NotDeployer();
+        if (token == address(0) || token.code.length == 0) revert TokenNotDeployed();
         IERC20Metadata t = IERC20Metadata(token);
         address predicted = uerc20Factory.getUERC20Address(
             t.name(), t.symbol(), t.decimals(), launcher, keccak256(abi.encode(msg.sender))
@@ -95,10 +113,14 @@ contract CanonicalPoolRegistrar {
     }
 
     function _record(address token, PoolKey calldata key) internal {
+        if (token == address(0) || token.code.length == 0) revert TokenNotDeployed();
+        if (key.currency0 >= key.currency1) revert InvalidCurrencyOrder();
         if (key.currency0 != token && key.currency1 != token) revert TokenNotInPool();
         if (canonicalPoolOf[token] != bytes32(0)) revert AlreadyRecorded();
 
         bytes32 poolId = keccak256(abi.encode(key)); // v4 PoolIdLibrary와 같은 값
+        (uint160 sqrtPriceX96,,,) = stateView.getSlot0(poolId);
+        if (sqrtPriceX96 == 0) revert PoolNotInitialized();
         canonicalPoolOf[token] = poolId;
 
         string memory label = _hex(abi.encodePacked(token)); // "0x" + 소문자 40자
