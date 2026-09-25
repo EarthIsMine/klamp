@@ -34,3 +34,18 @@ The frontend follows the implemented Phase 1 SDK state model:
 - route comparison: `match | mismatch | blocked`
 
 The happy path launches a token, resolves the write-once ENSv2 canonical pool record, and verifies the declared route. It then continues into a clearly labelled Phase 2 mock where a 3,000 bps fee request is capped at 100 bps. That cap is not implemented by the current contracts, and mock addresses or receipts are not live-chain claims.
+
+## GitHub Pages deployment
+
+The production site is intended to use `https://klamp.kro.kr` at the domain root. `next build` uses Next.js static export and writes the deployable site to `out/`; no server runtime is required.
+
+The repository workflow at `.github/workflows/deploy-pages.yml` lints, builds, and deploys `web/out` on pushes to `main`. It can also be started manually from the Actions tab.
+
+Before the first deployment:
+
+1. Verify the owned domain `klamp.kro.kr` in the `EarthIsMine` organization Pages settings.
+2. In `EarthIsMine/klamp` settings, select **Pages → Source → GitHub Actions**.
+3. Set the repository Pages custom domain to `klamp.kro.kr`.
+4. At the DNS provider, point `klamp.kro.kr` to `EarthIsMine.github.io` using the provider's CNAME/ALIAS support, then enable HTTPS after GitHub validates DNS.
+
+The Actions-based deployment does not require a committed `CNAME` file. Do not place private RPC credentials in the frontend or in `NEXT_PUBLIC_*` variables; all shipped browser configuration is public.

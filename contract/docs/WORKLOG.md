@@ -222,3 +222,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm install --frozen-lockfile && pnpm lint && pnpm build`, 이후 `pnpm dev`에서 Run demo 실행.
 - 남은 문제: 현재 `ProtocolClient`는 mock이다. viem 어댑터와 실제 배포 manifest 연결, Sepolia UI 육안 검증, 2단계 수수료 상한 컨트랙트 구현은 미실행이다.
+
+## WEB02 — klamp.kro.kr GitHub Pages 배포 준비
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26, pnpm 12.6.0, GitHub Pages Actions / Codex
+- AI 수행: Next.js static export와 trailing slash를 활성화하고, `main`의 웹 변경을 lint·build한 뒤 `web/out`을 GitHub Pages에 배포하는 workflow를 추가했다. 커스텀 도메인 `klamp.kro.kr`을 루트 경로로 사용하는 운영 절차를 README에 기록했다.
+- 사람의 결정/수정: 배포 도메인을 `klamp.kro.kr`로 결정하고 코드에서 배포 준비를 요청함.
+- 참고 문서 및 버전: Next.js static export/basePath 공식 문서, GitHub Pages custom workflow/custom domain 공식 문서, `actions/configure-pages@v5`, `actions/upload-pages-artifact@v4`, `actions/deploy-pages@v5`, `pnpm/setup@v3`.
+- AI 실행 검증: `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm build` 통과. `web/out/index.html`과 `web/out/_next/static` 생성, HTML의 `/_next/` 루트 asset 경로, workflow YAML 파싱을 확인했다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm install --frozen-lockfile && pnpm lint && pnpm build`; `out/index.html`이 생성되어야 한다. GitHub에서는 Pages source를 GitHub Actions로 지정하고 custom domain과 DNS/HTTPS 상태를 확인한다.
+- 남은 문제: 조직 도메인 TXT 검증, 저장소 Pages custom domain 등록, DNS CNAME, 실제 Actions 실행과 공개 URL 육안 검증은 GitHub/DNS 외부 설정이 필요해 미실행이다.
