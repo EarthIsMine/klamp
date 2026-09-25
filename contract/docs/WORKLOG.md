@@ -321,3 +321,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/` 히어로 우측 창의 타이틀바, 세 control, 둥근 외곽선과 내부 TUI가 자연스럽게 연결되는지 확인한다.
 - 남은 문제: 실제 GitHub Pages 배포와 모바일 실기기 검증은 미실행이다.
+
+## WEB11 — 100dvh 단계형 프로토콜 데모
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 754px viewport 검증 / Codex, Anthropic `frontend-design` skill
+- AI 수행: 데모 페이지의 대형 인트로와 하단 푸터를 제거하고 헤더와 프로토콜 도구가 정확히 한 viewport를 사용하는 100dvh 화면으로 재구성했다. 상태 저장소의 일괄 자동 재생을 `Declare canonical pool` → `Verify proposed route` → `Request 30% fee` → `Apply 1% cap` 네 개의 사용자 입력으로 분리했다. 각 입력은 한 가지 상태 변화와 비동기 작업만 수행하며, 완료 후 `Start over`로 초기화한다. 비교 결과와 fee simulation을 데스크톱에서 좌우로 배치하고 낮은 화면과 모바일에서는 세로 스크롤로 전환했다.
+- 사람의 결정/수정: 시연 편의를 위해 데모를 100dvh로 만들고 과도한 타이틀을 제거하며 상호작용을 단계별로 구성하도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, Zustand 5.0.8, Emotion 11.14.1, `frontend-design` skill.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome 1440×754에서 초기/완료 화면이 한 viewport에 들어오는지 확인했다. 네 단계 버튼을 순서대로 실행해 canonical record, ENSv2 route match, 30% request, 1% applied 결과를 확인하고 `Start over`가 첫 단계로 복귀하는지 확인했다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 네 버튼을 순서대로 누르고 각 단계가 한 번에 하나씩 진행되는지, 완료 상태에서도 전체 화면이 한 viewport에 들어오는지 확인한다.
+- 남은 문제: 실제 GitHub Pages 배포와 모바일 실기기 검증은 미실행이다.

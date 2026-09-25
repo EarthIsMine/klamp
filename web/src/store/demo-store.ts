@@ -19,7 +19,7 @@ type DemoState = {
   comparison: RouteComparison | null;
   attestation: HookAttestation | null;
   enforcement: FeeEnforcement | null;
-  runDemo: (client?: ProtocolClient) => Promise<void>;
+  advance: (client?: ProtocolClient) => Promise<void>;
   reset: () => void;
 };
 
@@ -33,30 +33,51 @@ const initial = {
   enforcement: null,
 };
 
-export const useDemoStore = create<DemoState>((set) => ({
+export const useDemoStore = create<DemoState>((set, get) => ({
   ...initial,
-  async runDemo(client = mockProtocolClient) {
-    set({ ...initial, stage: "launch", busy: true });
-    const launch = await client.launchToken();
-    set({ launch, stage: "verify" });
-    const canonical = await client.resolveCanonicalPool(launch.token);
-    if (canonical.status !== "found") {
-      set({ canonical, stage: "complete", busy: false });
+  async advance(client = mockProtocolClient) {
+    const state = get();
+    if (state.busy) return;
+
+    if (state.stage === "idle") {
+      set({ ...initial, stage: "launch", busy: true });
+      const launch = await client.launchToken();
+      set({ launch, stage: "launch", busy: false });
       return;
     }
-    const comparison = compareRoutes(launch.token, canonical, [[{
-      chainId: canonical.chainId,
-      poolManager: canonical.poolManager,
-      poolId: canonical.poolId,
-      tokenIn: launch.canonicalPool.key.currency0,
-      tokenOut: launch.token,
-    }]]);
-    const attestation = await client.resolveHookAttestation(launch.canonicalPool.key.hooks);
-    set({ canonical, comparison, attestation, stage: "request" });
-    await new Promise((resolve) => setTimeout(resolve, 650));
-    set({ stage: "enforce" });
-    const enforcement = await client.simulateFeeRequest(3000, 41842.17);
-    set({ enforcement, stage: "complete", busy: false });
+
+    if (state.stage === "launch" && state.launch) {
+      set({ stage: "verify", busy: true });
+      const canonical = await client.resolveCanonicalPool(state.launch.token);
+      if (canonical.status !== "found") {
+        set({ canonical, stage: "complete", busy: false });
+        return;
+      }
+      const comparison = compareRoutes(state.launch.token, canonical, [[{
+        chainId: canonical.chainId,
+        poolManager: canonical.poolManager,
+        poolId: canonical.poolId,
+        tokenIn: state.launch.canonicalPool.key.currency0,
+        tokenOut: state.launch.token,
+      }]]);
+      const attestation = await client.resolveHookAttestation(state.launch.canonicalPool.key.hooks);
+      set({ canonical, comparison, attestation, stage: "verify", busy: false });
+      return;
+    }
+
+    if (state.stage === "verify") {
+      set({ stage: "request" });
+      return;
+    }
+
+    if (state.stage === "request") {
+      set({ stage: "enforce", busy: true });
+      const enforcement = await client.simulateFeeRequest(3000, 41842.17);
+      set({ enforcement, stage: "complete", busy: false });
+      return;
+    }
+
+    if (state.stage === "complete") set(initial);
   },
   reset: () => set(initial),
 }));
