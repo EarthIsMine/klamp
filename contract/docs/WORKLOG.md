@@ -266,3 +266,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/` 첫 화면이 한 viewport를 채우고 CTA가 `/demo/`로 이동하는지, `/demo/`에서 터미널 실행과 overview 복귀가 가능한지 확인한다.
 - 남은 문제: 실제 GitHub Pages 배포 후 두 정적 경로와 새 metadata의 브라우저 캐시 갱신은 미검증이다.
+
+## WEB06 — 랜딩과 데모의 프로토콜 중심 시각 체계 개선
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, pnpm 12.6.0, Chrome 로컬 검증 / Codex, Anthropic `frontend-design` skill
+- AI 수행: Warm White, Charcoal, Clamp Orange 팔레트를 유지하면서 Inter를 IBM Plex Sans로 교체하고 mono 서체를 주소와 실행 값으로 제한했다. 랜딩 히어로를 ENSv2 record와 proposed route의 직접 비교로 바꾸고 클램프 마크를 두 값을 결합하는 의미 있는 장치로 배치했다. 계약과 클라이언트의 책임 경계를 두 열로 재구성하고 Phase 2를 별도 simulation으로 분리했다. 데모에서는 장식적인 터미널 카드와 대문자·중점·화살표 표기를 제거하고 단계 진행, canonical route 비교, fee-cap simulation, 실행 readout을 하나의 계측 화면으로 재구성했다.
+- 사람의 결정/수정: Clamp Orange와 Warm White 조합을 유지하고, 앞서 합의한 AI 생성형 디자인 흔적 제거 지침을 랜딩과 데모에 함께 적용하도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `@fontsource-variable/ibm-plex-sans` 5.3.0, `@fontsource/ibm-plex-mono` 5.3.0.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. static export의 `/`와 `/demo` 생성을 확인했다. Chrome에서 랜딩 전체 흐름, 데모 초기 상태, `Run trace` 실행 후 ENS route match와 30% requested / 1% applied 결과를 확인했다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/`에서 비교 도식과 책임 경계를 확인하고 `/demo/`에서 `Run trace`를 실행해 route match와 Phase 2 simulation 표기가 분리되는지 확인한다.
+- 남은 문제: 실제 GitHub Pages 배포 화면과 사람의 모바일 실기기 검증은 미실행이다.

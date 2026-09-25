@@ -25,4 +25,5 @@ export const layout = {
   radiusLarge: "16px",
 } as const;
 
-export const mono = '"SFMono-Regular", Consolas, "Liberation Mono", monospace';
+export const sans = '"IBM Plex Sans Variable", "Helvetica Neue", Arial, sans-serif';
+export const mono = '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace';

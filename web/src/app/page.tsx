@@ -4,66 +4,174 @@ import styled from "@emotion/styled";
 import { Mark } from "@/components/brand/Mark";
 import { colors, layout, mono } from "@/styles/tokens";
 
-const Nav = styled.header`position: absolute; inset: 0 0 auto; z-index: 10; width: 100%; max-width: ${layout.maxWidth}; margin: 0 auto; padding: 22px 24px; display: flex; align-items: center; justify-content: space-between; @media (max-width: 620px) { padding: 18px 16px; }`;
-const Brand = styled.a`display: flex; align-items: center; gap: 10px; font-weight: 780; letter-spacing: -.025em;`;
-const NavMeta = styled.div`display: flex; align-items: center; gap: 22px; font: 600 11px/1 ${mono}; color: ${colors.textSecondary}; a:hover { color: ${colors.textPrimary}; } @media (max-width: 540px) { a:first-of-type { display: none; } }`;
+const Nav = styled.header`
+  position: absolute; inset: 0 0 auto; z-index: 10; width: 100%; max-width: ${layout.maxWidth};
+  margin: 0 auto; padding: 24px; display: flex; align-items: center; justify-content: space-between;
+  @media (max-width: 620px) { padding: 18px 16px; }
+`;
+const Brand = styled.a`display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.02em;`;
+const NavLinks = styled.nav`
+  display: flex; align-items: center; gap: 28px; color: ${colors.textSecondary}; font-size: 13px;
+  a { padding: 5px 0; border-bottom: 1px solid transparent; }
+  a:hover { color: ${colors.textPrimary}; border-color: ${colors.borderStrong}; }
+  @media (max-width: 540px) { a:first-of-type { display: none; } }
+`;
 
-const Hero = styled.main`min-height: 100dvh; max-width: ${layout.maxWidth}; margin: 0 auto; padding: 112px 24px 72px; display: grid; align-items: center; @media (max-width: 720px) { padding: 92px 16px 54px; }`;
-const HeroIdentity = styled.div`display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: clamp(44px, 7vw, 96px); align-items: start; @media (max-width: 900px) { grid-template-columns: 1fr; gap: 46px; }`;
+const Hero = styled.main`
+  min-height: 100dvh; max-width: ${layout.maxWidth}; margin: 0 auto; padding: 116px 24px 68px;
+  display: grid; align-items: center;
+  @media (max-width: 720px) { padding: 96px 16px 54px; }
+`;
+const HeroGrid = styled.div`
+  display: grid; grid-template-columns: minmax(0, .92fr) minmax(460px, 1.08fr); gap: clamp(54px, 8vw, 112px); align-items: center;
+  @media (max-width: 940px) { grid-template-columns: 1fr; gap: 58px; }
+`;
 const HeroCopy = styled.div`min-width: 0;`;
-const Headline = styled.h1`font-size: clamp(46px, 6.3vw, 76px); line-height: .98; letter-spacing: -.058em; margin: 0 0 28px; max-width: 760px; font-weight: 720;`;
-const Lead = styled.p`font-size: clamp(18px, 2vw, 23px); line-height: 1.5; letter-spacing: -.02em; color: ${colors.textSecondary}; margin: 0; max-width: 690px;`;
-const HeroAction = styled.a`display: inline-flex; align-items: center; gap: 22px; margin-top: 34px; padding: 12px 0 10px; border-bottom: 1px solid ${colors.textPrimary}; font: 650 12px/1 ${mono}; transition: color .15s, border-color .15s; &:hover { color: ${colors.primary}; border-color: ${colors.primary}; }`;
-const HeroAside = styled.aside`border-top: 1px solid ${colors.borderStrong};`;
-const HeroMark = styled(Mark)`display: block; width: 136px; height: auto; margin: 0 0 34px auto; @media (max-width: 900px) { display: none; }`;
-const Facts = styled.dl`margin: 0;`;
-const Fact = styled.div`display: grid; grid-template-columns: 88px 1fr; gap: 14px; padding: 13px 0; border-bottom: 1px solid ${colors.border}; font-size: 12px; line-height: 1.5; dt { color: ${colors.textMuted}; font-family: ${mono}; } dd { margin: 0; color: ${colors.textSecondary}; }`;
+const Headline = styled.h1`
+  font-size: clamp(44px, 5.5vw, 66px); line-height: .98; letter-spacing: -.052em; margin: 0 0 28px;
+  max-width: 660px; font-weight: 650;
+`;
+const Lead = styled.p`
+  font-size: clamp(17px, 1.8vw, 21px); line-height: 1.55; letter-spacing: -.015em; color: ${colors.textSecondary};
+  margin: 0; max-width: 620px;
+`;
+const HeroAction = styled.a`
+  display: inline-grid; grid-template-columns: 7px auto; align-items: stretch; gap: 13px; margin-top: 36px;
+  border: 1px solid ${colors.textPrimary}; min-height: 44px; padding: 0 16px 0 0; font-size: 14px; font-weight: 600;
+  span:first-of-type { background: ${colors.primary}; width: 7px; }
+  span:last-of-type { display: flex; align-items: center; }
+  &:hover { border-color: ${colors.primary}; color: ${colors.primaryHover}; }
+`;
 
-const Story = styled.section`border-top: 1px solid ${colors.border}; border-bottom: 1px solid ${colors.border}; background: ${colors.surface}; margin-bottom: 92px;`;
-const StoryInner = styled.div`max-width: ${layout.maxWidth}; margin: 0 auto; padding: 74px 24px; display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 90px; @media (max-width: 760px) { padding: 56px 16px; grid-template-columns: 1fr; gap: 36px; }`;
-const StoryTitle = styled.h2`font-size: clamp(30px, 4vw, 46px); line-height: 1.08; letter-spacing: -.045em; margin: 0 0 18px;`;
-const StorySummary = styled.p`font-size: 14px; line-height: 1.65; color: ${colors.textSecondary}; margin: 0;`;
-const Principles = styled.div`display: grid; gap: 0;`;
-const Principle = styled.div`display: grid; grid-template-columns: minmax(145px, .55fr) 1fr; gap: 28px; border-top: 1px solid ${colors.border}; padding: 21px 0; &:last-of-type { border-bottom: 1px solid ${colors.border}; } @media (max-width: 560px) { grid-template-columns: 1fr; gap: 7px; }`;
-const PrincipleText = styled.div`display: contents; h3 { font-size: 14px; line-height: 1.45; margin: 0; } p { margin: 0; color: ${colors.textSecondary}; line-height: 1.6; font-size: 14px; }`;
+const Verification = styled.figure`margin: 0; min-width: 0;`;
+const VerificationHead = styled.div`
+  display: flex; align-items: baseline; justify-content: space-between; gap: 20px; padding-bottom: 14px;
+  border-bottom: 2px solid ${colors.textPrimary};
+  h2 { margin: 0; font-size: 16px; letter-spacing: -.01em; }
+  span { color: ${colors.textMuted}; font-size: 12px; }
+`;
+const Compare = styled.div`display: grid; grid-template-columns: minmax(0, 1fr) 72px minmax(0, 1fr); align-items: stretch;`;
+const DataColumn = styled.div`padding: 22px 0 18px; min-width: 0;`;
+const DataColumnRight = styled(DataColumn)`text-align: right;`;
+const DataTitle = styled.h3`font-size: 13px; line-height: 1.3; margin: 0 0 18px; font-weight: 600; color: ${colors.textSecondary};`;
+const DataRow = styled.div`
+  margin-top: 13px;
+  span { display: block; color: ${colors.textMuted}; font-size: 11px; margin-bottom: 4px; }
+  code { display: block; color: ${colors.textPrimary}; font: 500 11px/1.45 ${mono}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+`;
+const ClampJoin = styled.div`
+  position: relative; display: grid; place-items: center;
+  &::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: ${colors.primary}; }
+  img { position: relative; z-index: 1; background: ${colors.background}; padding: 7px; }
+`;
+const Match = styled.figcaption`
+  border-top: 1px solid ${colors.borderStrong}; padding: 14px 0 0 15px; position: relative; font-size: 13px; color: ${colors.textSecondary};
+  &::before { content: ""; position: absolute; left: 0; top: 16px; width: 7px; height: 7px; background: ${colors.primary}; }
+  strong { color: ${colors.textPrimary}; font-weight: 650; }
+`;
 
-const Footer = styled.footer`max-width: ${layout.maxWidth}; margin: 0 auto; padding: 29px 24px 48px; border-top: 1px solid ${colors.border}; display: flex; justify-content: space-between; color: ${colors.textMuted}; font: 500 10px/1.5 ${mono}; @media (max-width: 620px) { margin: 0 16px; padding: 24px 0 36px; flex-direction: column; gap: 8px; }`;
+const Boundary = styled.section`border-top: 1px solid ${colors.border}; padding: 92px 24px 100px;`;
+const BoundaryInner = styled.div`max-width: ${layout.maxWidth}; margin: 0 auto;`;
+const BoundaryIntro = styled.div`
+  display: grid; grid-template-columns: 320px minmax(0, 600px); gap: 72px; align-items: start; margin-bottom: 52px;
+  h2 { font-size: clamp(32px, 4vw, 48px); line-height: 1; letter-spacing: -.045em; margin: 0; font-weight: 650; }
+  p { margin: 2px 0 0; color: ${colors.textSecondary}; font-size: 16px; line-height: 1.65; }
+  @media (max-width: 760px) { grid-template-columns: 1fr; gap: 18px; margin-bottom: 38px; }
+`;
+const BoundaryGrid = styled.div`
+  display: grid; grid-template-columns: 1fr 1fr; border-top: 2px solid ${colors.textPrimary};
+  @media (max-width: 680px) { grid-template-columns: 1fr; }
+`;
+const BoundaryColumn = styled.div`
+  padding: 28px 34px 32px 0;
+  & + & { border-left: 1px solid ${colors.border}; padding-left: 34px; padding-right: 0; }
+  h3 { margin: 0 0 22px; font-size: 18px; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { display: grid; grid-template-columns: 9px 1fr; gap: 12px; padding: 9px 0; color: ${colors.textSecondary}; font-size: 14px; line-height: 1.5; }
+  li::before { content: ""; width: 5px; height: 5px; margin-top: 8px; background: ${colors.textPrimary}; }
+  @media (max-width: 680px) { padding: 26px 0; & + & { border-left: 0; border-top: 1px solid ${colors.border}; padding: 26px 0; } }
+`;
+const PhaseTwo = styled.aside`
+  display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 72px; align-items: baseline;
+  border-top: 1px solid ${colors.borderStrong}; margin-top: 26px; padding-top: 24px;
+  h3 { margin: 0; font-size: 15px; }
+  p { margin: 0; color: ${colors.textSecondary}; line-height: 1.6; font-size: 14px; }
+  strong { color: ${colors.primaryHover}; font-weight: 650; }
+  @media (max-width: 680px) { grid-template-columns: 1fr; gap: 8px; }
+`;
+const Footer = styled.footer`
+  max-width: ${layout.maxWidth}; margin: 0 auto; padding: 28px 24px 42px; border-top: 1px solid ${colors.border};
+  display: flex; justify-content: space-between; color: ${colors.textMuted}; font-size: 12px;
+  @media (max-width: 620px) { margin: 0 16px; padding: 24px 0 34px; flex-direction: column; gap: 8px; }
+`;
 const FooterBrand = styled.span`display: inline-flex; align-items: center; gap: 8px;`;
 
 export default function Home() {
   return (
     <>
       <Nav>
-        <Brand href="#top"><Mark />KLAMP</Brand>
-        <NavMeta><a href="#architecture">Architecture</a><a href="/demo/">Demo</a></NavMeta>
+        <Brand href="#top"><Mark />Klamp</Brand>
+        <NavLinks aria-label="Primary navigation"><a href="#architecture">How it verifies</a><a href="/demo/">View demo</a></NavLinks>
       </Nav>
       <Hero id="top">
-        <HeroIdentity>
+        <HeroGrid>
           <HeroCopy>
-            <Headline>Verify the pool.<br />Constrain the fee.</Headline>
-            <Lead>Klamp records a token issuer&apos;s canonical Uniswap v4 pool through ENSv2, then gives clients a strict route-verification result before execution.</Lead>
-            <HeroAction href="/demo/"><span>Open the protocol trace</span><span>→</span></HeroAction>
+            <Headline>A token issuer declares one canonical pool.</Headline>
+            <Lead>Klamp lets clients compare every proposed route against that ENSv2 record before execution.</Lead>
+            <HeroAction href="/demo/"><span aria-hidden="true" /><span>View a verification trace</span></HeroAction>
           </HeroCopy>
-          <HeroAside>
-            <HeroMark size={136} priority />
-            <Facts>
-              <Fact><dt>Network</dt><dd>Sepolia · chain 11155111</dd></Fact>
-              <Fact><dt>Phase 1</dt><dd>Canonical pool identity and route comparison</dd></Fact>
-              <Fact><dt>Phase 2</dt><dd>Fee-cap interaction shown as a mock</dd></Fact>
-            </Facts>
-          </HeroAside>
-        </HeroIdentity>
+          <Verification>
+            <VerificationHead><h2>Canonical route check</h2><span>Illustrative Sepolia fixture</span></VerificationHead>
+            <Compare>
+              <DataColumn>
+                <DataTitle>ENSv2 record</DataTitle>
+                <DataRow><span>Chain</span><code>11155111</code></DataRow>
+                <DataRow><span>PoolManager</span><code>0xE03A…3543</code></DataRow>
+                <DataRow><span>PoolId</span><code>0x91f6…e46b0</code></DataRow>
+              </DataColumn>
+              <ClampJoin aria-hidden="true"><Mark size={58} priority /></ClampJoin>
+              <DataColumnRight>
+                <DataTitle>Proposed route</DataTitle>
+                <DataRow><span>Chain</span><code>11155111</code></DataRow>
+                <DataRow><span>PoolManager</span><code>0xE03A…3543</code></DataRow>
+                <DataRow><span>PoolId</span><code>0x91f6…e46b0</code></DataRow>
+              </DataColumnRight>
+            </Compare>
+            <Match><strong>Match.</strong> The route uses the issuer&apos;s recorded pool.</Match>
+          </Verification>
+        </HeroGrid>
       </Hero>
-      <Story id="architecture"><StoryInner>
-        <div><StoryTitle>Protocol boundary</StoryTitle><StorySummary>Klamp separates what the current contracts verify from what remains client policy or a Phase 2 design.</StorySummary></div>
-        <Principles>
-          <Principle><PrincipleText><h3>Issuer declaration</h3><p>CREATE2 or LiquidityLauncher graffiti proves who may record the pool. Registration also checks deployment, token inclusion, pool initialization, and the write-once rule.</p></PrincipleText></Principle>
-          <Principle><PrincipleText><h3>Resolver output</h3><p>The SDK returns found, missing, invalid, unavailable, or ambiguous. Failed resolution is never silently presented as an absent record.</p></PrincipleText></Principle>
-          <Principle><PrincipleText><h3>Client comparison</h3><p>Every declared route branch that touches the token must match chain, PoolManager, and PoolId. Opaque execution calldata is outside this guarantee.</p></PrincipleText></Principle>
-          <Principle><PrincipleText><h3>Fee cap preview</h3><p>The 30% request and 1% applied fee illustrate the Phase 2 CappedHook design. That enforcement is not part of the current contract build.</p></PrincipleText></Principle>
-        </Principles>
-      </StoryInner></Story>
-      <Footer><FooterBrand><Mark size={20} />KLAMP · ETHGLOBAL TOKYO 2026</FooterBrand><span>ENSv2 IDENTITY / UNISWAP v4 ENFORCEMENT</span></Footer>
+      <Boundary id="architecture">
+        <BoundaryInner>
+          <BoundaryIntro>
+            <h2>A precise boundary</h2>
+            <p>The contract establishes who may write a canonical pool record. The client resolves that record and decides whether a proposed route is safe to continue.</p>
+          </BoundaryIntro>
+          <BoundaryGrid>
+            <BoundaryColumn>
+              <h3>The contract proves</h3>
+              <ul>
+                <li>Issuer authority through CREATE2 or LiquidityLauncher graffiti</li>
+                <li>The pool is deployed, initialized, and contains the token</li>
+                <li>The canonical record can only be written once</li>
+              </ul>
+            </BoundaryColumn>
+            <BoundaryColumn>
+              <h3>The client checks</h3>
+              <ul>
+                <li>The resolver returns a valid, unambiguous record</li>
+                <li>Chain, PoolManager, and PoolId match the proposed route</li>
+                <li>Every declared branch that touches the token is checked</li>
+              </ul>
+            </BoundaryColumn>
+          </BoundaryGrid>
+          <PhaseTwo>
+            <h3>Phase 2 is a simulation</h3>
+            <p>The demo shows a CappedHook limiting a <strong>30% request</strong> to a <strong>1% cap</strong>. That enforcement is not part of the current contract build.</p>
+          </PhaseTwo>
+        </BoundaryInner>
+      </Boundary>
+      <Footer><FooterBrand><Mark size={20} />Klamp, ETHGlobal Tokyo 2026</FooterBrand><span>ENSv2 identity and Uniswap v4 enforcement</span></Footer>
     </>
   );
 }
