@@ -58,6 +58,7 @@ contract CanonicalPoolRegistrar {
     event CanonicalRecorded(address indexed token, bytes32 indexed poolId, address indexed deployer);
 
     error NotDeployer();
+    error InvalidEditor();
     error TokenNotDeployed();
     error InvalidCurrencyOrder();
     error PoolNotInitialized();
@@ -91,11 +92,23 @@ contract CanonicalPoolRegistrar {
     function recordByCreate2(address token, PoolKey calldata key, bytes32 salt, bytes32 initCodeHash)
         external
     {
+        _proveCreate2(token, salt, initCodeHash);
+        _record(token, key, msg.sender);
+    }
+
+    function recordByCreate2(address token, PoolKey calldata key, bytes32 salt, bytes32 initCodeHash, address metadataEditor)
+        external
+    {
+        if (metadataEditor == address(0)) revert InvalidEditor();
+        _proveCreate2(token, salt, initCodeHash);
+        _record(token, key, metadataEditor);
+    }
+
+    function _proveCreate2(address token, bytes32 salt, bytes32 initCodeHash) internal view {
         address predicted = address(
             uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), msg.sender, salt, initCodeHash))))
         );
         if (predicted != token) revert NotDeployer();
-        _record(token, key);
     }
 
     /// @notice 경로 B: Uniswap LiquidityLauncher(Pools.trade)로 만든 토큰의 크리에이터가 런칭 후 직접 호출.
@@ -109,10 +122,10 @@ contract CanonicalPoolRegistrar {
             t.name(), t.symbol(), t.decimals(), launcher, keccak256(abi.encode(msg.sender))
         );
         if (predicted != token) revert NotDeployer();
-        _record(token, key);
+        _record(token, key, msg.sender);
     }
 
-    function _record(address token, PoolKey calldata key) internal {
+    function _record(address token, PoolKey calldata key, address metadataEditor) internal {
         if (token == address(0) || token.code.length == 0) revert TokenNotDeployed();
         if (key.currency0 >= key.currency1) revert InvalidCurrencyOrder();
         if (key.currency0 != token && key.currency1 != token) revert TokenNotInPool();
@@ -131,8 +144,8 @@ contract CanonicalPoolRegistrar {
             node, "pool", string.concat("eip155:", _dec(block.chainid), ":", _hex(abi.encodePacked(poolId)))
         );
         resolver.setData(node, "pool", abi.encode(block.chainid, key));
-        resolver.authorizeTextRoles(name, "description", msg.sender, true);
-        resolver.authorizeTextRoles(name, "url", msg.sender, true);
+        resolver.authorizeTextRoles(name, "description", metadataEditor, true);
+        resolver.authorizeTextRoles(name, "url", metadataEditor, true);
 
         emit CanonicalRecorded(token, poolId, msg.sender);
     }

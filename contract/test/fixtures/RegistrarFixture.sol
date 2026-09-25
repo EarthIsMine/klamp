@@ -21,6 +21,9 @@ import {StateView} from "@uniswap/v4-periphery/src/lens/StateView.sol";
 contract FixtureToken { }
 contract Create2Launcher {
     function deploy(bytes32 salt) external returns (address) { return address(new FixtureToken{salt:salt}()); }
+    function recordWithEditor(CanonicalPoolRegistrar registrar, address token, PoolKey memory key, bytes32 salt, address editor) external {
+        registrar.recordByCreate2(token, key, salt, keccak256(type(FixtureToken).creationCode), editor);
+    }
     function record(CanonicalPoolRegistrar registrar, address token, PoolKey memory key, bytes32 salt) external {
         registrar.recordByCreate2(token, key, salt, keccak256(type(FixtureToken).creationCode));
     }

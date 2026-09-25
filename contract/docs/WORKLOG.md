@@ -89,3 +89,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `forge test --match-contract PoolValidationTest -vv`, 6 통과 예상. 초기화만 하고 유동성이 없어도 등록 가능.
 - 남은 문제: StateView 코드 자체의 신뢰는 배포 설정의 책임이며 getter 일치만으로 악의적 구현을 인증하지 않는다.
+
+## C04 — 명시적 메타데이터 편집자
+
+- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경 / Codex
+- AI 수행: 기존 4인자 CREATE2 함수 보존, editor를 받는 5인자 오버로드와 공통 증명 함수 추가. CanonicalRecorded ABI·증명 주체 유지.
+- 사람의 결정/수정: 추가 확인 사항 없음.
+- 참고 문서 및 버전: 명세 C04, C01 PermissionedResolver 고정 소스.
+- AI 실행 검증: `forge test` 17 통과/0 실패. editor의 자기 description/url 허용, pool·타 이름·권한 위임 거절, 0 editor·잘못된 증명자 거절, 기존 실행자 편집 동작 확인.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `forge test --match-contract MetadataEditorTest -vv`, 4 통과 예상.
+- 남은 문제: namespace 구성·권한 봉인은 C05에서 구현.
