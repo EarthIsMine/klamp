@@ -7,12 +7,12 @@ import { colors, layout, mono } from "@/styles/tokens";
 const stageOrder: DemoStage[] = ["idle", "launch", "verify", "request", "enforce", "complete"];
 
 const copy = {
-  idle: { eyebrow: "READY", title: "Protocol demo is standing by", detail: "One run replays the full protected swap path." },
-  launch: { eyebrow: "TX 01 · LAUNCH", title: "Issuer declares the canonical pool", detail: "PoolManager.initialize → recordByCreate2 → permanent, write-once record" },
-  verify: { eyebrow: "READ 02 · VERIFY", title: "Resolving the canonical route", detail: "Fixed resolver → strict ENS lookup → text/data match → PoolId recomputed." },
-  request: { eyebrow: "HOOK 03 · REQUEST", title: "Malicious logic requests 30.00%", detail: "The hook tries to change the fee after winning the route." },
-  enforce: { eyebrow: "PROXY 04 · ENFORCE", title: "Klamp applies the immutable cap", detail: "CappedHookProxy returns min(requested fee, cap)." },
-  complete: { eyebrow: "SETTLED · PROTECTED", title: "The quote holds. The swap settles safely.", detail: "Requested 30.00%. Applied 1.00%. No user action required." },
+  idle: { code: "Ready", title: "Protocol demo is standing by", detail: "One run replays canonical resolution, route comparison, and the fee-cap mock." },
+  launch: { code: "Step 1 / transaction", title: "Issuer declares the canonical pool", detail: "PoolManager.initialize → recordByCreate2 → permanent, write-once record" },
+  verify: { code: "Step 2 / read", title: "Resolving the canonical route", detail: "Fixed resolver → strict ENS lookup → text/data match → PoolId recomputed." },
+  request: { code: "Step 3 / Phase 2 mock", title: "Hook logic requests 30.00%", detail: "The mock hook requests a fee change after winning the route." },
+  enforce: { code: "Step 4 / Phase 2 mock", title: "Klamp applies the configured cap", detail: "The simulation returns min(requested fee, cap)." },
+  complete: { code: "Trace complete", title: "Requested 30.00%. Applied 1.00%.", detail: "Phase 1 verification passed; the Phase 2 cap result shown here is simulated." },
 };
 
 const steps = [
@@ -30,8 +30,7 @@ const Shell = styled.section`
 `;
 
 const Terminal = styled.div`
-  border: 1px solid ${colors.borderStrong}; background: ${colors.surface}; border-radius: ${layout.radiusLarge}; overflow: hidden;
-  box-shadow: 0 18px 50px rgba(32, 32, 30, 0.07);
+  border: 1px solid ${colors.borderStrong}; background: ${colors.surface}; border-radius: 3px; overflow: hidden;
 `;
 
 const Bar = styled.div`
@@ -56,7 +55,7 @@ const Rail = styled.div`
 `;
 
 const Step = styled.div<{ active: boolean; done: boolean }>`
-  position: relative; min-height: 79px; padding: 13px 12px 13px 42px; border-radius: 8px; background: ${({ active }) => active ? colors.primarySoft : "transparent"};
+  position: relative; min-height: 79px; padding: 13px 12px 13px 42px; border-left: 2px solid ${({ active }) => active ? colors.primary : "transparent"}; background: ${({ active }) => active ? "#F8F7F3" : "transparent"};
   color: ${({ active, done }) => active ? colors.textPrimary : done ? colors.textSecondary : colors.textMuted};
   &::after { content: ""; position: absolute; left: 24px; top: 40px; width: 1px; height: 51px; background: ${({ done }) => done ? colors.primary : colors.border}; }
   &:last-of-type::after { display: none; }
@@ -72,15 +71,15 @@ const StepLabel = styled.div`font: 650 12px/1.3 ${mono}; display: flex; gap: 8px
 const StepMeta = styled.div`font: 500 10px/1.5 ${mono}; margin-top: 5px;`;
 
 const Stage = styled.div`min-width: 0; padding: 34px 38px 30px; @media (max-width: 620px) { padding: 26px 18px 22px; }`;
-const Eyebrow = styled.div`font: 700 11px/1 ${mono}; letter-spacing: .1em; color: ${colors.primary}; margin-bottom: 13px;`;
+const StageCode = styled.div`font: 500 11px/1 ${mono}; color: ${colors.textMuted}; margin-bottom: 13px;`;
 const StageTitle = styled.h2`font-size: clamp(24px, 3vw, 38px); line-height: 1.12; letter-spacing: -.035em; margin: 0; max-width: 690px;`;
 const StageDetail = styled.p`color: ${colors.textSecondary}; font-size: 14px; line-height: 1.6; min-height: 44px; max-width: 700px; margin: 13px 0 28px;`;
 
 const Flow = styled.div`display: grid; grid-template-columns: 1fr 56px 1fr 56px 1fr; align-items: stretch; @media (max-width: 680px) { grid-template-columns: 1fr; gap: 8px; }`;
 const FlowCard = styled.div<{ accent?: boolean; danger?: boolean }>`
-  min-height: 178px; border: 1px solid ${({ accent, danger }) => accent ? colors.primary : danger ? colors.danger : colors.border}; border-radius: 10px; padding: 17px; background: ${({ accent, danger }) => accent ? colors.primarySoft : danger ? colors.dangerSoft : colors.surface}; display: flex; flex-direction: column; justify-content: space-between;
+  min-height: 178px; border: 1px solid ${({ accent, danger }) => accent ? colors.primary : danger ? colors.danger : colors.border}; border-radius: 2px; padding: 17px; background: ${colors.surface}; display: flex; flex-direction: column; justify-content: space-between;
 `;
-const FlowLabel = styled.div`font: 650 10px/1 ${mono}; letter-spacing: .08em; color: ${colors.textMuted};`;
+const FlowLabel = styled.div`font: 550 11px/1 ${mono}; color: ${colors.textMuted};`;
 const Fee = styled.div`font: 650 clamp(29px, 4vw, 47px)/1 ${mono}; letter-spacing: -.06em; margin: 20px 0 6px;`;
 const FlowValue = styled.div`font: 600 12px/1.5 ${mono}; word-break: break-word; color: ${colors.textSecondary};`;
 const Arrow = styled.div`display: grid; place-items: center; color: ${colors.textMuted}; font: 500 22px ${mono}; @media (max-width: 680px) { transform: rotate(90deg); height: 24px; }`;
@@ -89,10 +88,10 @@ const Footer = styled.div`border-top: 1px solid ${colors.border}; margin-top: 30
 const Readout = styled.div`font: 500 11px/1.7 ${mono}; color: ${colors.textMuted}; span { color: ${colors.textPrimary}; }`;
 const Actions = styled.div`display: flex; gap: 8px;`;
 const Run = styled.button`
-  border: 1px solid ${colors.primary}; border-radius: 7px; padding: 11px 16px; background: ${colors.primary}; color: white; cursor: pointer; font-weight: 700; font-size: 12px; min-width: 120px;
+  border: 1px solid ${colors.primary}; border-radius: 2px; padding: 11px 16px; background: ${colors.primary}; color: white; cursor: pointer; font-weight: 700; font-size: 12px; min-width: 120px;
   &:hover { background: ${colors.primaryHover}; } &:disabled { cursor: wait; opacity: .65; }
 `;
-const Reset = styled.button`border: 1px solid ${colors.border}; border-radius: 7px; padding: 11px 14px; background: white; color: ${colors.textSecondary}; cursor: pointer; font-weight: 650; font-size: 12px;`;
+const Reset = styled.button`border: 1px solid ${colors.border}; border-radius: 2px; padding: 11px 14px; background: white; color: ${colors.textSecondary}; cursor: pointer; font-weight: 650; font-size: 12px;`;
 
 export function DemoTerminal() {
   const { stage, busy, launch, canonical, comparison, attestation, enforcement, runDemo, reset } = useDemoStore();
@@ -118,24 +117,24 @@ export function DemoTerminal() {
             })}
           </Rail>
           <Stage aria-live="polite">
-            <Eyebrow>{view.eyebrow}</Eyebrow>
+            <StageCode>{view.code}</StageCode>
             <StageTitle>{view.title}</StageTitle>
             <StageDetail>{view.detail}</StageDetail>
             <Flow>
               <FlowCard>
-                <FlowLabel>CANONICAL POOL</FlowLabel>
+                <FlowLabel>Canonical pool</FlowLabel>
                 <Fee style={{ fontSize: 25 }}>{resolved ? "MATCH" : "PENDING"}</Fee>
                 <FlowValue>{record?.ensName ?? "0x<token>.tokens.klamp.eth"}<br />{resolved ? `${canonical.source} · chain / manager / poolId` : "strict ENSv2 resolution required"}</FlowValue>
               </FlowCard>
               <Arrow>→</Arrow>
               <FlowCard danger={requested && !enforced}>
-                <FlowLabel>LOGIC REQUEST</FlowLabel>
+                <FlowLabel>Logic request · mock</FlowLabel>
                 <Fee>{requested ? "30.00%" : "—"}</Fee>
                 <FlowValue>{requested ? "beforeSwap fee override" : "waiting for hook call"}<br />{requested ? "3,000 bps" : "no request"}</FlowValue>
               </FlowCard>
               <Arrow>→</Arrow>
               <FlowCard accent={enforced}>
-                <FlowLabel>KLAMP APPLIED FEE · MOCK</FlowLabel>
+                <FlowLabel>Klamp applied fee · mock</FlowLabel>
                 <Fee style={{ color: enforced ? colors.primary : colors.textPrimary }}>{enforced ? "1.00%" : "—"}</Fee>
                 <FlowValue>{enforced ? "min(3,000, 100 bps)" : `cap · ${attestation?.capBps ?? 100} bps`}<br />{enforcement ? "quote protected" : "immutable proxy cap"}</FlowValue>
               </FlowCard>

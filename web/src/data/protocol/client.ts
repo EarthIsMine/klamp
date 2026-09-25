@@ -30,7 +30,7 @@ export const DEMO_POOL_KEY: PoolKey = {
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const DEMO_POOL_ID =
-  "0x91f62a3ac70c4d7d6418c69e3d2a1b081e6149c2f54a775b9d928f08d86e46b" as const;
+  "0x91f62a3ac70c4d7d6418c69e3d2a1b081e6149c2f54a775b9d928f08d86e46b0" as const;
 
 const DEMO_CANONICAL: CanonicalPoolRecord = {
   chainId: 11155111,
