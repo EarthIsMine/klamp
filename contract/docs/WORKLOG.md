@@ -365,3 +365,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/demo/`의 세 번째 버튼을 눌러 공격 packet과 30% 충돌을 확인하고, 네 번째 버튼에서 30%가 clamp에 부딪힌 뒤 1%가 나타나는지 확인한다. OS의 동작 줄이기를 켰을 때는 전환이 즉시 완료되어야 한다.
 - 남은 문제: 실제 GitHub Pages 배포 화면과 모바일 실기기의 애니메이션 검증은 미실행이다.
+
+## WEB15 — cap 적용 장면의 이중 전환 제거
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1440×756 검증 / Codex, Anthropic `frontend-design` skill
+- AI 수행: 4번 입력에서 `enforce-busy`가 `complete-ready`로 바뀔 때 React가 Scene 전체를 다시 마운트하던 원인을 제거했다. `enforce`와 `complete` 상태에는 동일한 `fee-enforcement` key를 사용해 공격 충돌 애니메이션은 최초 진입 시 한 번만 실행하고, mock 결과 도착 후에는 같은 장면 안에서 1% 결과와 완료 문구만 갱신되도록 했다.
+- 사람의 결정/수정: 4번 동작 중간에 화면이 한 번 교체되어 보이는 현상을 확인한 뒤 동일 장면 내 결과 갱신 방식으로 수정하도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, React 19, Emotion 11.14.1, `frontend-design` skill.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome 1440×756에서 클릭 직후 `Applying the 1% cap`, 완료 후 `The request was capped`와 `1.00%`가 순서대로 나타나는지 확인했다. 완료 화면의 문서 높이와 viewport 높이는 모두 756px였다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/demo/`의 네 번째 버튼을 누르고 clamp 충돌 애니메이션이 한 번만 실행되며 동일한 화면에서 1% 결과가 나타나는지 확인한다.
+- 남은 문제: 실제 GitHub Pages 배포 화면과 모바일 실기기의 애니메이션 검증은 미실행이다.

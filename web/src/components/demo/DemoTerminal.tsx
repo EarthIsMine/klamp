@@ -273,7 +273,9 @@ export function DemoTerminal() {
   const enforced = enforcement !== null;
   const poolId = found ? canonical.poolId : record?.poolId;
   const manager = found ? short(canonical.poolManager) : "Resolving after declaration";
-  const sceneKey = `${stage}-${busy ? "busy" : "ready"}`;
+  const sceneKey = stage === "enforce" || stage === "complete"
+    ? "fee-enforcement"
+    : `${stage}-${busy ? "busy" : "ready"}`;
 
   return (
     <ReducedMotion>
