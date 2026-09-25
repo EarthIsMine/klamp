@@ -122,3 +122,15 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: 위 명령 실행. 이것은 Solidity 통합 검증이며 viem 실행 완료를 뜻하지 않는다.
 - 남은 문제: viem 실제 왕복 호출은 C07에서 실행.
+
+## C07 — viem 기반 표준 조회와 명확한 상태
+
+- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경, Anvil chain 31337 / Codex
+- AI 수행: bigint·32바이트 PoolId 파싱, strict getEnsText, namespace 연결·EIP-1967 구현 주소·StateView 연결 검사, 상태별 결과, 전체 로컬 배포 및 viem smoke 재현 스크립트 추가.
+- 사람의 결정/수정: 추가 확인 사항 없음.
+- 참고 문서 및 버전: [viem getEnsText](https://viem.sh/docs/ens/actions/getEnsText), viem 2.56.9 소스 actions/ens/getEnsText.ts. 문서 웹 도구의 content-type 오류 후 curl로 공식 문서 열람.
+- AI 실행 검증: SDK 조회 테스트 7 통과, `npm run typecheck` 통과. `forge script script/LocalPhase1.s.sol:LocalPhase1 --rpc-url http://127.0.0.1:18545 --broadcast --unlocked`로 로컬 배포 성공 후 `npx tsx scripts/local-smoke.ts` 통과. 새 체인 재현 중 병렬 전송 nonce 대기로 중단 후 `--slow` 순차 전송으로 변경하여 `./scripts/local-e2e.sh` 통과.
+- 결과: 실제 viem getEnsText found, 빈 와일드카드 레코드 missing, 구현 주소 불일치 unavailable/namespace. 로컬 풀 ID: 0xee6e9c6deca57a017d87d370cc25678eb55fa99ab546fcffb94024b3aaf8f350.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `./scripts/local-e2e.sh`는 독립 Anvil을 시작·종료하고 위 세 결과를 검증한다. RPC 실패와 알 수 없는 revert는 missing으로 처리하지 않는다.
+- 남은 문제: 공개 네트워크 검증 미실행. 로컬 manifest는 실행마다 생성되며 Git에서 제외한다.

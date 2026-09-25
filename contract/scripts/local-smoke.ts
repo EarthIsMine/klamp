@@ -1,0 +1,14 @@
+import { readFileSync } from 'node:fs';
+import assert from 'node:assert/strict';
+import { type Address, type Hex } from 'viem';
+import { createReader, getCanonicalPool, tokenName, type NetworkConfig } from '../sdk/canonicalPool.js';
+const raw = JSON.parse(readFileSync('deployments/local.json','utf8')) as NetworkConfig & { token: Address; poolId: Hex };
+const config = { ...raw, chainId: BigInt(raw.chainId) };
+const client = createReader(process.env.RPC_URL ?? 'http://127.0.0.1:18545');
+const result = await getCanonicalPool(client,config,raw.token);
+assert.deepEqual(result,{ status:'found',source:'ens',chainId:31337n,poolManager:raw.poolManager,poolId:raw.poolId });
+const missing = await getCanonicalPool(client,config,'0x0000000000000000000000000000000000000123');
+assert.deepEqual(missing,{status:'missing'});
+const broken = await getCanonicalPool(client,{...config,resolverImplementation:'0x0000000000000000000000000000000000000123'},raw.token);
+assert.deepEqual(broken,{status:'unavailable',reason:'namespace'});
+console.log(JSON.stringify({ name:tokenName(raw.token), poolId:raw.poolId, checks:['viem getEnsText -> found','empty wildcard record -> missing','implementation mismatch -> unavailable'] },null,2));
