@@ -1,12 +1,16 @@
 import type {
   CanonicalPoolResult,
   CanonicalPoolRecord,
+  CapQuote,
   FeeEnforcement,
   HookAttestation,
+  HookRevocation,
   HexAddress,
   LaunchReceipt,
   PoolKey,
   ProposedRoute,
+  RouteForwarding,
+  RouteHop,
 } from "@/domain/protocol";
 
 /**
@@ -18,7 +22,10 @@ export interface ProtocolClient {
   buildRoute(token: HexAddress): Promise<ProposedRoute>;
   resolveCanonicalPool(token: HexAddress): Promise<CanonicalPoolResult>;
   resolveHookAttestation(hook: string): Promise<HookAttestation>;
+  quoteAtCap(poolId: HexAddress, advertisedBps: number, capBps: number): Promise<CapQuote>;
+  forwardVerifiedRoute(route: RouteHop): Promise<RouteForwarding>;
   simulateFeeRequest(requestedBps: number, quotedOut: number): Promise<FeeEnforcement>;
+  revokeHook(hook: HexAddress): Promise<HookRevocation>;
 }
 
 export const DEMO_POOL_KEY: PoolKey = {
@@ -36,11 +43,18 @@ const DEMO_DELAY_MS = {
   routeBuild: 1050,
   canonicalVerification: 1150,
   hookVerification: 1150,
+  capQuote: 1050,
+  routeForwarding: 1050,
   feeEnforcement: 1350,
+  guardianRevocation: 1250,
 } as const;
 
 const DEMO_POOL_ID =
   "0x4692066cc525b9e3c28f2d7d6cbfc36c44836ca0112c586185f250fa0bd0cfbc" as const;
+const REPLICA_POOL_ID =
+  "0x93e858d08aafd523583e476f5ba44490f4d14a7cb7ac91cdb8a5bed452ea6da1" as const;
+const REPLICA_HOOK = "0xB665A4B5C889DA8ACF911378a9DB3497792C00C0" as const;
+const HOOK_CODE_HASH = "0x5f4d8e0fd234981581724f806c09120e6daaf6cad89e2ba75148274268a66291" as const;
 
 const DEMO_CANONICAL: CanonicalPoolRecord = {
   chainId: 11155111,
@@ -64,6 +78,11 @@ export const mockProtocolClient: ProtocolClient = {
       blockNumber: 9241851,
       token: DEMO_POOL_KEY.currency1,
       canonicalPool: DEMO_CANONICAL,
+      hookRegistration: {
+        ensName: `${DEMO_POOL_KEY.hooks.toLowerCase()}.hooks.klamp.eth`,
+        capBps: 100,
+        codeHash: HOOK_CODE_HASH,
+      },
     };
   },
   async buildRoute(token) {
@@ -71,13 +90,34 @@ export const mockProtocolClient: ProtocolClient = {
     return {
       aggregator: "Mock route aggregator",
       router: "Universal Router",
-      branches: [[{
-        chainId: 11155111n,
-        poolManager: "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543",
-        poolId: DEMO_POOL_ID,
-        tokenIn: DEMO_POOL_KEY.currency0,
-        tokenOut: token,
-      }]],
+      candidates: [
+        {
+          id: "official",
+          label: "Issuer pool",
+          advertisedFeeBps: 25,
+          hook: DEMO_POOL_KEY.hooks,
+          route: [{
+            chainId: 11155111n,
+            poolManager: "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543",
+            poolId: DEMO_POOL_ID,
+            tokenIn: DEMO_POOL_KEY.currency0,
+            tokenOut: token,
+          }],
+        },
+        {
+          id: "replica",
+          label: "Replica pool",
+          advertisedFeeBps: 5,
+          hook: REPLICA_HOOK,
+          route: [{
+            chainId: 11155111n,
+            poolManager: "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543",
+            poolId: REPLICA_POOL_ID,
+            tokenIn: DEMO_POOL_KEY.currency0,
+            tokenOut: token,
+          }],
+        },
+      ],
     };
   },
   async resolveCanonicalPool() {
@@ -97,9 +137,19 @@ export const mockProtocolClient: ProtocolClient = {
       hook: hook as HookAttestation["hook"],
       capBps: 100,
       capMode: "immutable",
-      codeHash: "0x5f4d8e0fd234981581724f806c09120e6daaf6cad89e2ba75148274268a66291",
+      codeHash: HOOK_CODE_HASH,
+      beforeSwapReturnDelta: false,
+      afterSwapReturnDelta: false,
       status: "verified",
     };
+  },
+  async quoteAtCap(poolId, advertisedBps, capBps) {
+    await wait(DEMO_DELAY_MS.capQuote);
+    return { basis: "registered-cap", poolId, advertisedBps, pricedBps: capBps };
+  },
+  async forwardVerifiedRoute(route) {
+    await wait(DEMO_DELAY_MS.routeForwarding);
+    return { poolId: route.poolId, poolManager: route.poolManager, status: "accepted" };
   },
   async simulateFeeRequest(requestedBps, quotedOut) {
     await wait(DEMO_DELAY_MS.feeEnforcement);
@@ -110,6 +160,17 @@ export const mockProtocolClient: ProtocolClient = {
       capped: appliedBps < requestedBps,
       quotedOut,
       receivedOut: quotedOut,
+      unguardedAppliedBps: requestedBps,
+      unguardedReceivedOut: quotedOut * 0.7,
+    };
+  },
+  async revokeHook(hook) {
+    await wait(DEMO_DELAY_MS.guardianRevocation);
+    return {
+      ensName: `${hook.toLowerCase()}.hooks.klamp.eth`,
+      resolver: null,
+      attestationStatus: "revoked",
+      routeStatus: "blocked",
     };
   },
 };

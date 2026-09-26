@@ -46,10 +46,18 @@ export type RouteHop = {
   tokenOut: HexAddress;
 };
 
+export type RouteCandidate = {
+  id: "official" | "replica";
+  label: string;
+  advertisedFeeBps: number;
+  hook: HexAddress;
+  route: RouteHop[];
+};
+
 export type ProposedRoute = {
   aggregator: string;
   router: string;
-  branches: RouteHop[][];
+  candidates: RouteCandidate[];
 };
 
 export type RouteComparison =
@@ -66,7 +74,22 @@ export type HookAttestation = {
   capBps: number;
   capMode: "immutable" | "mutable";
   codeHash: HexAddress;
+  beforeSwapReturnDelta: boolean;
+  afterSwapReturnDelta: boolean;
   status: "verified" | "revoked" | "missing";
+};
+
+export type CapQuote = {
+  basis: "registered-cap";
+  poolId: HexAddress;
+  advertisedBps: number;
+  pricedBps: number;
+};
+
+export type RouteForwarding = {
+  poolId: HexAddress;
+  poolManager: HexAddress;
+  status: "accepted";
 };
 
 export type FeeEnforcement = {
@@ -75,6 +98,21 @@ export type FeeEnforcement = {
   capped: boolean;
   quotedOut: number;
   receivedOut: number;
+  unguardedAppliedBps: number;
+  unguardedReceivedOut: number;
+};
+
+export type HookRevocation = {
+  ensName: string;
+  resolver: null;
+  attestationStatus: "revoked";
+  routeStatus: "blocked";
+};
+
+export type HookRegistration = {
+  ensName: string;
+  capBps: number;
+  codeHash: HexAddress;
 };
 
 export type LaunchReceipt = {
@@ -82,6 +120,7 @@ export type LaunchReceipt = {
   blockNumber: number;
   token: HexAddress;
   canonicalPool: CanonicalPoolRecord;
+  hookRegistration: HookRegistration;
 };
 
 const sameAddress = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();

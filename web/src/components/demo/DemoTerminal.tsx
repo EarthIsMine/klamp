@@ -6,56 +6,72 @@ import { Mark } from "@/components/brand/Mark";
 import { useDemoStore, type DemoStage } from "@/store/demo-store";
 import { colors, layout, mono } from "@/styles/tokens";
 
-const stageOrder: DemoStage[] = ["idle", "launch", "route", "verify", "attest", "request", "enforce", "complete"];
+const stageOrder: DemoStage[] = ["idle", "launch", "candidates", "verify", "attest", "forward", "request", "enforce", "revoke", "complete"];
 
 const copy = {
-  idle: { state: "Step 1 of 6", title: "Launch the protected pool", detail: "The issuer creates a dynamic-fee pool with CappedHookProxy and records it under tokens.klamp.eth." },
-  launch: { state: "Step 1 complete", title: "Protected pool recorded", detail: "The capped proxy was attached at initialization, then the canonical PoolId was written to ENS." },
-  route: { state: "Step 2 complete", title: "Route delivered to PoolManager", detail: "The aggregator selected a branch and the router forwarded its PoolKey to the v4 singleton." },
-  verify: { state: "Step 3 complete", title: "Canonical route verified", detail: "The ENS record, chain, PoolManager, PoolId, and proposed route agree." },
-  attest: { state: "Step 4 complete", title: "Immutable hook cap verified", detail: "The PoolKey hook matches the verified wrapper and its onchain maximum is fixed at 1%." },
-  request: { state: "Step 5 complete", title: "Fee strategy requested 30%", detail: "A compromised strategy admin pushes the official pool's dynamic fee far above policy." },
-  enforce: { state: "Step 6 of 6", title: "Returning the capped fee", detail: "CappedHookProxy clamps the strategy output before returning it to PoolManager." },
-  complete: { state: "Trace complete", title: "The request was capped", detail: "The canonical route held and the pool's immutable wrapper returned the 1% maximum." },
+  idle: { state: "Step 1 of 8", title: "Launch and register protection", detail: "The factory creates the capped hook identity and the issuer records the initialized pool in one launch flow." },
+  launch: { state: "Step 1 complete", title: "Pool and hook identities recorded", detail: "The immutable 1% proxy and canonical PoolId now have separate ENS records under klamp.eth." },
+  candidates: { state: "Step 2 complete", title: "Two pools compete for the route", detail: "The replica advertises 0.05% to beat the issuer pool before either candidate is trusted." },
+  verify: { state: "Step 3 complete", title: "Replica pool excluded", detail: "The guarded router keeps the canonical PoolId and rejects the unregistered dynamic-fee clone." },
+  attest: { state: "Step 4 complete", title: "Quoted at the immutable maximum", detail: "The wrapper identity, bytecode, delta permissions, and 1% cap pass before the quote is accepted." },
+  forward: { state: "Step 5 complete", title: "Verified route reached PoolManager", detail: "Only after both checks does the router forward the canonical PoolKey to the v4 singleton." },
+  request: { state: "Step 6 complete", title: "Fee strategy requested 30%", detail: "A compromised strategy admin pushes the official pool's dynamic fee far above policy." },
+  enforce: { state: "Step 7 complete", title: "Protection changed the outcome", detail: "Klamp returns the quoted 1% maximum while an unguarded path accepts the full 30% request." },
+  revoke: { state: "Step 8 of 8", title: "Guardian is revoking the identity", detail: "Removing the hook subname makes the resolver return empty and closes the routing gate." },
+  complete: { state: "Trace complete", title: "Revoked hook blocked immediately", detail: "The same pool can no longer pass guarded routing after its ENS hook identity is removed." },
 };
 
 const launchPendingCopy = {
-  state: "Step 1 of 6",
-  title: "Launching token and pool",
-  detail: "The launcher is deploying the token, attaching CappedHookProxy, and writing the canonical pool record.",
+  state: "Step 1 of 8",
+  title: "Running the atomic launch flow",
+  detail: "CappedHookFactory deploys the proxy and hook record while the issuer initializes and records the pool.",
 };
 
 const routeBuildPendingCopy = {
-  state: "Step 2 of 6",
-  title: "Building and forwarding the route",
-  detail: "The aggregator selects a pool branch and the router sends its PoolKey to PoolManager.",
+  state: "Step 2 of 8",
+  title: "Discovering route candidates",
+  detail: "The aggregator sees a cheap replica and the issuer pool, but has not sent either to PoolManager.",
 };
 
 const routePendingCopy = {
-  state: "Step 3 of 6",
-  title: "Verifying the proposed route",
-  detail: "Klamp resolves the canonical record and compares every declared pool field.",
+  state: "Step 3 of 8",
+  title: "Checking both candidate pools",
+  detail: "The router resolves the canonical record and compares chain, PoolManager, and PoolId before execution.",
 };
 
 const hookPendingCopy = {
-  state: "Step 4 of 6",
-  title: "Verifying the pool hook",
-  detail: "Klamp is checking the PoolKey hook, wrapper bytecode, and immutable onchain cap.",
+  state: "Step 4 of 8",
+  title: "Verifying hook policy and quote",
+  detail: "Klamp checks the wrapper bytecode, forbidden delta permissions, and prices the route at the 1% cap.",
+};
+
+const forwardPendingCopy = {
+  state: "Step 5 of 8",
+  title: "Forwarding the verified PoolKey",
+  detail: "The guarded router is now sending the accepted canonical route to PoolManager.",
 };
 
 const attackPendingCopy = {
-  state: "Step 5 of 6",
+  state: "Step 6 of 8",
   title: "Sending the 30% request",
   detail: "Compromised fee strategy logic is sending a 300,000-pip request through the verified wrapper.",
 };
 
+const enforcePendingCopy = {
+  state: "Step 7 of 8",
+  title: "Applying both execution paths",
+  detail: "The protected wrapper clamps the request while the unguarded comparison accepts it unchanged.",
+};
+
 const steps = [
-  { stage: "launch" as const, index: "1", title: "Launch", detail: "Protected pool" },
-  { stage: "route" as const, index: "2", title: "Route", detail: "Aggregator to PM" },
-  { stage: "verify" as const, index: "3", title: "Verify route", detail: "Canonical pool" },
-  { stage: "attest" as const, index: "4", title: "Verify hook", detail: "Immutable cap" },
-  { stage: "request" as const, index: "5", title: "Request 30%", detail: "Strategy attack" },
-  { stage: "enforce" as const, index: "6", title: "Enforce 1%", detail: "Return to PM" },
+  { stage: "launch" as const, index: "1", title: "Launch", detail: "Two ENS records" },
+  { stage: "candidates" as const, index: "2", title: "Candidates", detail: "Official + replica" },
+  { stage: "verify" as const, index: "3", title: "Filter", detail: "Clone rejected" },
+  { stage: "attest" as const, index: "4", title: "Price", detail: "Immutable max" },
+  { stage: "forward" as const, index: "5", title: "Forward", detail: "Verified PoolKey" },
+  { stage: "request" as const, index: "6", title: "Attack", detail: "Request 30%" },
+  { stage: "enforce" as const, index: "7", title: "Compare", detail: "1% vs 30%" },
+  { stage: "revoke" as const, index: "8", title: "Revoke", detail: "Route blocked" },
 ];
 
 function stageIndex(stage: DemoStage) { return stageOrder.indexOf(stage); }
@@ -79,11 +95,10 @@ const LiveMark = styled.span<{ complete: boolean }>`width: 8px; height: 8px; bac
 const Network = styled.div`color: ${colors.textMuted}; font-size: 12px;`;
 
 const Progress = styled.ol`
-  list-style: none; margin: 0; padding: 0 16px; display: grid; grid-template-columns: repeat(6, 1fr); border-bottom: 1px solid ${colors.border};
-  @media (max-width: 680px) { padding: 0; overflow-x: auto; }
+  list-style: none; margin: 0; padding: 0 16px; display: grid; grid-template-columns: repeat(8, 1fr); border-bottom: 1px solid ${colors.border}; overflow-x: auto;
 `;
 const ProgressItem = styled.li<{ active: boolean; done: boolean }>`
-  position: relative; min-width: 132px; padding: 13px 10px 12px; color: ${({ active, done }) => active || done ? colors.textPrimary : colors.textMuted};
+  position: relative; min-width: 124px; padding: 13px 10px 12px; color: ${({ active, done }) => active || done ? colors.textPrimary : colors.textMuted};
   &::before {
     content: ""; position: absolute; left: 10px; right: 10px; top: -1px; height: 3px;
     background: ${({ active, done }) => active ? colors.primary : done ? colors.textPrimary : "transparent"};
@@ -144,6 +159,64 @@ const LaunchReceipt = styled.dl`
   dd[data-complete="true"] { color: ${colors.textPrimary}; }
 `;
 
+const CandidateBoard = styled.div`
+  width: min(900px, 100%); display: grid; grid-template-columns: 180px minmax(50px, 1fr) minmax(420px, 1.6fr); align-items: center;
+  @media (max-width: 720px) { grid-template-columns: 1fr; gap: 20px; }
+`;
+const CandidateSource = styled.div`
+  display: grid; justify-items: center; gap: 10px; text-align: center;
+  img { width: 54px; height: 54px; }
+  strong { font-size: 16px; }
+  span { color: ${colors.textMuted}; font-size: 12px; }
+`;
+const ForkRail = styled.div`
+  position: relative; height: 126px;
+  &::before, &::after { content: ""; position: absolute; left: 0; width: 100%; height: 2px; background: ${colors.borderStrong}; transform-origin: left; animation: forkOut .5s ease-out both; }
+  &::before { top: 28%; transform: rotate(-12deg); }
+  &::after { bottom: 28%; transform: rotate(12deg); animation-delay: .12s; }
+  i { position: absolute; left: 42%; top: calc(28% - 5px); width: 10px; height: 10px; background: ${colors.primary}; animation: candidatePacket .56s ease-out .18s both; }
+  i + i { top: auto; bottom: calc(28% - 5px); background: ${colors.danger}; animation-delay: .32s; }
+  @keyframes forkOut { from { opacity: 0; scale: 0 1; } to { opacity: 1; scale: 1 1; } }
+  @keyframes candidatePacket { from { opacity: 0; translate: -38px 0; } to { opacity: 1; translate: 38px 0; } }
+  @media (max-width: 720px) { display: none; }
+`;
+const CandidateList = styled.div`display: grid; gap: 12px;`;
+const CandidatePool = styled.div<{ replica?: boolean }>`
+  position: relative; padding: 15px 18px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center;
+  border: 1px solid ${({ replica }) => replica ? colors.danger : colors.borderStrong}; background: ${({ replica }) => replica ? colors.dangerSoft : colors.surface};
+  animation: candidateIn .38s ease-out ${({ replica }) => replica ? ".32s" : ".18s"} both;
+  h2 { margin: 0 0 5px; font-size: 17px; }
+  p { margin: 0; color: ${colors.textSecondary}; font: 500 12px/1.35 ${mono}; }
+  strong { font: 500 28px/1 ${mono}; color: ${({ replica }) => replica ? colors.danger : colors.textPrimary}; }
+  span { display: block; margin-top: 4px; color: ${colors.textMuted}; font-size: 11px; text-align: right; }
+  @keyframes candidateIn { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: translateX(0); } }
+`;
+
+const FilterBoard = styled.div`
+  width: min(880px, 100%); display: grid; grid-template-columns: 1fr 92px 1fr; align-items: stretch;
+  @media (max-width: 680px) { grid-template-columns: 1fr; gap: 14px; }
+`;
+const FilterColumn = styled.div`
+  border-top: 1px solid ${colors.borderStrong};
+  h2 { margin: 0; padding: 12px 14px; font-size: 15px; border-bottom: 1px solid ${colors.border}; }
+`;
+const FilterRow = styled.div<{ rejected?: boolean }>`
+  position: relative; padding: 14px; border-bottom: 1px solid ${colors.border}; opacity: ${({ rejected }) => rejected ? .62 : 1};
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px;
+  strong { font-size: 14px; }
+  code { display: block; margin-top: 5px; color: ${colors.textMuted}; font: 500 12px/1.3 ${mono}; }
+  b { color: ${({ rejected }) => rejected ? colors.danger : colors.success}; font-size: 13px; }
+  ${({ rejected }) => rejected ? `&::after { content: ""; position: absolute; left: 10px; right: 10px; top: 50%; height: 2px; background: ${colors.danger}; transform-origin: left; animation: rejectLine .42s ease-out .42s both; }` : ""}
+  @keyframes rejectLine { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+`;
+const GuardGate = styled.div`
+  display: grid; place-items: center; position: relative;
+  &::before { content: ""; position: absolute; top: 12%; bottom: 12%; width: 3px; background: ${colors.primary}; animation: gateDrop .32s ease-out .24s both; }
+  img { position: relative; z-index: 1; padding: 7px; background: white; }
+  @keyframes gateDrop { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  @media (max-width: 680px) { min-height: 54px; &::before { top: 50%; left: 18%; right: 18%; bottom: auto; width: auto; height: 3px; transform-origin: left; } }
+`;
+
 const RouteJourney = styled.div`width: min(920px, 100%);`;
 const RoutePipeline = styled.div`
   width: min(920px, 100%); display: grid; grid-template-columns: 170px minmax(44px, 1fr) 150px minmax(44px, 1fr) 180px;
@@ -183,32 +256,8 @@ const RouteHandoff = styled.div`
   strong { display: block; font: 600 13px/1.35 ${mono}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 `;
 
-const Comparison = styled.div`width: min(920px, 100%); display: grid; grid-template-columns: 1fr 104px 1fr; align-items: center;`;
-const CompareSide = styled.div`
-  min-width: 0;
-  h2 { margin: 0 0 18px; font-size: 18px; }
-  strong { display: block; font: 500 clamp(19px, 2.5vw, 26px)/1.2 ${mono}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  p { margin: 10px 0 0; color: ${colors.textSecondary}; font-size: 14px; }
-`;
-const CompareSideRight = styled(CompareSide)`text-align: right;`;
-const AnimatedClamp = styled.div<{ matched: boolean }>`
-  position: relative; display: grid; place-items: center;
-  &::before { content: ""; position: absolute; left: 0; right: 0; height: 2px; background: ${colors.primary}; transform: scaleX(0); transform-origin: center; animation: ${({ matched }) => matched ? "join .42s ease-out both" : "none"}; }
-  img { position: relative; z-index: 1; background: white; padding: 10px; animation: ${({ matched }) => matched ? "clamp .42s ease-out" : "none"}; }
-  @keyframes join { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-  @keyframes clamp { 0% { transform: scale(1.16); } 65% { transform: scale(.94); } 100% { transform: scale(1); } }
-`;
-const VerificationChecks = styled.div`
-  grid-column: 1 / -1; margin-top: 24px; display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid ${colors.borderStrong};
-  div { padding: 12px 14px; }
-  div + div { border-left: 1px solid ${colors.border}; }
-  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 4px; }
-  strong { font-size: 13px; }
-  @media (max-width: 680px) { grid-template-columns: 1fr 1fr; div:nth-of-type(3) { border-left: 0; border-top: 1px solid ${colors.border}; } div:nth-of-type(4) { border-top: 1px solid ${colors.border}; } }
-`;
-
 const HookProof = styled.div`
-  width: min(880px, 100%); display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 48px; align-items: center;
+  width: min(900px, 100%); display: grid; grid-template-columns: minmax(0, 1fr) 210px 210px; gap: 32px; align-items: center;
   @media (max-width: 700px) { grid-template-columns: 1fr; gap: 24px; }
 `;
 const HookIdentity = styled.div`
@@ -223,6 +272,15 @@ const HookCap = styled.div<{ verified: boolean }>`
   @keyframes capReveal { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: scale(1); } }
   @media (max-width: 700px) { border-left: 0; border-top: 1px solid ${colors.borderStrong}; padding: 20px 0 0; text-align: left; }
 `;
+const QuoteBasis = styled.div<{ ready: boolean }>`
+  padding-left: 28px; border-left: 1px solid ${colors.borderStrong};
+  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 8px; }
+  strong { display: block; font: 500 31px/1 ${mono}; color: ${colors.primaryHover}; }
+  p { margin: 8px 0 0; color: ${colors.textSecondary}; font-size: 12px; line-height: 1.35; }
+  opacity: ${({ ready }) => ready ? 1 : .35}; animation: ${({ ready }) => ready ? "quoteIn .36s ease-out .18s both" : "none"};
+  @keyframes quoteIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
+  @media (max-width: 700px) { border-left: 0; border-top: 1px solid ${colors.borderStrong}; padding: 18px 0 0; }
+`;
 const HookChecks = styled.div`
   grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid ${colors.borderStrong};
   div { padding: 13px 0; }
@@ -234,6 +292,51 @@ const HookChecks = styled.div`
     div:nth-of-type(3) { border-left: 0; border-top: 1px solid ${colors.border}; }
     div:nth-of-type(4) { border-top: 1px solid ${colors.border}; }
   }
+`;
+
+const OutcomeComparison = styled.div`
+  width: min(900px, 100%); display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+  @media (max-width: 680px) { grid-template-columns: 1fr; }
+`;
+const Outcome = styled.div<{ guarded?: boolean }>`
+  position: relative; padding: 18px 20px; border-top: 4px solid ${({ guarded }) => guarded ? colors.primary : colors.danger};
+  background: ${({ guarded }) => guarded ? colors.primarySoft : colors.dangerSoft}; overflow: hidden;
+  animation: ${({ guarded }) => guarded ? "safeOutcome .44s ease-out .32s both" : "unsafeOutcome .44s ease-out .5s both"};
+  h2 { margin: 0 0 16px; font-size: 18px; }
+  dl { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 9px 16px; }
+  dt { color: ${colors.textSecondary}; font-size: 13px; }
+  dd { margin: 0; font: 600 14px/1.3 ${mono}; }
+  strong { display: block; margin-top: 18px; font: 500 clamp(38px, 5vw, 58px)/1 ${mono}; color: ${({ guarded }) => guarded ? colors.primaryHover : colors.danger}; }
+  p { margin: 7px 0 0; color: ${colors.textSecondary}; font-size: 13px; }
+  @keyframes safeOutcome { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes unsafeOutcome { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+`;
+
+const RevocationBoard = styled.div`
+  width: min(900px, 100%); display: grid; grid-template-columns: 190px minmax(70px, 1fr) minmax(300px, 1.4fr); align-items: center;
+  @media (max-width: 700px) { grid-template-columns: 1fr; gap: 18px; text-align: center; }
+`;
+const Guardian = styled.div`
+  padding: 18px; background: ${colors.textPrimary}; color: white;
+  span { color: ${colors.border}; font-size: 12px; }
+  strong { display: block; margin-top: 7px; font-size: 18px; }
+  code { display: block; margin-top: 8px; color: ${colors.primary}; font: 500 12px/1.3 ${mono}; }
+`;
+const RevokeRail = styled.div`
+  position: relative; height: 3px; background: ${colors.borderStrong};
+  &::after { content: ""; position: absolute; top: -5px; left: 0; width: 13px; height: 13px; background: ${colors.danger}; animation: revokePacket .7s cubic-bezier(.15,.7,.3,1) .18s both; }
+  @keyframes revokePacket { from { opacity: 0; left: 0; } 15% { opacity: 1; } to { opacity: 1; left: calc(100% - 13px); } }
+  @media (max-width: 700px) { width: 3px; height: 48px; justify-self: center; &::after { top: 0; left: -5px; animation: revokePacketDown .55s ease-out both; } @keyframes revokePacketDown { from { opacity: 0; top: 0; } to { opacity: 1; top: calc(100% - 13px); } } }
+`;
+const RevokedRecord = styled.div<{ revoked: boolean }>`
+  position: relative; padding: 18px 20px; border: 1px solid ${({ revoked }) => revoked ? colors.danger : colors.borderStrong};
+  h2 { margin: 0 0 8px; font-size: 18px; }
+  p { margin: 0; color: ${colors.textSecondary}; font: 500 12px/1.5 ${mono}; overflow-wrap: anywhere; }
+  dl { margin: 16px 0 0; display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; }
+  dt { color: ${colors.textMuted}; font-size: 12px; }
+  dd { margin: 0; font-size: 13px; font-weight: 650; color: ${({ revoked }) => revoked ? colors.danger : colors.textPrimary}; }
+  ${({ revoked }) => revoked ? `animation: recordRevoke .38s ease-out both; &::after { content: "REVOKED"; position: absolute; right: 18px; top: 16px; color: ${colors.danger}; font: 700 12px/1 ${mono}; }` : ""}
+  @keyframes recordRevoke { 0% { transform: translateX(0); } 35% { transform: translateX(7px); } 70% { transform: translateX(-4px); } 100% { transform: translateX(0); } }
 `;
 
 const AttackSequence = styled.div`
@@ -291,56 +394,6 @@ const AttackPayload = styled.div`
 const FeeValue = styled.div`font: 500 clamp(64px, 9vw, 112px)/.9 ${mono}; letter-spacing: -.075em; color: ${colors.danger};`;
 const FeeCaption = styled.p`margin: 20px 0 0; color: ${colors.textSecondary}; font-size: 16px;`;
 
-const Enforcement = styled.div`
-  width: min(860px, 100%); display: grid; grid-template-columns: 1fr 140px 1fr; align-items: center; text-align: center;
-  animation: clampImpact .24s linear .42s both;
-  @keyframes clampImpact {
-    0%, 100% { transform: translateX(0); }
-    30% { transform: translateX(6px); }
-    65% { transform: translateX(-4px); }
-  }
-  @media (max-width: 620px) { grid-template-columns: 1fr 92px 1fr; }
-`;
-const FeeSide = styled.div`
-  span { display: block; color: ${colors.textMuted}; font-size: 14px; margin-bottom: 13px; }
-  strong { font: 500 clamp(48px, 7vw, 82px)/1 ${mono}; letter-spacing: -.07em; }
-`;
-const IncomingFee = styled(FeeSide)`
-  animation: feeCollision .64s cubic-bezier(.2,.72,.24,1) both;
-  @keyframes feeCollision {
-    0% { opacity: .2; transform: translateX(-72px) scale(.82); }
-    58% { opacity: 1; transform: translateX(34px) scale(1.08); }
-    76% { transform: translateX(-8px) scale(.97); }
-    100% { transform: translateX(0) scale(1); }
-  }
-`;
-const Cap = styled.div`
-  position: relative; display: grid; place-items: center; gap: 8px;
-  &::before { content: ""; position: absolute; width: 104px; height: 104px; background: ${colors.primarySoft}; transform: scale(.15); animation: stopForce .46s ease-out .34s both; }
-  span { color: ${colors.primaryHover}; font-size: 13px; font-weight: 650; }
-  img, span { position: relative; z-index: 1; }
-  img { animation: capSet .64s cubic-bezier(.2,.8,.3,1) both; }
-  @keyframes stopForce { 0% { opacity: 0; transform: scale(.15); } 45% { opacity: 1; transform: scale(1.18); } 100% { opacity: 1; transform: scale(1); } }
-  @keyframes capSet { 0% { transform: translateX(22px) scale(1.22); } 55% { transform: translateX(-5px) scale(.9); } 78% { transform: translateX(3px) scale(1.04); } 100% { transform: translateX(0) scale(1); } }
-`;
-const AppliedFee = styled(FeeSide)<{ revealed: boolean }>`
-  opacity: ${({ revealed }) => revealed ? 1 : 0};
-  animation: ${({ revealed }) => revealed ? "appliedReveal .38s ease-out both" : "none"};
-  img { display: block; width: 34px; height: 34px; margin: 0 auto 8px; }
-  strong { color: ${colors.primaryHover}; }
-  @keyframes appliedReveal { from { opacity: 0; transform: translateX(-26px) scale(.84); } to { opacity: 1; transform: translateX(0) scale(1); } }
-`;
-const SettlementProof = styled.div<{ revealed: boolean }>`
-  grid-column: 1 / -1; width: min(560px, 100%); margin: 28px auto 0; display: grid; grid-template-columns: 1fr 1fr;
-  border-top: 1px solid ${colors.borderStrong}; opacity: ${({ revealed }) => revealed ? 1 : 0};
-  animation: ${({ revealed }) => revealed ? "resultIn .28s ease-out .14s both" : "none"};
-  div { padding: 12px 18px 0; }
-  div + div { border-left: 1px solid ${colors.border}; }
-  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 4px; }
-  strong { font: 600 15px/1.3 ${mono}; color: ${colors.textPrimary}; }
-  @keyframes resultIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
-`;
-
 const Bottom = styled.div`
   min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 20px;
   @media (max-width: 620px) { align-items: stretch; flex-direction: column; padding-top: 16px; }
@@ -371,17 +424,21 @@ const ReducedMotion = styled.div`
 
 function actionLabel(stage: DemoStage, busy: boolean) {
   if (busy && stage === "launch") return "Launching…";
-  if (busy && stage === "route") return "Building route…";
-  if (busy && stage === "verify") return "Verifying route…";
-  if (busy && stage === "attest") return "Verifying hook…";
+  if (busy && stage === "candidates") return "Discovering candidates…";
+  if (busy && stage === "verify") return "Filtering candidates…";
+  if (busy && stage === "attest") return "Verifying and pricing…";
+  if (busy && stage === "forward") return "Forwarding PoolKey…";
   if (busy && stage === "request") return "Sending request…";
-  if (busy && stage === "enforce") return "Applying cap…";
-  if (stage === "idle") return "Launch token and record pool";
-  if (stage === "launch") return "Build proposed route";
-  if (stage === "route") return "Verify canonical pool";
-  if (stage === "verify") return "Verify immutable hook cap";
-  if (stage === "attest") return "Compromise fee strategy";
-  if (stage === "request") return "Apply 1% cap";
+  if (busy && stage === "enforce") return "Comparing outcomes…";
+  if (busy && stage === "revoke") return "Revoking identity…";
+  if (stage === "idle") return "Launch and register";
+  if (stage === "launch") return "Discover route candidates";
+  if (stage === "candidates") return "Filter malicious replica";
+  if (stage === "verify") return "Verify cap and price route";
+  if (stage === "attest") return "Forward verified PoolKey";
+  if (stage === "forward") return "Compromise fee strategy";
+  if (stage === "request") return "Compare protected execution";
+  if (stage === "enforce") return "Revoke hook identity";
   if (stage === "complete") return "Start over";
   return "Working…";
 }
@@ -390,10 +447,12 @@ function poolStatus(recorded: boolean) {
   return recorded ? "Written once" : "Not started";
 }
 
-function routeStatus(stage: DemoStage, busy: boolean, proposed: boolean, matched: boolean) {
-  if (matched) return "Route matched";
-  if (proposed) return stage === "verify" && busy ? "Checking canonical" : "Route proposed";
-  if (stage === "route") return "Building route";
+function routeStatus(stage: DemoStage, busy: boolean, proposed: boolean, matched: boolean, forwarded: boolean, revoked: boolean) {
+  if (revoked) return "Blocked after revoke";
+  if (forwarded) return "Accepted by PoolManager";
+  if (matched) return "Replica excluded";
+  if (proposed) return stage === "verify" && busy ? "Checking both pools" : "Two candidates";
+  if (stage === "candidates") return "Discovering";
   if (stageIndex(stage) >= stageIndex("verify")) return "Checking";
   return "Not started";
 }
@@ -405,27 +464,39 @@ function feeCapStatus(stage: DemoStage, verified: boolean, enforced: boolean) {
 }
 
 export function DemoTerminal() {
-  const { stage, busy, launchStep, launch, proposal, canonical, comparison, attestation, enforcement, advance, reset } = useDemoStore();
+  const { stage, busy, launchStep, launch, proposal, canonical, comparison, attestation, quote, forwarding, enforcement, revocation, advance, reset } = useDemoStore();
   const current = stageIndex(stage);
   const view = stage === "launch" && busy
     ? launchPendingCopy
-    : stage === "route" && busy
+    : stage === "candidates" && busy
       ? routeBuildPendingCopy
       : stage === "verify" && busy
         ? routePendingCopy
         : stage === "attest" && busy
           ? hookPendingCopy
-          : stage === "request" && busy
-            ? attackPendingCopy
-            : copy[stage];
+          : stage === "forward" && busy
+            ? forwardPendingCopy
+            : stage === "request" && busy
+              ? attackPendingCopy
+              : stage === "enforce" && busy
+                ? enforcePendingCopy
+                : copy[stage];
   const found = canonical?.status === "found";
   const matched = comparison?.status === "match";
   const hookVerified = attestation?.status === "verified";
+  const hookCompliant = Boolean(
+    hookVerified &&
+    attestation?.capMode === "immutable" &&
+    !attestation.beforeSwapReturnDelta &&
+    !attestation.afterSwapReturnDelta,
+  );
   const record = launch?.canonicalPool ?? null;
-  const proposedHop = proposal?.branches[0]?.[0] ?? null;
+  const official = proposal?.candidates.find((candidate) => candidate.id === "official") ?? null;
+  const replica = proposal?.candidates.find((candidate) => candidate.id === "replica") ?? null;
+  const proposedHop = official?.route[0] ?? null;
   const hookMatches = Boolean(attestation && hookVerified && record && attestation.hook.toLowerCase() === record.key.hooks.toLowerCase());
-  const capImmutable = hookVerified && attestation?.capMode === "immutable";
   const enforced = enforcement !== null;
+  const revoked = revocation?.routeStatus === "blocked";
   const capBps = attestation?.capBps ?? 100;
   const capPercent = (capBps / 100).toFixed(2);
   const poolId = found ? canonical.poolId : record?.poolId;
@@ -435,17 +506,22 @@ export function DemoTerminal() {
   const tokenValue = record ? short(record.token) : launchStep === "deploying" ? "Deploying…" : tokenReady ? "Complete" : "Waiting";
   const poolValue = record ? short(record.poolId) : launchStep === "initializing" ? "Initializing…" : poolReady ? "Complete" : "Waiting";
   const ensValue = record?.ensName ?? (launchStep === "recording" ? "Writing…" : launchStep === "idle" ? "0x<token>.tokens.klamp.eth" : "Waiting");
+  const hookEnsValue = launch?.hookRegistration.ensName ?? (launchStep === "recording" ? "Issuing…" : launchStep === "idle" ? "0x<hook>.hooks.klamp.eth" : "Waiting");
   const sceneKey = stage === "idle" || stage === "launch"
     ? "launch-flow"
-    : stage === "route"
-      ? "route-build"
+    : stage === "candidates"
+      ? "candidate-build"
       : stage === "verify"
-        ? "route-verification"
+        ? "candidate-filter"
         : stage === "attest"
           ? "hook-verification"
-    : stage === "enforce" || stage === "complete"
-      ? "fee-enforcement"
-      : stage;
+          : stage === "forward"
+            ? "route-forwarding"
+            : stage === "enforce"
+              ? "outcome-comparison"
+              : stage === "revoke" || stage === "complete"
+                ? "hook-revocation"
+                : stage;
 
   return (
     <ReducedMotion>
@@ -477,53 +553,56 @@ export function DemoTerminal() {
               <Scene key={sceneKey}>
                 <LaunchFlow>
                   <LaunchActor>
-                    <SceneLabel>Launch actor</SceneLabel>
-                    <h2>CREATE2 launcher</h2>
-                    <p>Deploys the token, initializes its pool, and calls the registrar.</p>
+                    <SceneLabel>Atomic launch actors</SceneLabel>
+                    <h2>Launcher + hook factory</h2>
+                    <p>Deploy proxy, initialize pool, issue hook identity, then seal the canonical record.</p>
                   </LaunchActor>
                   <LaunchBridge active={stage === "launch"}><Mark size={62} /></LaunchBridge>
                   <LaunchReceipt>
                     <dt>Token deployed</dt><dd data-complete={tokenReady}>{tokenValue}</dd>
                     <dt>Pool initialized</dt><dd data-complete={poolReady}>{poolValue}</dd>
                     <dt>Pool hook</dt><dd data-complete={poolReady}>{poolReady ? "CappedHookProxy · 1% max" : "Waiting"}</dd>
-                    <dt>ENS record written</dt><dd data-complete={Boolean(record)}>{ensValue}</dd>
+                    <dt>Hook identity issued</dt><dd data-complete={Boolean(record)}>{hookEnsValue}</dd>
+                    <dt>Canonical pool recorded</dt><dd data-complete={Boolean(record)}>{ensValue}</dd>
                   </LaunchReceipt>
                 </LaunchFlow>
               </Scene>
             )}
 
-            {stage === "route" && (
+            {stage === "candidates" && (
               <Scene key={sceneKey}>
-                <RouteJourney>
-                  <RoutePipeline aria-label="Aggregator, router, and PoolManager route flow">
-                    <RouteActor><Image src="/aggregator.svg" width={44} height={44} alt="" aria-hidden /><div><span>Aggregator</span><strong>{proposal ? "Branch selected" : "Building candidates"}</strong></div></RouteActor>
-                    <RouteRail delay={0.16} aria-hidden="true" />
-                    <RouteActor delay={0.34}><Image src="/router.svg" width={44} height={44} alt="" aria-hidden /><div><span>Router</span><strong>{proposal ? "PoolKey forwarded" : "Preparing calldata"}</strong></div></RouteActor>
-                    <RouteRail delay={0.5} aria-hidden="true" />
-                    <RouteEndpoint delay={0.68}><Image src="/pool-manager.svg" width={38} height={38} alt="" aria-hidden /><div><span>PoolManager</span><strong>{proposal ? "Route received" : "Receiving PoolKey"}</strong></div></RouteEndpoint>
-                  </RoutePipeline>
-                  <RouteHandoff>
-                    <div><span>Selected branch</span><strong>{proposal ? "Branch 0 · 1 hop" : "Scanning…"}</strong></div>
-                    <div><span>Target singleton</span><strong>{proposedHop ? short(proposedHop.poolManager) : "Waiting…"}</strong></div>
-                    <div><span>Proposed PoolId</span><strong>{proposedHop ? short(proposedHop.poolId) : "Waiting…"}</strong></div>
-                  </RouteHandoff>
-                </RouteJourney>
+                <CandidateBoard>
+                  <CandidateSource><Image src="/aggregator.svg" width={54} height={54} alt="" aria-hidden /><strong>Aggregator</strong><span>Quote discovery only</span></CandidateSource>
+                  <ForkRail aria-hidden="true"><i /><i /></ForkRail>
+                  <CandidateList>
+                    <CandidatePool>
+                      <div><h2>{official?.label ?? "Issuer pool"}</h2><p>{official ? short(official.route[0].poolId) : "Discovering…"}</p></div>
+                      <div><strong>{official ? `${(official.advertisedFeeBps / 100).toFixed(2)}%` : "…"}</strong><span>advertised</span></div>
+                    </CandidatePool>
+                    <CandidatePool replica>
+                      <div><h2>{replica?.label ?? "Replica pool"}</h2><p>{replica ? short(replica.route[0].poolId) : "Discovering…"}</p></div>
+                      <div><strong>{replica ? `${(replica.advertisedFeeBps / 100).toFixed(2)}%` : "…"}</strong><span>bait quote</span></div>
+                    </CandidatePool>
+                  </CandidateList>
+                </CandidateBoard>
               </Scene>
             )}
 
             {stage === "verify" && (
               <Scene key={sceneKey}>
-                <Comparison>
-                  <CompareSide><SceneLabel>ENSv2 record</SceneLabel><h2>Canonical pool</h2><strong>{poolId ? short(poolId) : "Resolving…"}</strong><p>Chain 11155111 · {manager}</p></CompareSide>
-                  <AnimatedClamp matched={matched}><Mark size={70} /></AnimatedClamp>
-                  <CompareSideRight><SceneLabel>Router submission</SceneLabel><h2>Route branch 0</h2><strong>{proposedHop ? short(proposedHop.poolId) : "Waiting…"}</strong><p>{matched ? "Chain and PoolManager agree" : "Comparing declared fields"}</p></CompareSideRight>
-                  <VerificationChecks>
-                    <div><span>Resolver</span><strong>{found ? "Trusted" : "Checking"}</strong></div>
-                    <div><span>Chain</span><strong>{found ? "Verified" : "Checking"}</strong></div>
-                    <div><span>PoolManager</span><strong>{matched ? "Match" : "Checking"}</strong></div>
-                    <div><span>PoolId</span><strong>{matched && record?.dataVerified ? "Match" : "Checking"}</strong></div>
-                  </VerificationChecks>
-                </Comparison>
+                <FilterBoard>
+                  <FilterColumn>
+                    <h2>Candidate pools</h2>
+                    <FilterRow><div><strong>Issuer pool</strong><code>{official ? short(official.route[0].poolId) : "Checking…"}</code></div><b>CHECK</b></FilterRow>
+                    <FilterRow rejected={matched}><div><strong>Replica pool</strong><code>{replica ? short(replica.route[0].poolId) : "Checking…"}</code></div><b>{matched ? "REJECT" : "CHECK"}</b></FilterRow>
+                  </FilterColumn>
+                  <GuardGate><Mark size={58} /></GuardGate>
+                  <FilterColumn>
+                    <h2>Guarded Router decision</h2>
+                    <FilterRow><div><strong>Canonical PoolId</strong><code>{poolId ? short(poolId) : "Resolving…"}</code></div><b>{found ? "FOUND" : "WAIT"}</b></FilterRow>
+                    <FilterRow><div><strong>Issuer pool</strong><code>Chain 11155111 · {manager}</code></div><b>{matched ? "ALLOW" : "WAIT"}</b></FilterRow>
+                  </FilterColumn>
+                </FilterBoard>
               </Scene>
             )}
 
@@ -538,14 +617,34 @@ export function DemoTerminal() {
                       <p>{attestation?.ensName ?? `${record?.key.hooks.toLowerCase()}.hooks.klamp.eth`}</p>
                     </div>
                   </HookIdentity>
-                  <HookCap verified={hookVerified}><span>Maximum fee</span><strong>{hookVerified ? `${capPercent}%` : "…"}</strong></HookCap>
+                  <HookCap verified={hookCompliant}><span>Immutable maximum</span><strong>{hookCompliant ? `${capPercent}%` : "…"}</strong></HookCap>
+                  <QuoteBasis ready={Boolean(quote)}><span>Quote basis</span><strong>{quote ? `${(quote.pricedBps / 100).toFixed(2)}%` : "…"}</strong><p>Uses registered max, not the advertised 0.25%.</p></QuoteBasis>
                   <HookChecks>
                     <div><span>ENS identity</span><strong>{hookVerified ? "Verified" : "Checking"}</strong></div>
                     <div><span>PoolKey hook</span><strong>{hookMatches ? "Address match" : "Checking"}</strong></div>
                     <div><span>Runtime code</span><strong>{attestation ? short(attestation.codeHash) : "Checking"}</strong></div>
-                    <div><span>Onchain cap</span><strong>{capImmutable ? "Immutable · 1%" : "Checking"}</strong></div>
+                    <div><span>Return deltas</span><strong>{attestation && !attestation.beforeSwapReturnDelta && !attestation.afterSwapReturnDelta ? "Both disabled" : "Checking"}</strong></div>
                   </HookChecks>
                 </HookProof>
+              </Scene>
+            )}
+
+            {stage === "forward" && (
+              <Scene key={sceneKey}>
+                <RouteJourney>
+                  <RoutePipeline aria-label="Verified router to PoolManager flow">
+                    <RouteActor><Mark size={44} /><div><span>Klamp checks</span><strong>Route + cap passed</strong></div></RouteActor>
+                    <RouteRail delay={0.18} aria-hidden="true" />
+                    <RouteActor delay={0.35}><Image src="/router.svg" width={44} height={44} alt="" aria-hidden /><div><span>Guarded Router</span><strong>{forwarding ? "PoolKey sent" : "Encoding calldata"}</strong></div></RouteActor>
+                    <RouteRail delay={0.54} aria-hidden="true" />
+                    <RouteEndpoint delay={0.72}><Image src="/pool-manager.svg" width={38} height={38} alt="" aria-hidden /><div><span>PoolManager</span><strong>{forwarding ? "Route accepted" : "Waiting for proof"}</strong></div></RouteEndpoint>
+                  </RoutePipeline>
+                  <RouteHandoff>
+                    <div><span>Selected branch</span><strong>Issuer pool · 1 hop</strong></div>
+                    <div><span>Quote basis</span><strong>{quote ? `${(quote.pricedBps / 100).toFixed(2)}% maximum` : "Verified"}</strong></div>
+                    <div><span>PoolId</span><strong>{proposedHop ? short(proposedHop.poolId) : "Waiting…"}</strong></div>
+                  </RouteHandoff>
+                </RouteJourney>
               </Scene>
             )}
 
@@ -559,25 +658,42 @@ export function DemoTerminal() {
               </Scene>
             )}
 
-            {(stage === "enforce" || stage === "complete") && (
+            {stage === "enforce" && (
               <Scene key={sceneKey}>
-                <Enforcement>
-                  <IncomingFee><span>Incoming</span><strong style={{ color: colors.danger }}>30.00%</strong></IncomingFee>
-                  <Cap><Mark size={76} /><span>CappedHookProxy<br />Immutable {capPercent}%</span></Cap>
-                  <AppliedFee revealed={enforced}><Image src="/pool-manager.svg" width={34} height={34} alt="" aria-hidden /><span>PoolManager receives</span><strong>{enforced ? `${(enforcement.appliedBps / 100).toFixed(2)}%` : ""}</strong></AppliedFee>
-                  <SettlementProof revealed={enforced}>
-                    <div><span>Swap quoted</span><strong>{enforced ? amount(enforcement.quotedOut) : ""}</strong></div>
-                    <div><span>Swap received</span><strong>{enforced ? amount(enforcement.receivedOut) : ""}</strong></div>
-                  </SettlementProof>
-                </Enforcement>
+                <OutcomeComparison>
+                  <Outcome guarded>
+                    <h2>Guarded route</h2>
+                    <dl><dt>Strategy request</dt><dd>30.00%</dd><dt>Wrapper return</dt><dd>{enforced ? `${(enforcement.appliedBps / 100).toFixed(2)}%` : "Applying…"}</dd><dt>PoolManager</dt><dd>Protected</dd></dl>
+                    <strong>{enforced ? amount(enforcement.receivedOut) : "—"}</strong><p>Received exactly as quoted at the 1% maximum.</p>
+                  </Outcome>
+                  <Outcome>
+                    <h2>Unguarded route</h2>
+                    <dl><dt>Strategy request</dt><dd>30.00%</dd><dt>Applied fee</dt><dd>{enforced ? `${(enforcement.unguardedAppliedBps / 100).toFixed(2)}%` : "Applying…"}</dd><dt>PoolManager</dt><dd>No cap</dd></dl>
+                    <strong>{enforced ? amount(enforcement.unguardedReceivedOut) : "—"}</strong><p>30% fee accepted; output falls below the quoted amount.</p>
+                  </Outcome>
+                </OutcomeComparison>
+              </Scene>
+            )}
+
+            {(stage === "revoke" || stage === "complete") && (
+              <Scene key={sceneKey}>
+                <RevocationBoard>
+                  <Guardian><span>Guardian multisig</span><strong>Revoke hook identity</strong><code>unregister(labelhash)</code></Guardian>
+                  <RevokeRail aria-hidden="true" />
+                  <RevokedRecord revoked={revoked}>
+                    <h2>hooks.klamp.eth</h2>
+                    <p>{revocation?.ensName ?? launch?.hookRegistration.ensName ?? "Resolving hook identity…"}</p>
+                    <dl><dt>Resolver</dt><dd>{revoked ? "0x0" : "Removing…"}</dd><dt>Attestation</dt><dd>{revoked ? "Revoked" : "Pending"}</dd><dt>Guarded route</dt><dd>{revoked ? "Blocked" : "Closing"}</dd></dl>
+                  </RevokedRecord>
+                </RevocationBoard>
               </Scene>
             )}
 
             <Bottom>
               <Statuses>
                 <Status><span>Pool record</span><strong>{poolStatus(Boolean(record))}</strong></Status>
-                <Status><span>Route</span><strong>{routeStatus(stage, busy, Boolean(proposal), matched)}</strong></Status>
-                <Status><span>Hook cap</span><strong>{feeCapStatus(stage, hookVerified, enforced)}</strong></Status>
+                <Status><span>Route</span><strong>{routeStatus(stage, busy, Boolean(proposal), matched, Boolean(forwarding), revoked)}</strong></Status>
+                <Status><span>Hook cap</span><strong>{feeCapStatus(stage, hookCompliant, enforced)}</strong></Status>
               </Statuses>
               <Actions>
                 {stage !== "idle" && <Reset onClick={reset} disabled={busy}>Reset</Reset>}

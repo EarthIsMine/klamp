@@ -486,3 +486,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/demo/`에서 여섯 버튼을 순서대로 실행해 각 단계가 하나의 사건만 설명하는지, Step 2의 전달 대상과 Step 6의 반환 대상이 모두 PoolManager인지 확인한다.
 - 남은 문제: 모든 프로토콜 응답과 공격·상한 적용은 명시적으로 mock data layer에 있으며 실제 ENS/RPC/컨트랙트 연결, 실패·불일치 경로, 모바일 실기기 검증은 아직 필요하다.
+
+## WEB26 — 악성 복제 풀 차단·상한 견적·회수 시나리오 완성
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 및 390×844 반응형 검증 / Codex, `frontend-design`, PDF, Browser skills
+- AI 수행: 전체 데모를 8단계로 재구성했다. Step 1은 CappedHookFactory의 proxy 배포·hook identity 발급과 issuer의 canonical pool 기록을 하나의 launch flow로 표현한다. Step 2는 Aggregator가 0.25% issuer pool과 0.05% bait quote replica pool을 아직 신뢰하지 않은 후보로 발견하고, Step 3은 Guarded Router가 ENS canonical PoolId를 기준으로 replica를 제외한다. Step 4는 hook address·runtime code hash·immutable 1% maximum·before/after swap return delta 비활성화를 검증하고 advertised fee 대신 등록 상한으로 견적한다. Step 5로 PoolManager 전달을 이동해 모든 검증 이후에만 PoolKey가 전달되도록 인과 순서를 수정했다. Step 6은 strategy admin key compromise의 30% 요청, Step 7은 protected 1% 결과와 unguarded 30% 결과의 병렬 비교, Step 8은 Guardian unregister 후 resolver `0x0`·attestation revoked·route blocked 전환을 보여준다. 각 비동기 단계는 typed mock client의 독립 메서드와 Zustand 상태로 분리했다.
+- 사람의 결정/수정: 빠진 핵심 장면을 모두 추가하고, 필요하면 단계를 늘리되 각 화면 복잡도를 일정 수준으로 유지하며 인터랙션 애니메이션을 충분히 넣도록 요청함.
+- 참고 문서 및 버전: 최종 1단계 설계 PDF, CappedHooks 개발 기획·명세 PDF, Next.js 15.5.26, React 19, Emotion 11.14.1, Zustand 5.0.8, `frontend-design`, PDF, Browser skills.
+- AI 실행 검증: `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` 통과. Chrome에서 8개 동작을 순서대로 실행해 replica `REJECT`, hook `Both disabled`, 1% quote basis, Step 5 이후 PoolManager `Route accepted`, 30% attack, guarded/unguarded 비교, Guardian revoke와 최종 `Blocked`를 확인했다. 애플리케이션 콘솔 오류는 없었으며 브라우저 확장 자체 경고만 있었다. 1470×756에서 document/viewport 크기가 일치했고, 390×844에서 진행부 내부 스크롤 외 문서 전체의 가로 overflow는 없었다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 8단계를 순서대로 실행한다. Step 2에는 PoolManager 전달이 없어야 하고, Step 3 replica `REJECT`, Step 4 `Immutable maximum 1.00%`와 `Both disabled`, Step 5 `Route accepted`, Step 7 두 결과 비교, Step 8 최종 `Revoked`·`Blocked`를 확인한다.
+- 남은 문제: CappedHookFactory·hook ENS registry·GuardedRouter·Guardian·fee enforcement는 여전히 typed mock data layer이며 실제 2단계 컨트랙트와 RPC 연결, 실패·재시도 분기, 모바일 실기기 검증은 아직 필요하다.
