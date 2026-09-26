@@ -4,9 +4,10 @@ import { parseEther, parseEventLogs, type Address } from "viem";
 import type { PoolKey } from "@klamp/sdk/poolKey";
 import { tokenAbi } from "../lib/abis";
 import { ensureSepolia, errorText, sendTx, short, walletClient, type TxState } from "../lib/chain";
-import { ATTACK_TEST_URL, CONTRACTS, type KnownToken } from "../lib/config";
+import { ATTACK_TEST_URL, CONTRACTS, ETH, type KnownToken } from "../lib/config";
 import { discoverPools, feeLabel, fmt, kindOf, planRoute, swapCalldata, tokenInfo, type RoutePlan } from "../lib/pools";
 import type { Wallet } from "../lib/wallet";
+import { Ext } from "./Ext";
 import { RouteView } from "./RouteView";
 import { TokenPicker } from "./TokenPicker";
 import { TxStatus } from "./TxStatus";
@@ -25,6 +26,7 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
   const [slippage, setSlippage] = useState("5");
   const [klampOn, setKlampOn] = useState(true);
   const [pools, setPools] = useState<PoolKey[] | null>(null);
+  const [createdIn, setCreatedIn] = useState<Record<string, string>>({});
   const [plan, setPlan] = useState<RoutePlan | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -51,7 +53,7 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
     setResult(null);
     setError("");
     discoverPools(token, fromBlock)
-      .then((keys) => live && setPools(keys))
+      .then((found) => { if (live) { setPools(found.keys); setCreatedIn(found.createdIn); } })
       .catch((e) => live && setError(errorText(e)));
     return () => { live = false; };
   }, [token, fromBlock, reload]);
@@ -136,7 +138,13 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
         </button>
 
         <dl className="details">
-          <div><dt>Pool</dt><dd>{chosen ? `${short(chosen.poolId)} · ${feeLabel(chosen.key.fee)}${kind ? ` · ${kind === "hooked" ? "undeclared hook" : kind}` : ""}` : "–"}</dd></div>
+          <div>
+            <dt>Pool</dt>
+            <dd>
+              {chosen ? <><Ext tx={createdIn[chosen.poolId]} title="Transaction that created this pool">{short(chosen.poolId)}</Ext>{` · ${feeLabel(chosen.key.fee)}${kind ? ` · ${kind === "hooked" ? "undeclared hook" : kind}` : ""}`}</> : "–"}
+            </dd>
+          </div>
+          {chosen && chosen.key.hooks !== ETH && <div><dt>Hook</dt><dd><Ext address={chosen.key.hooks} /></dd></div>}
           {plan?.klamp && plan.best && (
             <div><dt>ENS</dt><dd className={`ens-${plan.klamp.canonical.status}`}>{plan.klamp.canonical.status}{plan.klamp.canonical.status === "lookup_failed" ? ` (${plan.klamp.canonical.reason})` : ""} · {plan.klamp.verdict} · route {plan.klamp.comparison.status}</dd></div>
           )}
@@ -169,7 +177,7 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
       </section>
 
       <section className="stage">
-        <RouteView plan={plan} klampOn={klampOn} symbol={symbol} loading={loading || !pools} />
+        <RouteView plan={plan} klampOn={klampOn} symbol={symbol} loading={loading || !pools} createdIn={createdIn} />
         <p className="caption">
           {!pools ? "Finding pools…" : pools.length === 0 ? "No ETH pool for this token" : plan && !plan.best ? "No pool can fill this amount." : klampOn
             ? plan?.klamp?.verdict === "requote_canonical" ? "Best quote is an undeclared hook pool. Klamp requotes on the declared one."

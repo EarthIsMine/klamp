@@ -5,7 +5,8 @@ import { hashPoolKey, type PoolKey } from "@klamp/sdk/poolKey";
 import { registrarAbi, seederAbi, stateViewAbi, tokenAbi } from "../lib/abis";
 import { ensureSepolia, errorText, publicClient, sendTx, short, walletClient, type TxState } from "../lib/chain";
 import { CONTRACTS, ETH, NETWORK, type KnownToken } from "../lib/config";
-import { feeLabel, fmt, poolExists, tokenInfo } from "../lib/pools";
+import { declarationTx, feeLabel, fmt, poolCreationTx, poolExists, tokenInfo } from "../lib/pools";
+import { Ext } from "./Ext";
 import type { Wallet } from "../lib/wallet";
 import { TokenPicker } from "./TokenPicker";
 import { TxStatus } from "./TxStatus";
@@ -51,6 +52,8 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
   const [declare, setDeclare] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
   const [declared, setDeclared] = useState<{ poolId: Hex; tick: number } | null | undefined>(undefined);
+  const [declaredIn, setDeclaredIn] = useState<Hex | null>(null);
+  const [createdIn, setCreatedIn] = useState<Hex | null>(null);
 
   const key: PoolKey = useMemo(() => ({
     currency0: ETH,
@@ -80,9 +83,24 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
     let live = true;
     setExists(null);
     setDeclare(null);
-    poolExists(key).then((value) => live && setExists(value)).catch(() => undefined);
+    setCreatedIn(null);
+    poolExists(key)
+      .then(async (value) => {
+        if (!live) return;
+        setExists(value);
+        if (value) { const tx = await poolCreationTx(poolId); if (live) setCreatedIn(tx); }
+      })
+      .catch(() => undefined);
     return () => { live = false; };
-  }, [key, reload]);
+  }, [key, poolId, reload]);
+
+  // Explorer link for the declared pool: the transaction in which the registrar recorded it.
+  useEffect(() => {
+    let live = true;
+    setDeclaredIn(null);
+    declarationTx(token).then((tx) => live && setDeclaredIn(tx)).catch(() => undefined);
+    return () => { live = false; };
+  }, [token]);
 
   useEffect(() => {
     let live = true;
@@ -177,7 +195,7 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
           </div>
         </label>
         <dl className="details">
-          <div><dt>Pool</dt><dd className={exists ? "warn" : ""}>{short(poolId)}{exists === null ? "" : exists ? " · exists" : " · new"}</dd></div>
+          <div><dt>Pool</dt><dd className={exists ? "warn" : ""}><Ext tx={createdIn ?? undefined} title="Transaction that created this pool">{short(poolId)}</Ext>{exists === null ? "" : exists ? " · exists" : " · new"}</dd></div>
           <div><dt>Price</dt><dd>{declared === null ? "no declared pool" : "+3% vs declared pool"} · tick {tickLower}→{tickUpper}</dd></div>
         </dl>
 
@@ -198,12 +216,12 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
           <div className="pair">
             <motion.div className="pool-card declared" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <span className="badge ok">declared</span>
-              <strong>{declared ? short(declared.poolId) : declared === null ? "none" : "…"}</strong>
+              <strong>{declared ? <Ext tx={declaredIn ?? undefined} title="Transaction that declared this pool">{short(declared.poolId)}</Ext> : declared === null ? "none" : "…"}</strong>
               <span>{declared ? `tick ${declared.tick} · from ENS registrar` : declared === null ? "this token has no declared pool" : "reading registrar"}</span>
             </motion.div>
             <motion.div key={poolId} className={`pool-card ${exists ? "live" : "draft"}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
               <span className={`badge ${withHook ? "bad" : ""}`}>{withHook ? "undeclared hook" : "static"}</span>
-              <strong>{feeLabel(tier.fee)} · {withHook ? "DeltaFeeHook" : "no hook"}</strong>
+              <strong>{feeLabel(tier.fee)} · {withHook ? <Ext address={CONTRACTS.hook}>DeltaFeeHook</Ext> : "no hook"}</strong>
               <span>{exists ? "live on PoolManager" : "by you, anyone can"}</span>
             </motion.div>
           </div>

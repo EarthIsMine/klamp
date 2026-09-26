@@ -3,6 +3,7 @@ import { getAddress, isAddress, type Address } from "viem";
 import { short } from "../lib/chain";
 import type { KnownToken } from "../lib/config";
 import { tokenInfo } from "../lib/pools";
+import { addressUrl } from "./Ext";
 
 /** KHOOK, tokens launched from this browser, or any pasted ERC-20 address. */
 export function TokenPicker({ tokens, value, onChange, onAdd }: {
@@ -37,6 +38,7 @@ export function TokenPicker({ tokens, value, onChange, onAdd }: {
           </option>
         ))}
       </select>
+      <a className="ext picker-ext" href={addressUrl(value)} target="_blank" rel="noreferrer" title="Open token on Etherscan" aria-label="Open token on Etherscan">↗</a>
       <input
         value={paste}
         onChange={(event) => setPaste(event.target.value.trim())}

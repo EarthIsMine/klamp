@@ -4,11 +4,12 @@ import { parseEventLogs, type Address, type Hex } from "viem";
 import { getCanonicalPool, tokenName, type CanonicalPoolResult } from "@klamp/sdk/canonicalPool";
 import { launchpadAbi, registrarAbi } from "../lib/abis";
 import { ensureSepolia, errorText, publicClient, sendTx, short, walletClient, type TxState } from "../lib/chain";
-import { CONTRACTS, EXPLORER, NETWORK, type KnownToken } from "../lib/config";
+import { CONTRACTS, NETWORK, type KnownToken } from "../lib/config";
 import type { Wallet } from "../lib/wallet";
+import { Ext } from "./Ext";
 import { TxStatus } from "./TxStatus";
 
-type Launch = { token: Address; poolId: Hex; issuer: Address; creator: Address; block: bigint; canonical: CanonicalPoolResult | null };
+type Launch = { token: Address; poolId: Hex; issuer: Address; creator: Address; block: bigint; tx: Hex; canonical: CanonicalPoolResult | null };
 
 const randomSymbol = () => `K${Array.from({ length: 3 }, () => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join("")}`;
 
@@ -62,7 +63,7 @@ export function LaunchPanel({ wallet, onLaunched, goSwap, goLookAlike }: {
     const recorded = parseEventLogs({ abi: registrarAbi, eventName: "CanonicalRecorded", logs: receipt.logs })[0];
     if (!launched || !recorded) return;
     const token = launched.args.token;
-    const next: Launch = { token, poolId: recorded.args.poolId, issuer: recorded.args.issuer, creator: recorded.args.creator, block: receipt.blockNumber, canonical: null };
+    const next: Launch = { token, poolId: recorded.args.poolId, issuer: recorded.args.issuer, creator: recorded.args.creator, block: receipt.blockNumber, tx: receipt.transactionHash, canonical: null };
     setLaunch(next);
     onLaunched({ address: token, symbol, fromBlock: receipt.blockNumber.toString(), mine: true });
     wallet.refresh();
@@ -91,9 +92,13 @@ export function LaunchPanel({ wallet, onLaunched, goSwap, goLookAlike }: {
   const busy = tx.status === "wallet" || tx.status === "pending";
   const registered = launch?.canonical?.status === "registered" && launch.canonical.poolId === launch.poolId.toLowerCase();
   const steps = launch ? [
-    { label: "Token", value: short(launch.token), href: `${EXPLORER}/token/${launch.token}`, done: true },
-    { label: "Pool", value: `${short(launch.poolId)} · supply locked`, done: true },
-    { label: "Declared", value: `issuer launchpad · creator ${launch.creator.toLowerCase() === wallet.account?.toLowerCase() ? "you" : short(launch.creator)}`, done: true },
+    { label: "Token", value: <Ext address={launch.token} />, done: true },
+    { label: "Pool", value: <><Ext tx={launch.tx} title="Launch transaction: token, pool, liquidity and declaration">{short(launch.poolId)}</Ext> · supply locked</>, done: true },
+    {
+      label: "Declared",
+      value: <>issuer <Ext address={launch.issuer}>launchpad</Ext> · creator <Ext address={launch.creator}>{launch.creator.toLowerCase() === wallet.account?.toLowerCase() ? "you" : short(launch.creator)}</Ext></>,
+      done: true,
+    },
     {
       label: "ENS",
       value: launch.canonical ? `${short(launch.token.toLowerCase(), 6, 4)}.tokens.klamp.eth → ${launch.canonical.status}${registered ? "" : launch.canonical.status === "lookup_failed" ? ` (${launch.canonical.reason})` : ""}` : "resolving…",
@@ -115,7 +120,7 @@ export function LaunchPanel({ wallet, onLaunched, goSwap, goLookAlike }: {
         <dl className="details">
           <div><dt>Pair</dt><dd>ETH / {symbol || "…"} · 0.3% + 1% hook</dd></div>
           <div><dt>Supply</dt><dd>1,000,000,000 · locked in the pool</dd></div>
-          <div><dt>Address</dt><dd className={predicted?.taken ? "warn" : ""}>{predicted ? `${short(predicted.address)}${predicted.taken ? " · already launched" : ""}` : "–"}</dd></div>
+          <div><dt>Address</dt><dd className={predicted?.taken ? "warn" : ""}>{predicted ? <><Ext address={predicted.address} />{predicted.taken ? " · already launched" : ""}</> : "–"}</dd></div>
         </dl>
         {!wallet.account ? (
           <button className="primary" onClick={wallet.connect} disabled={!wallet.available}>{wallet.available ? "Connect wallet" : "Install a wallet"}</button>
@@ -155,7 +160,7 @@ export function LaunchPanel({ wallet, onLaunched, goSwap, goLookAlike }: {
               <motion.div key={step.label} className={`step ${step.done ? "step-done" : ""}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.35 }}>
                 <motion.span className="check" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: index * 0.35 + 0.15 }}>{step.done ? "✓" : "◌"}</motion.span>
                 <span className="step-label">{step.label}</span>
-                {step.href ? <a href={step.href} target="_blank" rel="noreferrer">{step.value}</a> : <span>{step.value}</span>}
+                <span>{step.value}</span>
               </motion.div>
             ))}
             <motion.div className="row actions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.6 }}>

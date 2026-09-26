@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { short } from "../lib/chain";
 import { feeLabel, fmt, kindOf, type RoutePlan } from "../lib/pools";
+import { txUrl } from "./Ext";
 
 const W = 700;
 const ROW = 84;
@@ -28,7 +29,7 @@ const kindText = { declared: "declared", static: "static", hooked: "undeclared h
  * You → router (or Klamp) → every candidate pool. The chosen pool gets the animated flow;
  * with Klamp on, the best quote it rejected is crossed out.
  */
-export function RouteView({ plan, klampOn, symbol, loading }: { plan: RoutePlan | null; klampOn: boolean; symbol: string; loading: boolean }) {
+export function RouteView({ plan, klampOn, symbol, loading, createdIn = {} }: { plan: RoutePlan | null; klampOn: boolean; symbol: string; loading: boolean; createdIn?: Record<string, string> }) {
   const quotes = plan?.quotes ?? [];
   const height = Math.max(240, 60 + quotes.length * ROW);
   const mid = height / 2;
@@ -67,12 +68,17 @@ export function RouteView({ plan, klampOn, symbol, loading }: { plan: RoutePlan 
                 <text x={cutX} y={cutY} className="cut">✕</text>
               </motion.g>
             )}
-            <motion.g initial={{ opacity: 0, x: 12 }} animate={{ opacity: cut ? 0.55 : 1, x: 0 }} transition={{ delay: 0.1 * index }}>
+            <motion.a
+              href={createdIn[q.poolId] ? txUrl(createdIn[q.poolId]) : undefined} target="_blank" rel="noreferrer" className="pool-link"
+              initial={{ opacity: 0, x: 12 }} animate={{ opacity: cut ? 0.55 : 1, x: 0 }} transition={{ delay: 0.1 * index }}
+            >
+              {createdIn[q.poolId] && <title>Open the transaction that created this pool</title>}
               <rect x={POOL} y={y - 32} width={POOL_W} height={64} rx={12} className={`pool ${chosen ? "pool-chosen" : ""} ${cut ? "pool-cut" : ""}`} />
               <text x={POOL + 14} y={y - 10} className="pool-title">{feeLabel(q.key.fee)} · {short(q.poolId, 6, 4)}</text>
               <text x={POOL + 14} y={y + 8} className={`pool-kind kind-${kind}`}>{klampOn ? kindText[kind] : kind === "static" ? "no hook" : "hook"}</text>
               <text x={POOL + 14} y={y + 25} className="pool-out">{q.out === null ? "no quote" : `${fmt(q.out)} ${symbol}`}</text>
-            </motion.g>
+              {createdIn[q.poolId] && <text x={POOL + POOL_W - 12} y={y - 10} className="pool-ext">↗</text>}
+            </motion.a>
           </g>
         );
       })}

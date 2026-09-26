@@ -4,24 +4,34 @@ import { compareRoutes, type RouteComparison } from "@klamp/sdk/compareRoutes";
 import { isStatic, judge, type Verdict } from "@klamp/sdk/judge";
 import { hashPoolKey, type PoolKey } from "@klamp/sdk/poolKey";
 import { formatUnits, parseAbi, type Address, type Hex } from "viem";
-import { initializeEvent, stateViewAbi, tokenAbi } from "./abis";
+import { canonicalRecordedEvent, initializeEvent, stateViewAbi, tokenAbi } from "./abis";
 import { publicClient } from "./chain";
 import { CONTRACTS, ETH, NETWORK } from "./config";
 
 const LOG_RANGE = 50_000n; // public RPC limit per eth_getLogs
 const DEFAULT_LOOKBACK = 200_000n; // about four weeks of Sepolia blocks
 
-/** Every ETH/token v4 pool, from PoolManager Initialize events: what a router indexing v4 would see. */
-export async function discoverPools(token: Address, fromBlock?: bigint): Promise<PoolKey[]> {
+/** Block windows over the last DEFAULT_LOOKBACK blocks (or from `fromBlock`), each within the public RPC's getLogs limit. */
+async function windows(fromBlock?: bigint): Promise<[bigint, bigint][]> {
   const latest = await publicClient.getBlockNumber();
   const start = fromBlock ?? (latest > DEFAULT_LOOKBACK ? latest - DEFAULT_LOOKBACK : 0n);
   const ranges: [bigint, bigint][] = [];
   for (let from = start; from <= latest; from += LOG_RANGE) {
     ranges.push([from, from + LOG_RANGE - 1n < latest ? from + LOG_RANGE - 1n : latest]);
   }
+  return ranges;
+}
+
+export type DiscoveredPools = { keys: PoolKey[]; createdIn: Record<Hex, Hex> };
+
+/**
+ * Every ETH/token v4 pool, from PoolManager Initialize events: what a router indexing v4 would see.
+ * `createdIn` maps each PoolId to the transaction that initialized it, for explorer links.
+ */
+export async function discoverPools(token: Address, fromBlock?: bigint): Promise<DiscoveredPools> {
   const logs = (
     await Promise.all(
-      ranges.map(([from, to]) =>
+      (await windows(fromBlock)).map(([from, to]) =>
         publicClient.getLogs({
           address: NETWORK.poolManager,
           event: initializeEvent,
@@ -32,13 +42,32 @@ export async function discoverPools(token: Address, fromBlock?: bigint): Promise
       ),
     )
   ).flat();
-  return logs.map(({ args }) => ({
+  const keys = logs.map(({ args }) => ({
     currency0: args.currency0!,
     currency1: args.currency1!,
     fee: args.fee!,
     tickSpacing: args.tickSpacing!,
     hooks: args.hooks!,
   }));
+  return { keys, createdIn: Object.fromEntries(logs.map((log) => [log.args.id!, log.transactionHash])) };
+}
+
+/** The transaction that initialized a pool, or null if it is older than the lookback. */
+export async function poolCreationTx(poolId: Hex): Promise<Hex | null> {
+  for (const [from, to] of (await windows()).reverse()) {
+    const [log] = await publicClient.getLogs({ address: NETWORK.poolManager, event: initializeEvent, args: { id: poolId }, fromBlock: from, toBlock: to });
+    if (log) return log.transactionHash;
+  }
+  return null;
+}
+
+/** The transaction in which the registrar recorded a token's canonical pool, or null if not found. */
+export async function declarationTx(token: Address): Promise<Hex | null> {
+  for (const [from, to] of (await windows()).reverse()) {
+    const [log] = await publicClient.getLogs({ address: CONTRACTS.registrar, event: canonicalRecordedEvent, args: { token }, fromBlock: from, toBlock: to });
+    if (log) return log.transactionHash;
+  }
+  return null;
 }
 
 export const poolExists = async (key: PoolKey) => {

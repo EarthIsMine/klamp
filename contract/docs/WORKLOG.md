@@ -730,3 +730,11 @@ Implementation status and human verification status are tracked separately; each
 - AI work: `demo/sepolia/klamp-sdk.mjs` `allowedPools` no longer returns an empty list on `hold`; the existing filter (static pools, plus the declared pool only when `registered`) already leaves static pools for a failed lookup. Used by the CLI (`klamp-swap.mjs`) and dex; dex's caption for `hold` ("Holding: static pools only") now matches its behaviour. `contract/sdk/judge.ts` is unchanged.
 - AI-run verification: `allowedPools({ status: "lookup_failed" }, [static 0.3%, DeltaFeeHook 0.05%, dynamic-fee], "hold")` returns only the static pool. dex `pnpm build` passed. The CLI was not run against a failing lookup.
 - Human verification: Pending human verification.
+
+## DEX7 — Explorer links for what the dex shows
+
+- Date / environment / tools: 2026-09-27 / Vite 8, Sepolia public RPC, headless Chromium / Claude Code (Opus 5.5)
+- Human decisions/changes: Since every contract and pool is really deployed, link them to the explorer.
+- AI work: `components/Ext.tsx` (Sepolia Etherscan address/tx link). A v4 PoolId has no explorer page, so a pool links to the transaction that created it (PoolManager `Initialize`; `discoverPools` now also returns `createdIn`, `poolCreationTx` scans for one pool) and the declared pool to the transaction that declared it (`CanonicalRecorded`, `declarationTx`). Swap: selected token, route pool boxes (↗), Pool and new Hook rows. Launch: token, pool (launch tx), issuer launchpad, creator, predicted address. Look-alike: token, declared pool, the look-alike pool once it exists, DeltaFeeHook.
+- AI-run verification: `pnpm build` passed. Headless Chromium on the built app with live KHOOK data: the declared pool links to `0x88939990…` (KHOOK launch and declaration) and the undeclared pool to `0xc81311c1…` (its creation), both matching WEB33; hook and token link to their addresses. Launch links need a wallet launch and were not exercised.
+- Human verification: Pending human verification.

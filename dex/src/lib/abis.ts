@@ -40,3 +40,7 @@ export const tokenAbi = parseAbi([
 export const initializeEvent = parseAbiItem(
   "event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)",
 );
+
+export const canonicalRecordedEvent = parseAbiItem(
+  "event CanonicalRecorded(address indexed token, bytes32 indexed poolId, address indexed issuer, address creator)",
+);
