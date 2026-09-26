@@ -5,11 +5,12 @@ import {
   type FeeEnforcement,
   type HookAttestation,
   type LaunchReceipt,
+  type ProposedRoute,
   type RouteComparison,
 } from "@/domain/protocol";
 import { mockProtocolClient, type ProtocolClient } from "@/data/protocol/client";
 
-export type DemoStage = "idle" | "launch" | "verify" | "attest" | "request" | "enforce" | "complete";
+export type DemoStage = "idle" | "launch" | "route" | "verify" | "attest" | "request" | "enforce" | "complete";
 export type LaunchVisualStep = "idle" | "deploying" | "initializing" | "recording" | "complete";
 
 type DemoState = {
@@ -17,6 +18,7 @@ type DemoState = {
   busy: boolean;
   launchStep: LaunchVisualStep;
   launch: LaunchReceipt | null;
+  proposal: ProposedRoute | null;
   canonical: CanonicalPoolResult | null;
   comparison: RouteComparison | null;
   attestation: HookAttestation | null;
@@ -30,6 +32,7 @@ const initial = {
   busy: false,
   launchStep: "idle" as LaunchVisualStep,
   launch: null,
+  proposal: null,
   canonical: null,
   comparison: null,
   attestation: null,
@@ -63,19 +66,20 @@ export const useDemoStore = create<DemoState>((set, get) => ({
     }
 
     if (state.stage === "launch" && state.launch) {
+      set({ stage: "route", busy: true });
+      const proposal = await client.buildRoute(state.launch.token);
+      set({ proposal, stage: "route", busy: false });
+      return;
+    }
+
+    if (state.stage === "route" && state.launch && state.proposal) {
       set({ stage: "verify", busy: true });
       const canonical = await client.resolveCanonicalPool(state.launch.token);
       if (canonical.status !== "found") {
         set({ canonical, stage: "complete", busy: false });
         return;
       }
-      const comparison = compareRoutes(state.launch.token, canonical, [[{
-        chainId: canonical.chainId,
-        poolManager: canonical.poolManager,
-        poolId: canonical.poolId,
-        tokenIn: state.launch.canonicalPool.key.currency0,
-        tokenOut: state.launch.token,
-      }]]);
+      const comparison = compareRoutes(state.launch.token, canonical, state.proposal.branches);
       set({ canonical, comparison, stage: "verify", busy: false });
       return;
     }

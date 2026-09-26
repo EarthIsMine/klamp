@@ -9,7 +9,7 @@ const Screen = styled.main`
   height: 100dvh; min-height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden;
   @media (max-width: 820px), (max-height: 640px) { height: auto; overflow: visible; }
 `;
-const Header = styled.header`border-bottom: 1px solid ${colors.border}; background: ${colors.background};`;
+const Header = styled.header`min-width: 0; border-bottom: 1px solid ${colors.border}; background: ${colors.background};`;
 const HeaderInner = styled.div`
   max-width: ${layout.maxWidth}; min-height: 62px; margin: 0 auto; padding: 0 24px;
   display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 24px;

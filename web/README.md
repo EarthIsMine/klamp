@@ -33,7 +33,7 @@ The frontend follows the implemented canonical-pool SDK state model:
 - canonical pool resolution: `found | missing | invalid | unavailable | ambiguous`
 - route comparison: `match | mismatch | blocked`
 
-The five-step happy path launches a token and writes its pool under `<token>.tokens.klamp.eth`, verifies the canonical route, resolves a 100 bps hook cap under `<hook>.hooks.klamp.eth`, sends a 3,000 bps request, and simulates the proxy applying 100 bps while quoted and received output remain equal. The demo uses the typed mock client: no wallet, RPC, ENS lookup, or transaction is performed, and mock addresses or receipts are not live-chain claims.
+The six-step happy path launches a token and writes its protected pool under `<token>.tokens.klamp.eth`, builds an aggregator route and forwards its PoolKey through the router to PoolManager, verifies that route against the canonical record, verifies the hook identity and immutable 100 bps cap, simulates a compromised strategy admin producing a 3,000 bps fee request, and shows the wrapper returning the capped 100 bps fee to PoolManager. The demo uses the typed mock client: no wallet, RPC, ENS lookup, or transaction is performed, and mock addresses or receipts are not live-chain claims.
 
 ## GitHub Pages deployment
 

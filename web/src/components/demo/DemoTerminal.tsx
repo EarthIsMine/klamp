@@ -6,48 +6,56 @@ import { Mark } from "@/components/brand/Mark";
 import { useDemoStore, type DemoStage } from "@/store/demo-store";
 import { colors, layout, mono } from "@/styles/tokens";
 
-const stageOrder: DemoStage[] = ["idle", "launch", "verify", "attest", "request", "enforce", "complete"];
+const stageOrder: DemoStage[] = ["idle", "launch", "route", "verify", "attest", "request", "enforce", "complete"];
 
 const copy = {
-  idle: { state: "Step 1 of 5", title: "Launch the protected pool", detail: "The issuer creates a dynamic-fee pool with CappedHookProxy and records it under tokens.klamp.eth." },
+  idle: { state: "Step 1 of 6", title: "Launch the protected pool", detail: "The issuer creates a dynamic-fee pool with CappedHookProxy and records it under tokens.klamp.eth." },
   launch: { state: "Step 1 complete", title: "Protected pool recorded", detail: "The capped proxy was attached at initialization, then the canonical PoolId was written to ENS." },
-  verify: { state: "Step 2 complete", title: "Canonical route verified", detail: "The resolver, chain, pool data, and proposed route agree." },
-  attest: { state: "Step 3 complete", title: "Hook cap verified", detail: "ENS attests that the pool hook is the Klamp wrapper with an immutable 1% maximum." },
-  request: { state: "Step 4 complete", title: "Fee strategy requested 30%", detail: "Compromised strategy logic inside the official pool requests an excessive dynamic fee." },
-  enforce: { state: "Step 5 of 5", title: "Applying the onchain cap", detail: "The pool's capped proxy clamps the strategy output before returning it to PoolManager." },
+  route: { state: "Step 2 complete", title: "Route delivered to PoolManager", detail: "The aggregator selected a branch and the router forwarded its PoolKey to the v4 singleton." },
+  verify: { state: "Step 3 complete", title: "Canonical route verified", detail: "The ENS record, chain, PoolManager, PoolId, and proposed route agree." },
+  attest: { state: "Step 4 complete", title: "Immutable hook cap verified", detail: "The PoolKey hook matches the verified wrapper and its onchain maximum is fixed at 1%." },
+  request: { state: "Step 5 complete", title: "Fee strategy requested 30%", detail: "A compromised strategy admin pushes the official pool's dynamic fee far above policy." },
+  enforce: { state: "Step 6 of 6", title: "Returning the capped fee", detail: "CappedHookProxy clamps the strategy output before returning it to PoolManager." },
   complete: { state: "Trace complete", title: "The request was capped", detail: "The canonical route held and the pool's immutable wrapper returned the 1% maximum." },
 };
 
 const launchPendingCopy = {
-  state: "Step 1 of 5",
+  state: "Step 1 of 6",
   title: "Launching token and pool",
   detail: "The launcher is deploying the token, attaching CappedHookProxy, and writing the canonical pool record.",
 };
 
+const routeBuildPendingCopy = {
+  state: "Step 2 of 6",
+  title: "Building and forwarding the route",
+  detail: "The aggregator selects a pool branch and the router sends its PoolKey to PoolManager.",
+};
+
 const routePendingCopy = {
-  state: "Step 2 of 5",
+  state: "Step 3 of 6",
   title: "Verifying the proposed route",
-  detail: "The aggregator proposes a route, the router forwards it, and Klamp compares every declared pool field.",
+  detail: "Klamp resolves the canonical record and compares every declared pool field.",
 };
 
 const hookPendingCopy = {
-  state: "Step 3 of 5",
-  title: "Resolving the hook cap",
-  detail: "Klamp is checking the hook identity, code hash, and recorded maximum fee.",
+  state: "Step 4 of 6",
+  title: "Verifying the pool hook",
+  detail: "Klamp is checking the PoolKey hook, wrapper bytecode, and immutable onchain cap.",
 };
 
 const attackPendingCopy = {
-  state: "Step 4 of 5",
+  state: "Step 5 of 6",
   title: "Sending the 30% request",
   detail: "Compromised fee strategy logic is sending a 300,000-pip request through the verified wrapper.",
 };
 
 const steps = [
-  { stage: "launch" as const, index: "1", title: "Launch", detail: "ENS record" },
-  { stage: "verify" as const, index: "2", title: "Verify route", detail: "Canonical pool" },
-  { stage: "attest" as const, index: "3", title: "Verify hook", detail: "ENS cap" },
-  { stage: "request" as const, index: "4", title: "Request 30%", detail: "Attack input" },
-  { stage: "enforce" as const, index: "5", title: "Enforce 1%", detail: "Capped output" },
+  { stage: "launch" as const, index: "1", title: "Launch", detail: "Protected pool" },
+  { stage: "route" as const, index: "2", title: "Route", detail: "Aggregator to PM" },
+  { stage: "verify" as const, index: "3", title: "Verify route", detail: "Canonical pool" },
+  { stage: "attest" as const, index: "4", title: "Verify hook", detail: "Immutable cap" },
+  { stage: "request" as const, index: "5", title: "Request 30%", detail: "Strategy attack" },
+  { stage: "enforce" as const, index: "6", title: "Enforce 1%", detail: "Return to PM" },
 ];
 
 function stageIndex(stage: DemoStage) { return stageOrder.indexOf(stage); }
@@ -55,11 +63,11 @@ function short(value: string) { return `${value.slice(0, 8)}…${value.slice(-6)
 function amount(value: number) { return new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value); }
 
 const Shell = styled.section`
-  width: 100%; max-width: ${layout.maxWidth}; height: 100%; min-height: 0; margin: 0 auto; padding: 18px 24px 22px; display: flex;
+  width: 100%; max-width: ${layout.maxWidth}; height: 100%; min-width: 0; min-height: 0; margin: 0 auto; padding: 18px 24px 22px; display: flex;
   @media (max-width: 820px), (max-height: 640px) { height: auto; min-height: calc(100dvh - 56px); padding: 14px 16px 28px; }
 `;
 const Instrument = styled.div`
-  flex: 1; min-width: 0; min-height: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr);
+  flex: 1; min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr);
   border-top: 3px solid ${colors.textPrimary}; border-bottom: 1px solid ${colors.borderStrong}; background: ${colors.surface};
 `;
 const InstrumentHead = styled.div`
@@ -71,7 +79,7 @@ const LiveMark = styled.span<{ complete: boolean }>`width: 8px; height: 8px; bac
 const Network = styled.div`color: ${colors.textMuted}; font-size: 12px;`;
 
 const Progress = styled.ol`
-  list-style: none; margin: 0; padding: 0 16px; display: grid; grid-template-columns: repeat(5, 1fr); border-bottom: 1px solid ${colors.border};
+  list-style: none; margin: 0; padding: 0 16px; display: grid; grid-template-columns: repeat(6, 1fr); border-bottom: 1px solid ${colors.border};
   @media (max-width: 680px) { padding: 0; overflow-x: auto; }
 `;
 const ProgressItem = styled.li<{ active: boolean; done: boolean }>`
@@ -136,8 +144,9 @@ const LaunchReceipt = styled.dl`
   dd[data-complete="true"] { color: ${colors.textPrimary}; }
 `;
 
+const RouteJourney = styled.div`width: min(920px, 100%);`;
 const RoutePipeline = styled.div`
-  grid-column: 1 / -1; display: grid; grid-template-columns: 170px minmax(44px, 1fr) 150px minmax(44px, 1fr) 170px;
+  width: min(920px, 100%); display: grid; grid-template-columns: 170px minmax(44px, 1fr) 150px minmax(44px, 1fr) 180px;
   align-items: center; margin-bottom: 24px;
   @media (max-width: 680px) { grid-template-columns: 1fr 32px 1fr 32px 1fr; margin-bottom: 20px; }
 `;
@@ -155,7 +164,7 @@ const RouteActor = styled.div<{ delay?: number }>`
 `;
 const RouteEndpoint = styled(RouteActor)`
   padding: 9px 11px; border: 1px solid ${colors.borderStrong};
-  img { width: 32px; height: 32px; padding: 4px; }
+  img { width: 38px; height: 38px; }
 `;
 const RouteRail = styled.div<{ delay: number }>`
   position: relative; height: 2px; margin: 0 10px; background: ${colors.border}; overflow: visible;
@@ -165,6 +174,13 @@ const RouteRail = styled.div<{ delay: number }>`
   }
   @keyframes routePacket { from { opacity: 0; left: 0; } 20% { opacity: 1; } to { opacity: 1; left: calc(100% - 10px); } }
   @media (max-width: 680px) { margin: 0 4px; }
+`;
+const RouteHandoff = styled.div`
+  width: min(720px, 100%); display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid ${colors.borderStrong};
+  div { padding: 13px 18px 0; min-width: 0; }
+  div + div { border-left: 1px solid ${colors.border}; }
+  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 4px; }
+  strong { display: block; font: 600 13px/1.35 ${mono}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 `;
 
 const Comparison = styled.div`width: min(920px, 100%); display: grid; grid-template-columns: 1fr 104px 1fr; align-items: center;`;
@@ -208,11 +224,16 @@ const HookCap = styled.div<{ verified: boolean }>`
   @media (max-width: 700px) { border-left: 0; border-top: 1px solid ${colors.borderStrong}; padding: 20px 0 0; text-align: left; }
 `;
 const HookChecks = styled.div`
-  grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid ${colors.borderStrong};
+  grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid ${colors.borderStrong};
   div { padding: 13px 0; }
   div + div { border-left: 1px solid ${colors.border}; padding-left: 22px; }
   span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 4px; }
   strong { font-size: 14px; }
+  @media (max-width: 700px) {
+    grid-template-columns: 1fr 1fr;
+    div:nth-of-type(3) { border-left: 0; border-top: 1px solid ${colors.border}; }
+    div:nth-of-type(4) { border-top: 1px solid ${colors.border}; }
+  }
 `;
 
 const AttackSequence = styled.div`
@@ -305,6 +326,7 @@ const Cap = styled.div`
 const AppliedFee = styled(FeeSide)<{ revealed: boolean }>`
   opacity: ${({ revealed }) => revealed ? 1 : 0};
   animation: ${({ revealed }) => revealed ? "appliedReveal .38s ease-out both" : "none"};
+  img { display: block; width: 34px; height: 34px; margin: 0 auto 8px; }
   strong { color: ${colors.primaryHover}; }
   @keyframes appliedReveal { from { opacity: 0; transform: translateX(-26px) scale(.84); } to { opacity: 1; transform: translateX(0) scale(1); } }
 `;
@@ -349,14 +371,16 @@ const ReducedMotion = styled.div`
 
 function actionLabel(stage: DemoStage, busy: boolean) {
   if (busy && stage === "launch") return "Launching…";
+  if (busy && stage === "route") return "Building route…";
   if (busy && stage === "verify") return "Verifying route…";
   if (busy && stage === "attest") return "Verifying hook…";
   if (busy && stage === "request") return "Sending request…";
   if (busy && stage === "enforce") return "Applying cap…";
   if (stage === "idle") return "Launch token and record pool";
-  if (stage === "launch") return "Verify proposed route";
-  if (stage === "verify") return "Verify hook cap";
-  if (stage === "attest") return "Request 30% fee";
+  if (stage === "launch") return "Build proposed route";
+  if (stage === "route") return "Verify canonical pool";
+  if (stage === "verify") return "Verify immutable hook cap";
+  if (stage === "attest") return "Compromise fee strategy";
   if (stage === "request") return "Apply 1% cap";
   if (stage === "complete") return "Start over";
   return "Working…";
@@ -366,8 +390,10 @@ function poolStatus(recorded: boolean) {
   return recorded ? "Written once" : "Not started";
 }
 
-function routeStatus(stage: DemoStage, matched: boolean) {
+function routeStatus(stage: DemoStage, busy: boolean, proposed: boolean, matched: boolean) {
   if (matched) return "Route matched";
+  if (proposed) return stage === "verify" && busy ? "Checking canonical" : "Route proposed";
+  if (stage === "route") return "Building route";
   if (stageIndex(stage) >= stageIndex("verify")) return "Checking";
   return "Not started";
 }
@@ -379,21 +405,26 @@ function feeCapStatus(stage: DemoStage, verified: boolean, enforced: boolean) {
 }
 
 export function DemoTerminal() {
-  const { stage, busy, launchStep, launch, canonical, comparison, attestation, enforcement, advance, reset } = useDemoStore();
+  const { stage, busy, launchStep, launch, proposal, canonical, comparison, attestation, enforcement, advance, reset } = useDemoStore();
   const current = stageIndex(stage);
   const view = stage === "launch" && busy
     ? launchPendingCopy
-    : stage === "verify" && busy
-      ? routePendingCopy
-      : stage === "attest" && busy
-        ? hookPendingCopy
-        : stage === "request" && busy
-          ? attackPendingCopy
-        : copy[stage];
+    : stage === "route" && busy
+      ? routeBuildPendingCopy
+      : stage === "verify" && busy
+        ? routePendingCopy
+        : stage === "attest" && busy
+          ? hookPendingCopy
+          : stage === "request" && busy
+            ? attackPendingCopy
+            : copy[stage];
   const found = canonical?.status === "found";
   const matched = comparison?.status === "match";
   const hookVerified = attestation?.status === "verified";
   const record = launch?.canonicalPool ?? null;
+  const proposedHop = proposal?.branches[0]?.[0] ?? null;
+  const hookMatches = Boolean(attestation && hookVerified && record && attestation.hook.toLowerCase() === record.key.hooks.toLowerCase());
+  const capImmutable = hookVerified && attestation?.capMode === "immutable";
   const enforced = enforcement !== null;
   const capBps = attestation?.capBps ?? 100;
   const capPercent = (capBps / 100).toFixed(2);
@@ -406,10 +437,12 @@ export function DemoTerminal() {
   const ensValue = record?.ensName ?? (launchStep === "recording" ? "Writing…" : launchStep === "idle" ? "0x<token>.tokens.klamp.eth" : "Waiting");
   const sceneKey = stage === "idle" || stage === "launch"
     ? "launch-flow"
-    : stage === "verify"
-      ? "route-verification"
-      : stage === "attest"
-        ? "hook-verification"
+    : stage === "route"
+      ? "route-build"
+      : stage === "verify"
+        ? "route-verification"
+        : stage === "attest"
+          ? "hook-verification"
     : stage === "enforce" || stage === "complete"
       ? "fee-enforcement"
       : stage;
@@ -459,24 +492,36 @@ export function DemoTerminal() {
               </Scene>
             )}
 
+            {stage === "route" && (
+              <Scene key={sceneKey}>
+                <RouteJourney>
+                  <RoutePipeline aria-label="Aggregator, router, and PoolManager route flow">
+                    <RouteActor><Image src="/aggregator.svg" width={44} height={44} alt="" aria-hidden /><div><span>Aggregator</span><strong>{proposal ? "Branch selected" : "Building candidates"}</strong></div></RouteActor>
+                    <RouteRail delay={0.16} aria-hidden="true" />
+                    <RouteActor delay={0.34}><Image src="/router.svg" width={44} height={44} alt="" aria-hidden /><div><span>Router</span><strong>{proposal ? "PoolKey forwarded" : "Preparing calldata"}</strong></div></RouteActor>
+                    <RouteRail delay={0.5} aria-hidden="true" />
+                    <RouteEndpoint delay={0.68}><Image src="/pool-manager.svg" width={38} height={38} alt="" aria-hidden /><div><span>PoolManager</span><strong>{proposal ? "Route received" : "Receiving PoolKey"}</strong></div></RouteEndpoint>
+                  </RoutePipeline>
+                  <RouteHandoff>
+                    <div><span>Selected branch</span><strong>{proposal ? "Branch 0 · 1 hop" : "Scanning…"}</strong></div>
+                    <div><span>Target singleton</span><strong>{proposedHop ? short(proposedHop.poolManager) : "Waiting…"}</strong></div>
+                    <div><span>Proposed PoolId</span><strong>{proposedHop ? short(proposedHop.poolId) : "Waiting…"}</strong></div>
+                  </RouteHandoff>
+                </RouteJourney>
+              </Scene>
+            )}
+
             {stage === "verify" && (
               <Scene key={sceneKey}>
                 <Comparison>
-                  <RoutePipeline aria-label="Aggregator and router route flow">
-                    <RouteActor><Image src="/aggregator.svg" width={44} height={44} alt="" aria-hidden /><div><span>Aggregator</span><strong>Builds candidates</strong></div></RouteActor>
-                    <RouteRail delay={0.16} aria-hidden="true" />
-                    <RouteActor delay={0.34}><Image src="/router.svg" width={44} height={44} alt="" aria-hidden /><div><span>Router</span><strong>Forwards route</strong></div></RouteActor>
-                    <RouteRail delay={0.5} aria-hidden="true" />
-                    <RouteEndpoint delay={0.68}><Mark size={32} /><div><span>Selected branch</span><strong>Pool 0</strong></div></RouteEndpoint>
-                  </RoutePipeline>
                   <CompareSide><SceneLabel>ENSv2 record</SceneLabel><h2>Canonical pool</h2><strong>{poolId ? short(poolId) : "Resolving…"}</strong><p>Chain 11155111 · {manager}</p></CompareSide>
                   <AnimatedClamp matched={matched}><Mark size={70} /></AnimatedClamp>
-                  <CompareSideRight><SceneLabel>Proposed route</SceneLabel><h2>Route branch 0</h2><strong>{matched && poolId ? short(poolId) : "Waiting…"}</strong><p>{matched ? "Chain and PoolManager agree" : "Comparing declared fields"}</p></CompareSideRight>
+                  <CompareSideRight><SceneLabel>Router submission</SceneLabel><h2>Route branch 0</h2><strong>{proposedHop ? short(proposedHop.poolId) : "Waiting…"}</strong><p>{matched ? "Chain and PoolManager agree" : "Comparing declared fields"}</p></CompareSideRight>
                   <VerificationChecks>
                     <div><span>Resolver</span><strong>{found ? "Trusted" : "Checking"}</strong></div>
                     <div><span>Chain</span><strong>{found ? "Verified" : "Checking"}</strong></div>
-                    <div><span>Pool data</span><strong>{found && record?.dataVerified ? "Recomputed" : "Checking"}</strong></div>
-                    <div><span>Route</span><strong>{matched ? "Match" : "Checking"}</strong></div>
+                    <div><span>PoolManager</span><strong>{matched ? "Match" : "Checking"}</strong></div>
+                    <div><span>PoolId</span><strong>{matched && record?.dataVerified ? "Match" : "Checking"}</strong></div>
                   </VerificationChecks>
                 </Comparison>
               </Scene>
@@ -496,8 +541,9 @@ export function DemoTerminal() {
                   <HookCap verified={hookVerified}><span>Maximum fee</span><strong>{hookVerified ? `${capPercent}%` : "…"}</strong></HookCap>
                   <HookChecks>
                     <div><span>ENS identity</span><strong>{hookVerified ? "Verified" : "Checking"}</strong></div>
-                    <div><span>Code hash</span><strong>{attestation ? short(attestation.codeHash) : "Checking"}</strong></div>
-                    <div><span>Namespace</span><strong>hooks.klamp.eth</strong></div>
+                    <div><span>PoolKey hook</span><strong>{hookMatches ? "Address match" : "Checking"}</strong></div>
+                    <div><span>Runtime code</span><strong>{attestation ? short(attestation.codeHash) : "Checking"}</strong></div>
+                    <div><span>Onchain cap</span><strong>{capImmutable ? "Immutable · 1%" : "Checking"}</strong></div>
                   </HookChecks>
                 </HookProof>
               </Scene>
@@ -506,9 +552,9 @@ export function DemoTerminal() {
             {stage === "request" && (
               <Scene key={sceneKey}>
                 <AttackSequence>
-                  <AttackOrigin><span>Inside official pool</span><strong>Compromised strategy</strong><code>requestFee(300_000)</code></AttackOrigin>
+                  <AttackOrigin><span>External compromise</span><strong>Strategy admin key</strong><code>setFee(300_000)</code></AttackOrigin>
                   <AttackRail aria-hidden="true"><i /><i /><i /></AttackRail>
-                  <AttackPayload><SceneLabel>Incoming fee request</SceneLabel><FeeValue>30.00%</FeeValue><FeeCaption>3,000 bps sent toward the pool.</FeeCaption></AttackPayload>
+                  <AttackPayload><SceneLabel>Fee strategy output</SceneLabel><FeeValue>30.00%</FeeValue><FeeCaption>The official pool requests 3,000 bps.</FeeCaption></AttackPayload>
                 </AttackSequence>
               </Scene>
             )}
@@ -517,11 +563,11 @@ export function DemoTerminal() {
               <Scene key={sceneKey}>
                 <Enforcement>
                   <IncomingFee><span>Incoming</span><strong style={{ color: colors.danger }}>30.00%</strong></IncomingFee>
-                  <Cap><Mark size={76} /><span>Onchain maximum {capPercent}%</span></Cap>
-                  <AppliedFee revealed={enforced}><span>Applied</span><strong>{enforced ? `${(enforcement.appliedBps / 100).toFixed(2)}%` : ""}</strong></AppliedFee>
+                  <Cap><Mark size={76} /><span>CappedHookProxy<br />Immutable {capPercent}%</span></Cap>
+                  <AppliedFee revealed={enforced}><Image src="/pool-manager.svg" width={34} height={34} alt="" aria-hidden /><span>PoolManager receives</span><strong>{enforced ? `${(enforcement.appliedBps / 100).toFixed(2)}%` : ""}</strong></AppliedFee>
                   <SettlementProof revealed={enforced}>
-                    <div><span>Quoted output</span><strong>{enforced ? amount(enforcement.quotedOut) : ""}</strong></div>
-                    <div><span>Received output</span><strong>{enforced ? amount(enforcement.receivedOut) : ""}</strong></div>
+                    <div><span>Swap quoted</span><strong>{enforced ? amount(enforcement.quotedOut) : ""}</strong></div>
+                    <div><span>Swap received</span><strong>{enforced ? amount(enforcement.receivedOut) : ""}</strong></div>
                   </SettlementProof>
                 </Enforcement>
               </Scene>
@@ -530,7 +576,7 @@ export function DemoTerminal() {
             <Bottom>
               <Statuses>
                 <Status><span>Pool record</span><strong>{poolStatus(Boolean(record))}</strong></Status>
-                <Status><span>Route</span><strong>{routeStatus(stage, matched)}</strong></Status>
+                <Status><span>Route</span><strong>{routeStatus(stage, busy, Boolean(proposal), matched)}</strong></Status>
                 <Status><span>Hook cap</span><strong>{feeCapStatus(stage, hookVerified, enforced)}</strong></Status>
               </Statuses>
               <Actions>

@@ -475,3 +475,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/demo/`에서 Step 1 완료 후 Pool hook 행을 확인하고 Step 2 입력 시 Aggregator와 Router가 별도 이미지로 나타나며 패킷이 왼쪽에서 오른쪽으로 순차 이동하는지 확인한다.
 - 남은 문제: `CappedHookProxy`와 fee strategy는 아직 mock 시나리오이며 실제 온체인 wrapper 구현, 불변 cap 검증, 공격·우회 테스트와 실기기 애니메이션 검증은 미실행이다.
+
+## WEB25 — 여섯 단계 보호 경로와 PoolManager 반환 완성
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 데스크톱·390×844 반응형 검증 / Codex, `frontend-design`, `browser` skills
+- AI 수행: 기존 흐름을 여섯 단계로 분리해 각 화면이 한 가지 판단만 보여주도록 정리했다. Aggregator가 후보 branch를 만들고 Router가 PoolKey를 v4 PoolManager로 넘기는 장면을 독립 단계로 만들었으며, canonical 조회와 분리된 `ProposedRoute` 타입 및 mock client 경계를 추가했다. route 검증에는 ENS resolver·chain·PoolManager·PoolId 비교를, hook 검증에는 ENS identity·PoolKey hook address·runtime code hash·`Immutable · 1%` 상한 증거를 표시했다. 공격은 외부의 strategy admin key compromise가 `setFee(300_000)` 출력을 만든 것으로 구체화했고, 최종 장면은 CappedHookProxy가 1%로 clamp한 값을 PoolManager에 반환하는 방향까지 표시했다. 새 PoolManager SVG를 프로젝트 팔레트로 추가했으며 모바일 grid item의 최소 너비 때문에 생긴 페이지 가로 overflow를 제거했다.
+- 사람의 결정/수정: 필요한 요소를 우선 모두 포함하고, 화면 복잡도가 높아지면 단계 분할로 일정 수준을 유지하도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, React 19, Emotion 11.14.1, Zustand 5.0.8, Uniswap v4 PoolManager/PoolKey 개념, `frontend-design` skill, Browser skill.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 여섯 단계 전체를 순서대로 실행해 Aggregator → Router → PoolManager 전달, canonical 네 항목 일치, immutable hook cap 네 항목 증거, strategy admin 공격, wrapper → PoolManager 1% 반환과 settlement 결과를 확인했다. 데스크톱에서 콘솔 오류와 가로·세로 overflow가 없었고, 390×844에서 단계 진행부의 의도된 내부 가로 스크롤 외에 문서 전체 가로 overflow가 없음을 확인했다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 여섯 버튼을 순서대로 실행해 각 단계가 하나의 사건만 설명하는지, Step 2의 전달 대상과 Step 6의 반환 대상이 모두 PoolManager인지 확인한다.
+- 남은 문제: 모든 프로토콜 응답과 공격·상한 적용은 명시적으로 mock data layer에 있으며 실제 ENS/RPC/컨트랙트 연결, 실패·불일치 경로, 모바일 실기기 검증은 아직 필요하다.

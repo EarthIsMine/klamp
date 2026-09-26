@@ -6,6 +6,7 @@ import type {
   HexAddress,
   LaunchReceipt,
   PoolKey,
+  ProposedRoute,
 } from "@/domain/protocol";
 
 /**
@@ -14,6 +15,7 @@ import type {
  */
 export interface ProtocolClient {
   launchToken(): Promise<LaunchReceipt>;
+  buildRoute(token: HexAddress): Promise<ProposedRoute>;
   resolveCanonicalPool(token: HexAddress): Promise<CanonicalPoolResult>;
   resolveHookAttestation(hook: string): Promise<HookAttestation>;
   simulateFeeRequest(requestedBps: number, quotedOut: number): Promise<FeeEnforcement>;
@@ -31,7 +33,8 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const DEMO_DELAY_MS = {
   launch: 1250,
-  routeVerification: 1150,
+  routeBuild: 1050,
+  canonicalVerification: 1150,
   hookVerification: 1150,
   feeEnforcement: 1350,
 } as const;
@@ -63,8 +66,22 @@ export const mockProtocolClient: ProtocolClient = {
       canonicalPool: DEMO_CANONICAL,
     };
   },
+  async buildRoute(token) {
+    await wait(DEMO_DELAY_MS.routeBuild);
+    return {
+      aggregator: "Mock route aggregator",
+      router: "Universal Router",
+      branches: [[{
+        chainId: 11155111n,
+        poolManager: "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543",
+        poolId: DEMO_POOL_ID,
+        tokenIn: DEMO_POOL_KEY.currency0,
+        tokenOut: token,
+      }]],
+    };
+  },
   async resolveCanonicalPool() {
-    await wait(DEMO_DELAY_MS.routeVerification);
+    await wait(DEMO_DELAY_MS.canonicalVerification);
     return {
       status: "found",
       source: "ens",
@@ -79,6 +96,7 @@ export const mockProtocolClient: ProtocolClient = {
       ensName: `${hook.toLowerCase()}.hooks.klamp.eth`,
       hook: hook as HookAttestation["hook"],
       capBps: 100,
+      capMode: "immutable",
       codeHash: "0x5f4d8e0fd234981581724f806c09120e6daaf6cad89e2ba75148274268a66291",
       status: "verified",
     };

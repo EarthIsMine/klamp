@@ -46,6 +46,12 @@ export type RouteHop = {
   tokenOut: HexAddress;
 };
 
+export type ProposedRoute = {
+  aggregator: string;
+  router: string;
+  branches: RouteHop[][];
+};
+
 export type RouteComparison =
   | { status: "match"; source: "ens" | "launch-event"; checkedHops: number }
   | { status: "mismatch"; branch: number; hop: number }
@@ -58,6 +64,7 @@ export type HookAttestation = {
   ensName: string;
   hook: HexAddress;
   capBps: number;
+  capMode: "immutable" | "mutable";
   codeHash: HexAddress;
   status: "verified" | "revoked" | "missing";
 };
