@@ -7,9 +7,11 @@ import { ensureSepolia, errorText, publicClient, sendTx, short, walletClient, ty
 import { CONTRACTS, NETWORK, type KnownToken } from "../lib/config";
 import type { Wallet } from "../lib/wallet";
 import { Ext } from "./Ext";
+import { Contracts } from "./Contracts";
+import { TokenIcon } from "./TokenPicker";
 import { TxStatus } from "./TxStatus";
 
-type Launch = { token: Address; poolId: Hex; issuer: Address; creator: Address; block: bigint; tx: Hex; canonical: CanonicalPoolResult | null };
+type Launch = { token: Address; symbol: string; poolId: Hex; issuer: Address; creator: Address; block: bigint; tx: Hex; canonical: CanonicalPoolResult | null };
 
 const randomSymbol = () => `K${Array.from({ length: 3 }, () => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join("")}`;
 
@@ -63,7 +65,7 @@ export function LaunchPanel({ wallet, onLaunched, goSwap, goLookAlike }: {
     const recorded = parseEventLogs({ abi: registrarAbi, eventName: "CanonicalRecorded", logs: receipt.logs })[0];
     if (!launched || !recorded) return;
     const token = launched.args.token;
-    const next: Launch = { token, poolId: recorded.args.poolId, issuer: recorded.args.issuer, creator: recorded.args.creator, block: receipt.blockNumber, tx: receipt.transactionHash, canonical: null };
+    const next: Launch = { token, symbol, poolId: recorded.args.poolId, issuer: recorded.args.issuer, creator: recorded.args.creator, block: receipt.blockNumber, tx: receipt.transactionHash, canonical: null };
     setLaunch(next);
     onLaunched({ address: token, symbol, fromBlock: receipt.blockNumber.toString(), mine: true });
     wallet.refresh();
@@ -109,34 +111,53 @@ export function LaunchPanel({ wallet, onLaunched, goSwap, goLookAlike }: {
   return (
     <div className="panel-grid">
       <section className="card">
+        <div className="card-head">
+          <h2>Create a coin</h2>
+          <span className="chain-chip">Sepolia</span>
+        </div>
+        <p className="card-sub">A launchpad that declares its pool with Klamp: coin, pool, locked liquidity and the ENS record in one transaction.</p>
+
+        <div className="coin-head">
+          <div className="coin-image" title="Generated from the ticker, not stored onchain">
+            <TokenIcon symbol={symbol || "?"} size={72} />
+            <span>icon</span>
+          </div>
+          <div className="coin-fields">
+            <label className="field">
+              <span className="field-label">Name</span>
+              <input value={name} onChange={(event) => setName(event.target.value)} maxLength={32} />
+            </label>
+            <label className="field">
+              <span className="field-label">Ticker</span>
+              <input value={symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} maxLength={8} />
+            </label>
+          </div>
+        </div>
         <label className="field">
-          <span className="field-label">Name</span>
-          <input value={name} onChange={(event) => setName(event.target.value)} maxLength={32} />
+          <span className="field-label">Description <em>optional · saved to ENS after launch</em></span>
+          <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What is this coin?" maxLength={120} rows={2} />
         </label>
-        <label className="field">
-          <span className="field-label">Symbol</span>
-          <input value={symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} maxLength={8} />
-        </label>
+
         <dl className="details">
-          <div><dt>Pair</dt><dd>ETH / {symbol || "…"} · 0.3% + 1% hook</dd></div>
+          <div><dt>Pool</dt><dd>ETH / {symbol || "…"} · 0.3% + <Ext address={CONTRACTS.hook}>1% hook</Ext></dd></div>
           <div><dt>Supply</dt><dd>1,000,000,000 · locked in the pool</dd></div>
           <div><dt>Address</dt><dd className={predicted?.taken ? "warn" : ""}>{predicted ? <><Ext address={predicted.address} />{predicted.taken ? " · already launched" : ""}</> : "–"}</dd></div>
         </dl>
         {!wallet.account ? (
           <button className="primary" onClick={wallet.connect} disabled={!wallet.available}>{wallet.available ? "Connect wallet" : "Install a wallet"}</button>
         ) : (
-          <button className="primary" onClick={onLaunch} disabled={busy || !name || !symbol || predicted?.taken}>Launch token + pool</button>
+          <button className="primary" onClick={onLaunch} disabled={busy || !name || !symbol || predicted?.taken}>Create coin</button>
         )}
-        <TxStatus state={tx} />
+        <TxStatus state={tx} to={{ name: "DemoLaunchpad", address: CONTRACTS.launchpad }} />
 
         {launch && (
           <div className="creator">
-            <span className="field-label">Creator only · description</span>
+            <span className="field-label">Creator only · description on ENS</span>
             <div className="row">
-              <input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What is this token?" maxLength={120} />
-              <button className="ghost" onClick={onDescribe} disabled={!description || textTx.status === "wallet" || textTx.status === "pending"}>Set</button>
+              <span className="hint">{description ? `“${description}”` : "Write a description above to save it."}</span>
+              <button className="ghost" onClick={onDescribe} disabled={!description || textTx.status === "wallet" || textTx.status === "pending"}>Save to ENS</button>
             </div>
-            <TxStatus state={textTx} />
+            <TxStatus state={textTx} to={{ name: "CanonicalPoolRegistrar", address: CONTRACTS.registrar }} />
             {savedText !== null && <span className="hint">ENS description → “{savedText}”</span>}
           </div>
         )}
@@ -156,6 +177,7 @@ export function LaunchPanel({ wallet, onLaunched, goSwap, goLookAlike }: {
           </div>
         ) : (
           <div className="launch-done">
+            <h3 className="live-title"><TokenIcon symbol={launch.symbol} size={30} /> {launch.symbol} is live <Ext tx={launch.tx}>View on Etherscan ↗</Ext></h3>
             {steps.map((step, index) => (
               <motion.div key={step.label} className={`step ${step.done ? "step-done" : ""}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.35 }}>
                 <motion.span className="check" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: index * 0.35 + 0.15 }}>{step.done ? "✓" : "◌"}</motion.span>
@@ -165,10 +187,17 @@ export function LaunchPanel({ wallet, onLaunched, goSwap, goLookAlike }: {
             ))}
             <motion.div className="row actions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.6 }}>
               <button className="primary" onClick={() => goSwap(launch.token)}>Buy it →</button>
-              <button className="ghost" onClick={() => goLookAlike(launch.token)}>Add a look-alike pool</button>
+              <button className="ghost" onClick={() => goLookAlike(launch.token)}>Open another pool for it</button>
             </motion.div>
           </div>
         )}
+        <Contracts items={[
+          { name: "DemoLaunchpad", address: CONTRACTS.launchpad, use: "launch(name, ticker): the whole launch", kind: "tx" },
+          { name: "PoolManager", address: NETWORK.poolManager, use: "initialize the ETH pool, inside the launch", kind: "inner" },
+          { name: "DeltaFeeHook", address: CONTRACTS.hook, use: "the pool's hook, 1% of each swap", kind: "inner" },
+          { name: "CanonicalPoolRegistrar", address: CONTRACTS.registrar, use: "recordByCreate2 inside the launch; setTokenText after", kind: "tx" },
+          { name: "UniversalResolverV2", address: NETWORK.universalResolver, use: "reads the record back like any router", kind: "read" },
+        ]} />
       </section>
     </div>
   );

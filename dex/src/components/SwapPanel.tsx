@@ -1,15 +1,16 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { parseEther, parseEventLogs, type Address } from "viem";
 import type { PoolKey } from "@klamp/sdk/poolKey";
 import { tokenAbi } from "../lib/abis";
 import { ensureSepolia, errorText, sendTx, short, walletClient, type TxState } from "../lib/chain";
-import { ATTACK_TEST_URL, CONTRACTS, ETH, type KnownToken } from "../lib/config";
+import { ATTACK_TEST_URL, CONTRACTS, ETH, NETWORK, type KnownToken } from "../lib/config";
 import { discoverPools, feeLabel, fmt, kindOf, planRoute, swapCalldata, tokenInfo, type RoutePlan } from "../lib/pools";
 import type { Wallet } from "../lib/wallet";
 import { Ext } from "./Ext";
 import { RouteView } from "./RouteView";
-import { TokenPicker } from "./TokenPicker";
+import { Contracts } from "./Contracts";
+import { TokenIcon, TokenPicker } from "./TokenPicker";
 import { TxStatus } from "./TxStatus";
 
 type Result = { received: bigint; quoted: bigint; symbol: string; klamp: boolean };
@@ -110,24 +111,28 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
   return (
     <div className="panel-grid">
       <section className="card">
-        <label className="field">
-          <span className="field-label">You pay</span>
-          <div className="amount">
+        <div className="card-head">
+          <h2>Swap</h2>
+          <SlippageSettings value={slippage} onChange={setSlippage} />
+        </div>
+
+        <label className="box">
+          <span className="box-label">You pay</span>
+          <span className="box-row">
             <input inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} aria-label="ETH amount" />
-            <span className="unit">ETH</span>
-          </div>
+            <span className="token-pill static"><TokenIcon symbol="ETH" /><span>ETH</span></span>
+          </span>
           {wallet.eth !== null && <span className="hint">Balance {fmt(wallet.eth, 4)} ETH</span>}
         </label>
 
-        <div className="field">
-          <span className="field-label">You receive</span>
-          <div className="amount">
+        <div className="box">
+          <span className="box-label">You receive</span>
+          <span className="box-row">
             <motion.strong key={`${chosen?.poolId}-${chosen?.out}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="out">
               {chosen?.out ? fmt(chosen.out) : loading ? "…" : "–"}
             </motion.strong>
-            <span className="unit">{symbol}</span>
-          </div>
-          <TokenPicker tokens={tokens} value={token} onChange={setToken} onAdd={addToken} />
+            <TokenPicker tokens={tokens} value={token} onChange={setToken} onAdd={addToken} />
+          </span>
           {wallet.account && <span className="hint">Balance {fmt(balance)} {symbol}</span>}
         </div>
 
@@ -148,11 +153,7 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
           {plan?.klamp && plan.best && (
             <div><dt>ENS</dt><dd className={`ens-${plan.klamp.canonical.status}`}>{plan.klamp.canonical.status}{plan.klamp.canonical.status === "lookup_failed" ? ` (${plan.klamp.canonical.reason})` : ""} · {plan.klamp.verdict} · route {plan.klamp.comparison.status}</dd></div>
           )}
-          <div><dt>Min received</dt><dd>{swap ? `${fmt(swap.minOut)} ${symbol}` : "–"}</dd></div>
-          <div>
-            <dt>Slippage</dt>
-            <dd><input className="inline" value={slippage} onChange={(event) => setSlippage(event.target.value)} aria-label="Slippage percent" />%</dd>
-          </div>
+          <div><dt>Min received</dt><dd>{swap ? `${fmt(swap.minOut)} ${symbol}` : "–"} <span className="muted">({slippage}% slippage)</span></dd></div>
           {klampOn && <div><dt>Calldata</dt><dd className={swap?.check.ok ? "ok" : ""}>{swap ? (swap.check.ok ? "matches judged PoolKey" : "mismatch") : "–"}</dd></div>}
         </dl>
 
@@ -163,7 +164,7 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
             {blocked ? "No allowed pool" : klampOn ? "Swap with Klamp" : "Swap"}
           </button>
         )}
-        <TxStatus state={tx} />
+        <TxStatus state={tx} to={{ name: "Universal Router", address: CONTRACTS.universalRouter }} />
         {error && <p className="field-error">{error}</p>}
 
         <AnimatePresence>
@@ -187,6 +188,15 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
             : "A normal router takes the largest quote."}
         </p>
         <RiskNote plan={plan} klampOn={klampOn} minOut={swap?.minOut ?? null} slippage={slippage} symbol={symbol} />
+        <Contracts items={[
+          { name: "PoolManager", address: NETWORK.poolManager, use: "Initialize events: every ETH pool of this token", kind: "read" },
+          { name: "V4Quoter", address: CONTRACTS.quoter, use: "quoteExactInputSingle for each pool", kind: "sim" },
+          ...(klampOn ? [
+            { name: "UniversalResolverV2", address: NETWORK.universalResolver, use: "<token>.tokens.klamp.eth pool record", kind: "read" as const },
+            { name: "tokens.klamp.eth resolver", address: NETWORK.resolver, use: "must be the resolver that answered", kind: "read" as const },
+          ] : []),
+          { name: "Universal Router", address: CONTRACTS.universalRouter, use: "execute(V4_SWAP) with the chosen PoolKey", kind: "tx" },
+        ]} />
       </section>
     </div>
   );
@@ -229,4 +239,46 @@ function RiskNote({ plan, klampOn, minOut, slippage, symbol }: { plan: RoutePlan
     );
   }
   return null;
+}
+
+const SLIPPAGE_PRESETS = ["0.5", "1", "5"];
+
+/** Max slippage behind a settings button, as swap widgets do. */
+function SlippageSettings({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: MouseEvent | KeyboardEvent) => {
+      if (event instanceof KeyboardEvent ? event.key === "Escape" : !ref.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [open]);
+  return (
+    <div className="settings" ref={ref}>
+      <button type="button" className="icon-button" onClick={() => setOpen((current) => !current)} aria-expanded={open} aria-label="Swap settings" title="Swap settings">
+        <span className="slip-now">{value}%</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3h-4l-.4 2.9a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1L11 21h4l.4-2.9a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5L19.4 13zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" /></svg>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div className="settings-menu" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.15 }}>
+            <strong>Max slippage</strong>
+            <span className="hint">The swap reverts if it would pay less than the quote minus this.</span>
+            <div className="chips">
+              {SLIPPAGE_PRESETS.map((preset) => (
+                <button key={preset} type="button" className={`chip ${preset === value ? "chip-on" : ""}`} onClick={() => onChange(preset)}>{preset}%</button>
+              ))}
+              <label className="chip custom"><input value={value} onChange={(event) => onChange(event.target.value)} aria-label="Slippage percent" />%</label>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }

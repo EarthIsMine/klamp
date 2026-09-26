@@ -8,7 +8,8 @@ import { CONTRACTS, ETH, NETWORK, type KnownToken } from "../lib/config";
 import { declarationTx, feeLabel, fmt, poolCreationTx, poolExists, tokenInfo } from "../lib/pools";
 import { Ext } from "./Ext";
 import type { Wallet } from "../lib/wallet";
-import { TokenPicker } from "./TokenPicker";
+import { Contracts } from "./Contracts";
+import { TokenIcon, TokenPicker } from "./TokenPicker";
 import { TxStatus } from "./TxStatus";
 
 const TIERS = [
@@ -24,6 +25,7 @@ const RANGE = 600;
 
 const reasons: Record<string, string> = {
   NotIssuer: "Only the contract that deployed the token can declare its pool.",
+  TokenNotDeployed: "There is no token at this address.",
   AlreadyRecorded: "This token already has a canonical pool.",
   TokenNotInPool: "The pool does not contain the token.",
   PoolNotInitialized: "The pool does not exist.",
@@ -148,14 +150,15 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
 
   // eth_call only: a third party asking the registrar to declare this pool.
   const onDeclare = async () => {
-    if (!wallet.account) return;
+    // Without a wallet, simulate from a stand-in address: any caller other than the token's launchpad gets the same answer.
+    const caller = wallet.account ?? "0x000000000000000000000000000000000000dEaD";
     try {
       await publicClient.simulateContract({
-        account: wallet.account,
+        account: caller,
         address: CONTRACTS.registrar,
         abi: registrarAbi,
         functionName: "recordByCreate2",
-        args: [token, key, keccak256(toHex("look-alike")), zeroHash, wallet.account],
+        args: [token, key, keccak256(toHex("look-alike")), zeroHash, caller],
       });
       setDeclare("Accepted?");
     } catch (error) {
@@ -166,14 +169,24 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
   return (
     <div className="panel-grid">
       <section className="card">
+        <div className="card-head">
+          <h2>Create a pool</h2>
+          <span className="chain-chip">v4 · Sepolia</span>
+        </div>
+        <p className="card-sub">Any pair, any fee tier, any hook. Opening a pool needs no permission, so a token can have many.</p>
+
         <div className="field">
-          <span className="field-label">Token</span>
-          <TokenPicker tokens={tokens} value={token} onChange={setToken} onAdd={addToken} />
+          <span className="field-label">Pair</span>
+          <div className="pair-row">
+            <span className="token-pill static"><TokenIcon symbol="ETH" /><span>ETH</span></span>
+            <span className="pair-slash">/</span>
+            <TokenPicker tokens={tokens} value={token} onChange={setToken} onAdd={addToken} />
+          </div>
           {wallet.account && <span className="hint">You hold {fmt(balance)} {symbol} · the pool must hold more than one trade pays out</span>}
         </div>
 
         <div className="field">
-          <span className="field-label">LP fee</span>
+          <span className="field-label">Fee tier</span>
           <div className="chips">
             {TIERS.map((option) => (
               <button key={option.fee} className={`chip ${option.fee === tier.fee ? "chip-on" : ""}`} onClick={() => setTier(option)}>{feeLabel(option.fee)}</button>
@@ -184,19 +197,20 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
           <span className="field-label">Hook</span>
           <div className="chips">
             <button className={`chip ${withHook ? "chip-on" : ""}`} onClick={() => setWithHook(true)}>DeltaFeeHook 1%</button>
-            <button className={`chip ${!withHook ? "chip-on" : ""}`} onClick={() => setWithHook(false)}>none (static)</button>
+            <button className={`chip ${!withHook ? "chip-on" : ""}`} onClick={() => setWithHook(false)}>No hook</button>
           </div>
+          <span className="hook-address">{withHook ? <Ext address={CONTRACTS.hook}>{CONTRACTS.hook}</Ext> : "0x0000000000000000000000000000000000000000"}</span>
         </div>
-        <label className="field">
-          <span className="field-label">Liquidity</span>
-          <div className="amount">
+        <label className="box">
+          <span className="box-label">Liquidity</span>
+          <span className="box-row">
             <input inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} aria-label="Token amount" />
-            <span className="unit">{symbol}</span>
-          </div>
+            <span className="token-pill static"><TokenIcon symbol={symbol || "?"} /><span>{symbol}</span></span>
+          </span>
         </label>
         <dl className="details">
           <div><dt>Pool</dt><dd className={exists ? "warn" : ""}><Ext tx={createdIn ?? undefined} title="Transaction that created this pool">{short(poolId)}</Ext>{exists === null ? "" : exists ? " · exists" : " · new"}</dd></div>
-          <div><dt>Price</dt><dd>{declared === null ? "no declared pool" : "+3% vs declared pool"} · tick {tickLower}→{tickUpper}</dd></div>
+          <div><dt>Starting price</dt><dd>{declared === null ? "no declared pool" : "+3% vs declared pool"} · tick {tickLower}→{tickUpper}</dd></div>
         </dl>
 
         {!wallet.account ? (
@@ -208,7 +222,7 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
         ) : (
           <button className="primary" onClick={onSeed} disabled={busy || !amountWei || exists !== false || amountWei > balance}>2 · Create pool</button>
         )}
-        <TxStatus state={tx} />
+        <TxStatus state={tx} to={"label" in tx && tx.label.startsWith("Approve") ? { name: symbol, address: token } : { name: "PoolSeeder", address: CONTRACTS.poolSeeder }} />
       </section>
 
       <section className="stage">
@@ -217,16 +231,16 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
             <motion.div className="pool-card declared" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <span className="badge ok">declared</span>
               <strong>{declared ? <Ext tx={declaredIn ?? undefined} title="Transaction that declared this pool">{short(declared.poolId)}</Ext> : declared === null ? "none" : "…"}</strong>
-              <span>{declared ? `tick ${declared.tick} · from ENS registrar` : declared === null ? "this token has no declared pool" : "reading registrar"}</span>
+              <span>{declared ? `tick ${declared.tick} · declared by the issuer` : declared === null ? "this token has no declared pool" : "reading registrar"}</span>
             </motion.div>
             <motion.div key={poolId} className={`pool-card ${exists ? "live" : "draft"}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-              <span className={`badge ${withHook ? "bad" : ""}`}>{withHook ? "undeclared hook" : "static"}</span>
+              <span className={`badge ${withHook ? "bad" : ""}`}>{withHook ? "not declared · hook" : "static"}</span>
               <strong>{feeLabel(tier.fee)} · {withHook ? <Ext address={CONTRACTS.hook}>DeltaFeeHook</Ext> : "no hook"}</strong>
-              <span>{exists ? "live on PoolManager" : "by you, anyone can"}</span>
+              <span>{exists ? "live on PoolManager" : "your pool, not created yet"}</span>
             </motion.div>
           </div>
           <div className="declare">
-            <button className="ghost" onClick={onDeclare} disabled={!wallet.account}>Try to declare it as canonical</button>
+            <button className="ghost" onClick={onDeclare}>Try to declare it as canonical</button>
             {declare && (
               <motion.div className="stamp" initial={{ scale: 1.8, rotate: -12, opacity: 0 }} animate={{ scale: 1, rotate: -6, opacity: 1 }} transition={{ type: "spring", stiffness: 300, damping: 16 }}>
                 <strong>{declare}</strong>
@@ -241,10 +255,18 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
           )}
           <p className="caption">
             {withHook
-              ? "A hook pool nobody declared. Its hook can quote one fee and charge another at swap time. A normal router may pick it; Klamp requotes on the declared pool."
+              ? "Same pair, a different pool. Its hook can quote one fee and charge another at swap time. A best-quote router may pick it; Klamp requotes on the declared pool."
               : "A pool with no hook has a fixed fee. Klamp lets it through."}
           </p>
         </div>
+        <Contracts items={[
+          ...(needsApproval || ("label" in tx && tx.label.startsWith("Approve")) ? [{ name: symbol || "Token", address: token, use: "approve PoolSeeder to take the liquidity", kind: "tx" as const }] : []),
+          { name: "PoolSeeder", address: CONTRACTS.poolSeeder, use: "seed: initialize the pool and add one-sided liquidity", kind: "tx" },
+          { name: "PoolManager", address: NETWORK.poolManager, use: "initialize, inside the seed transaction", kind: "inner" },
+          ...(withHook ? [{ name: "DeltaFeeHook", address: CONTRACTS.hook, use: "the hook in this PoolKey", kind: "inner" as const }] : []),
+          { name: "StateView", address: NETWORK.stateView, use: "declared pool's price, to set the starting price", kind: "read" },
+          { name: "CanonicalPoolRegistrar", address: CONTRACTS.registrar, use: "canonicalPoolOf; recordByCreate2 simulated", kind: "sim" },
+        ]} />
       </section>
     </div>
   );

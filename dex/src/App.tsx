@@ -14,7 +14,7 @@ import { useWallet } from "./lib/wallet";
 type Tab = "swap" | "launch" | "lookalike";
 const tabs: { id: Tab; label: string; role: string }[] = [
   { id: "launch", label: "Launch", role: "issuer" },
-  { id: "lookalike", label: "Look-alike pool", role: "third party" },
+  { id: "lookalike", label: "New pool", role: "anyone" },
   { id: "swap", label: "Swap", role: "trader" },
 ];
 
@@ -30,7 +30,7 @@ export function App() {
   return (
     <div className="app">
       <header className="top">
-        <div className="brand"><span className="mark" />Klamp <em>DEX · Sepolia</em><SealBadge /></div>
+        <div className="brand"><span className="mark" />Klamp <span className="net-badge" title="Every transaction here is on the Sepolia test network">Sepolia<span className="net-long"> testnet</span> · demo</span><SealBadge /></div>
         <nav className="tabs" aria-label="Sections">
           {tabs.map((item) => (
             <button key={item.id} className={`tab ${tab === item.id ? "tab-on" : ""}`} onClick={() => setTab(item.id)}>

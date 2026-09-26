@@ -148,7 +148,7 @@ For presentations, the demo is an animated node diagram with a one-line caption 
 
 ## DEX workspace
 
-`dex/` is a separate Vite app (pnpm) where you use Klamp with your own wallet: launch a token and its declared pool through DemoLaunchpad, open a look-alike pool as a third party, and swap through Universal Router with Klamp routing on or off. It imports `contract/sdk`, `contract/demo/sepolia/klamp-sdk.mjs` and `contract/deployments` directly.
+`dex/` is a separate Vite app (pnpm) where you use Klamp with your own wallet: launch a token and its declared pool through DemoLaunchpad, open a look-alike pool as anyone could, and swap through Universal Router with Klamp routing on or off. It imports `contract/sdk`, `contract/demo/sepolia/klamp-sdk.mjs` and `contract/deployments` directly.
 
 ```sh
 cd dex

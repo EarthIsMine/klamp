@@ -5,8 +5,10 @@ A small working DEX on Sepolia that shows Klamp as if a launchpad and a router h
 | Tab | Role | What happens on chain |
 |---|---|---|
 | Launch | issuer | `DemoLaunchpad.launch(name, symbol)`: one tx deploys the token with CREATE2, initializes its ETH pool with the 1% `DeltaFeeHook`, locks the whole supply as liquidity and declares the pool through `CanonicalPoolRegistrar.recordByCreate2`. The app then reads `<token>.tokens.klamp.eth` back through ENSv2. The launcher is the creator and can set the ENS `description` through `setTokenText`. |
-| Look-alike pool | third party | `PoolSeeder.seed` opens another ETH/token pool (0.01%, 0.05% or 0.1% LP fee, with the same hook or none) priced about 3% above the declared pool, so it wins on quote. Declaring it is simulated (`eth_call`) and reverts with `NotIssuer`. |
+| New pool | anyone | `PoolSeeder.seed` opens another ETH/token pool (a look-alike of the declared one) (0.01%, 0.05% or 0.1% LP fee, with the same hook or none) priced about 3% above the declared pool, so it wins on quote. Declaring it is simulated (`eth_call`, from your address or a stand-in without a wallet) and reverts with `NotIssuer`. |
 | Swap | trader | Every ETH pool of the token is found from PoolManager `Initialize` events and quoted with V4Quoter. With Klamp routing off the best quote wins. With it on, the app resolves the canonical pool from ENSv2, runs `judge` and `compareRoutes`, requotes on the allowed pools, checks the Universal Router `V4_SWAP` calldata against the judged PoolKey, and only then asks the wallet to sign. |
+
+Each tab follows the layout people know from launchpads and swap widgets (a coin creation form, a create-pool form, a swap card with a token button and slippage behind a settings icon) in Klamp's own style, with the explanation on the right. Under it, "Contracts used here" lists every contract the tab signs for, reads or simulates, each linked to Sepolia Etherscan; transaction toasts name the contract they go to and link the transaction. Pools link to the transaction that created them (a PoolId has no explorer page) and the declared pool to the one that declared it. The header always shows "Sepolia testnet · demo".
 
 The header badge answers "who can change a canonical pool?" from live ENSv2 role counts: registrar-only writers for `pool`, `description` and `url`, no resolver admin or upgrade role, no roles on `tokens.klamp.eth` or `klamp.eth`, and REGISTRAR and its admin kept on the `klamp.eth` registry for `hooks.klamp.eth` (shown as a warning, not hidden).
 
@@ -35,7 +37,7 @@ You need a browser wallet on Sepolia with a little Sepolia ETH (a launch costs a
 
 1. **Launch** a token. Four checks appear: token, pool, declaration, and the ENS record read back as `registered`.
 2. **Buy it** on the Swap tab (0.002 ETH is enough to seed a pool that can fill a 0.0005 ETH trade).
-3. **Add a look-alike pool** with the hook and create it (approve, then create). Try to declare it: `NotIssuer`.
+3. On **New pool**, open a look-alike pool with the hook and create it (approve, then create). Try to declare it: `NotIssuer`.
 4. Back on **Swap** at 0.0005 ETH: with Klamp off the route goes to the look-alike (best quote); with Klamp on it is crossed out (`requote_canonical`, route `mismatch`) and the swap goes to the declared pool. A look-alike with no hook is static, and Klamp lets it through.
 
 KHOOK is preselected and already has an undeclared look-alike pool, so step 4 works without launching anything.
