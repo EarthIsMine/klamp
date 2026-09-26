@@ -1,0 +1,19 @@
+{
+  "status": "Team deployment on the Sepolia ENSv2 Beta set (2026-09-26). Addresses read back from chain; registrar source is the Sourcify-verified Beta variant, not this repo's src/.",
+  "chainId": "11155111",
+  "universalResolver": "0x5d25c1d6acbb71b7a28aa7899618a3412a8303e3",
+  "rootRegistry": "0x9703DBD26dAB89504490994138cF2c575251a9cE",
+  "ethRegistry": "0x657ea849311d3d5823348dded7c2aaafb3ede09e",
+  "registry": "0x32beA21696e8615583139f92F11349C32F3a6064",
+  "resolver": "0xa783344Fa423AC738D99cdfcaF1cB2Bc6B5ddC18",
+  "registryImplementation": "0xa80338aaa8d23831cea25e858d1774534abb0263",
+  "resolverImplementation": "0x14f09fd05d4585759e54844dc9b00147131cf243",
+  "registrar": "0x820bE7B9aCdc7293A96cf7D4E10fd5e42fB1B36f",
+  "operator": "0xFdE8F95394e7C4ae5d7D6667EE6582587494a9e1",
+  "poolManager": "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543",
+  "stateView": "0xe1dd9c3fa50edb962e442f60dfbc432e24537e4c",
+  "tokenFactory": "0x000000e200088d55c39a11f609e5f667729ad49b",
+  "launchers": ["0x00004c4ccc709Ef590F7C81102C0689F0263D4e9", "0x0000FffFBE8efE702c8703aE3477FF5dE3d319C0"],
+  "token": "0x5a37301CD105B8C9C85505B28FBE6327bd495188",
+  "poolId": "0x5ae0dd480b231d9cbfd90ab054e37abc2a5f3e585659c83956570ce20c496968"
+}

@@ -37,6 +37,11 @@ test('data record must match text record and include the token',async()=>{
 });
 test('data read failure is lookup_failed, not not_registered',async()=>{
  const c=reader(); const read=c.readContract;
- c.readContract=(async(p:Parameters<typeof read>[0])=>{if(p.functionName==='data') throw new Error('revert'); return read(p);}) as typeof read;
+ c.readContract=(async(p:Parameters<typeof read>[0])=>{if(p.functionName==='resolve') throw new Error('revert'); return read(p);}) as typeof read;
  assert.deepEqual(await getCanonicalPool(c,config,token),{status:'lookup_failed',reason:'resolution'});
+});
+test('data record answered by another resolver is a namespace failure',async()=>{
+ const c=reader(); const read=c.readContract;
+ c.readContract=(async(p:Parameters<typeof read>[0])=>{const r=await read(p); return p.functionName==='resolve'?[(r as [unknown,unknown])[0],a(99)]:r;}) as typeof read;
+ assert.deepEqual(await getCanonicalPool(c,config,token),{status:'lookup_failed',reason:'namespace'});
 });

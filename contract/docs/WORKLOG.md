@@ -587,3 +587,12 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 날짜 / 환경 / 도구: 2026-09-26 / Foundry, 로컬 Anvil / Claude Code (Opus 5.5)
 - 사람의 결정/수정: 어그리게이터 백엔드가 ENS 조회 대신 이벤트 인덱싱으로 통합하는 경우를 위해 PoolKey를 이벤트에 넣기로 결정함. 공개 정보라 노출 문제는 없다는 판단.
 - AI 수행: `CanonicalRecorded(token, poolId, issuer, creator, key)`로 바꾸고(key는 non-indexed data), 설계 문서 `final_klamp_with_code.md`의 이벤트 정의·설명과 C12 계획을 함께 수정했다. 이벤트 테스트 2곳이 key까지 검증한다.
+
+## C13 — Sepolia 팀 배포 확인과 SDK 조회 경로 수정
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Sepolia 공개 RPC(publicnode), Blockscout PRO API, Sourcify / Claude Code (Opus 5.5)
+- 사람의 결정/수정: 팀원이 Sepolia ENSv2 Beta 세트에 셋업·역할 회수·KDEMO Via 선언을 완료했고 체크리스트 결과를 공유함(검증자 식별명 기록 대기). 사용자가 explorer.ens.dev 화면(klamp.eth, tokens.klamp.eth)을 공유했고, 와일드카드 토큰 이름은 Not found임을 확인함. SDK 수정과 Sepolia 데모 연결을 요청함.
+- AI 수행: 공유된 주장을 체인에서 읽기 전용으로 대조했다. Beta UniversalResolver `0x5d25c1d6…`를 찾았고, 배포 registrar 소스를 Sourcify에서 받아 저장소와 비교했다(Beta resolver API 대응 변형, 이벤트 PoolKey 없음). SDK의 data 레코드 읽기를 resolver 직접 호출에서 UniversalResolver `resolve()` 경유로 바꾸고, 응답 resolver가 설정과 다르면 `lookup_failed: namespace`로 처리했다. `deployments/sepolia.phase1.json`을 작성했다.
+- AI 실행 검증: `npm test` 25 통과, typecheck 통과, `npm run test:e2e` 통과(로컬 UniversalResolver도 같은 경로로 동작). 저장소 SDK로 Sepolia KDEMO `registered`(PoolKey `(ETH, KDEMO, 2500, 25, 훅 없음)`, 해시 일치), 미선언 `not_registered`. Sepolia 연결 데모(4174)에서 KDEMO 자기 풀 match, 다른 풀 mismatch, 미선언 not_registered.
+- 사람 직접 검증: explorer.ens.dev 구조 화면은 사용자가 확인. 나머지는 사람 검증 대기.
+- 남은 문제: 저장소 `src/`·셋업·로컬 테스트가 Sepolia 배포본(Beta API)과 다르다. 이벤트 PoolKey 변경은 배포본에 없다. ENSv2 Sepolia 초기화 시 Beta API용 재배포 스크립트가 필요하다.

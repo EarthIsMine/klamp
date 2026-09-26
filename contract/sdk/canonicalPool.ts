@@ -1,4 +1,4 @@
-import { createPublicClient, http, keccak256, toBytes, toHex as numberToHex, isAddress, parseAbi, toHex, decodeAbiParameters, namehash, type Address, type Hex, type PublicClient } from 'viem';
+import { createPublicClient, http, keccak256, toBytes, toHex as numberToHex, isAddress, parseAbi, toHex, decodeAbiParameters, decodeFunctionResult, encodeFunctionData, namehash, type Address, type Hex, type PublicClient } from 'viem';
 import { normalize, packetToBytes } from 'viem/ens';
 import { hashPoolKey, poolKeyAbi, type PoolKey } from './poolKey.js';
 
@@ -23,7 +23,7 @@ export const stateAbi = parseAbi([
 ]);
 const registryAbi = parseAbi(['function getSubregistry(string) view returns (address)', 'function getResolver(string) view returns (address)']);
 const dataAbi = parseAbi(['function data(bytes32 node, string key) view returns (bytes)']);
-const universalAbi = parseAbi(['function ROOT_REGISTRY() view returns (address)', 'function findResolver(bytes) view returns (address,bytes32,uint256)']);
+const universalAbi = parseAbi(['function ROOT_REGISTRY() view returns (address)', 'function findResolver(bytes) view returns (address,bytes32,uint256)', 'function resolve(bytes name, bytes data) view returns (bytes, address)']);
 // EIP-1967 slot, computed from the standard (full 32-byte value).
 const eip1967 = numberToHex(BigInt(keccak256(toBytes('eip1967.proxy.implementation'))) - 1n, { size: 32 });
 export function createReader(rpcUrl: string): PublicClient { return createPublicClient({ transport: http(rpcUrl, { retryCount: 0 }) }); }
@@ -70,9 +70,14 @@ export async function getCanonicalPool(client: PublicClient, config: NetworkConf
   if (!parsed) return { status: 'lookup_failed', reason: 'format' };
   if (parsed.chainId !== config.chainId) return { status: 'lookup_failed', reason: 'chain' };
   // data("pool") = abi.encode(chainId, PoolKey): recompute the PoolId and require the token to be in the key.
+  // Read through UniversalResolver.resolve like getEnsText does: the Sepolia ENSv2 Beta resolver has no direct data(node, key) getter.
   let raw: Hex;
   try {
-    raw = await client.readContract({ address: config.resolver, abi: dataAbi, functionName: 'data', args: [namehash(tokenName(token)), 'pool'], blockNumber });
+    const name = tokenName(token);
+    const call = encodeFunctionData({ abi: dataAbi, functionName: 'data', args: [namehash(name), 'pool'] });
+    const [result, resolver] = await client.readContract({ address: config.universalResolver, abi: universalAbi, functionName: 'resolve', args: [toHex(packetToBytes(name)), call], blockNumber });
+    if (!equal(resolver, config.resolver)) return { status: 'lookup_failed', reason: 'namespace' };
+    raw = decodeFunctionResult({ abi: dataAbi, functionName: 'data', data: result });
   } catch { return { status: 'lookup_failed', reason: 'resolution' }; }
   let key: PoolKey;
   try {

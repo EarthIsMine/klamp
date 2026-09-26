@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { encodeAbiParameters, pad, type Address, type Hex, type PublicClient } from 'viem';
+import { encodeAbiParameters, encodeFunctionResult, pad, parseAbi, type Address, type Hex, type PublicClient } from 'viem';
 import { type NetworkConfig } from './canonicalPool.js';
 import { hashPoolKey, poolKeyAbi, type PoolKey } from './poolKey.js';
 export const a = (n: number) => `0x${n.toString(16).padStart(40,'0')}` as Address;
@@ -19,7 +19,7 @@ export function reader(value: string | null = `eip155:31337:${poolId}`, price = 
    if(functionName==='poolManager') return config.poolManager;
    if(functionName==='findResolver') return [config.resolver,'0x',42n];
    if(functionName==='getSlot0') return [price,0,0,0];
-   if(functionName==='data') return data;
+   if(functionName==='resolve') return [encodeFunctionResult({abi:parseAbi(['function data(bytes32,string) view returns (bytes)']),functionName:'data',result:data}),config.resolver];
    throw new Error('unexpected call');
   },
   getEnsText:async(p:{strict:boolean})=>{assert.equal(p.strict,true);return value;},
