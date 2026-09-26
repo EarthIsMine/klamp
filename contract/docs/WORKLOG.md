@@ -722,3 +722,11 @@ Implementation status and human verification status are tracked separately; each
 - AI work: the title and line remount per step with a fade-in and no exit animation.
 - AI-run verification: `pnpm lint`, `pnpm build`. Headless Chromium pressing → as soon as each step finished shows "Nobody can rewrite it" at step 5 and "Quoted fee = paid fee" at step 9, immediately and after 1 s and 5 s.
 - Human verification: Pending human verification.
+
+## DEX6 — Allow static pools when the ENS lookup fails
+
+- Date / environment / tools: 2026-09-27 / Node 24 / Claude Code (Opus 5.5)
+- Human decisions/changes: On `hold` (lookup failed), allow static pools only, as the team spec says, instead of allowing no pool.
+- AI work: `demo/sepolia/klamp-sdk.mjs` `allowedPools` no longer returns an empty list on `hold`; the existing filter (static pools, plus the declared pool only when `registered`) already leaves static pools for a failed lookup. Used by the CLI (`klamp-swap.mjs`) and dex; dex's caption for `hold` ("Holding: static pools only") now matches its behaviour. `contract/sdk/judge.ts` is unchanged.
+- AI-run verification: `allowedPools({ status: "lookup_failed" }, [static 0.3%, DeltaFeeHook 0.05%, dynamic-fee], "hold")` returns only the static pool. dex `pnpm build` passed. The CLI was not run against a failing lookup.
+- Human verification: Pending human verification.

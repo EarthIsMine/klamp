@@ -69,9 +69,11 @@ export function judge(token, c, route) {
   return 'hold'
 }
 
-/** Pools usable for a requote after the verdict */
+/**
+ * Pools usable for a requote after the verdict: static pools, plus the declared pool when ENS answered.
+ * On hold (lookup failed) that leaves static pools only, the design doc's policy for a failed lookup.
+ */
 export function allowedPools(c, candidates, verdict) {
-  if (verdict === 'hold') return []
   return candidates.filter((k) => isStatic(k) || (c.status === 'registered' && poolIdOf(k) === c.poolId))
 }
 
