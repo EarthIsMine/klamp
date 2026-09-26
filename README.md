@@ -8,6 +8,8 @@
 
 Built for ETHGlobal Tokyo 2026 (ENS · Uniswap). Stage 1 (launch + canonical pool record) and the Klamp routing mode are deployed and exercised on Sepolia.
 
+**Live demo: [klamp.kro.kr](https://klamp.kro.kr)**. The landing page resolves any token's canonical pool from ENSv2 in your browser (UniversalResolverV2 on Sepolia, no backend); [`/demo`](https://klamp.kro.kr/demo/) walks through the full flow with live V4Quoter quotes, a live ENSv2 lookup and the decoded launch and swap txs.
+
 The repository keeps the onchain implementation and the protocol terminal together without coupling their toolchains.
 
 ## Issuer proof: three entry points
@@ -38,6 +40,32 @@ ENSv2: the official Sepolia ENSv2 Beta set ([ENS deployments](https://docs.ens.d
 Explorer: [klamp.eth](https://explorer.ens.dev/klamp.eth) · [tokens.klamp.eth](https://explorer.ens.dev/tokens.klamp.eth) (Protocol ENSv2, role holders 0).
 
 The repository build of `CanonicalPoolRegistrar` matches the deployed bytecode (immutables and metadata aside); team deployment records are in [`contract/deployments/`](contract/deployments/) and [`contract/docs/evidence/sepolia-broadcast/`](contract/docs/evidence/sepolia-broadcast/).
+
+## Where to look
+
+### ENSv2 (Sepolia ENSv2 Beta)
+
+| What | Code |
+|---|---|
+| Registrar writes `text("pool")` and `data("pool")` on the PermissionedResolver of `tokens.klamp.eth` after the issuer proof | [`CanonicalPoolRegistrar.sol:147-165`](contract/src/CanonicalPoolRegistrar.sol#L147-L165) |
+| Issuer-only `description` / `url` updates | [`CanonicalPoolRegistrar.sol:169-175`](contract/src/CanonicalPoolRegistrar.sol#L169-L175) |
+| `klamp.eth` UserRegistry creates `tokens`; Enhanced Access Control grants the registrar `ROLE_SET_TEXT` / `ROLE_SET_DATA` scoped per record key (`pool`, `description`, `url`) | [`Phase1Setup.sol:52-76`](contract/script/Phase1Setup.sol#L52-L76) |
+| Seal: every root role on the resolver, the registry and `klamp.eth` is revoked, so no one (us included) can rewrite a record | [`Phase1Setup.sol:98-133`](contract/script/Phase1Setup.sol#L98-L133) |
+| Token names are wildcard under `tokens.klamp.eth`; lookup via UniversalResolverV2 with namespace, text/data and pool checks (SDK) | [`contract/sdk/canonicalPool.ts:54`](contract/sdk/canonicalPool.ts#L54) |
+| The same lookup, in the browser | [`web/src/data/protocol/sepolia.ts:105`](web/src/data/protocol/sepolia.ts#L105), UI in [`LiveLookup.tsx`](web/src/components/lookup/LiveLookup.tsx#L114) |
+| Plain `viem.getEnsText`, no Klamp code | [`read-pool.mjs:12`](contract/demo/sepolia/read-pool.mjs#L12) |
+
+### Uniswap v4
+
+| What | Code |
+|---|---|
+| Launchpad: CREATE2 token, `PoolManager.initialize` of a hooked pool, locked single-sided liquidity, canonical record, all in the launch tx | [`DemoLaunchpad.sol:102-142`](contract/src/demo/DemoLaunchpad.sol#L102-L142) |
+| Delta-fee hook (`afterSwap` + `afterSwapReturnDelta`) | [`DeltaFeeHook.sol:32-46`](contract/src/demo/DeltaFeeHook.sol#L32-L46) |
+| Registrar checks the pool is initialized with `PoolManager.extsload` | [`CanonicalPoolRegistrar.sol:147-156`](contract/src/CanonicalPoolRegistrar.sol#L147-L156) |
+| Pools.trade issuer proof via Uniswap LiquidityLauncher / UERC20Factory graffiti | [`CanonicalPoolRegistrar.sol:120-145`](contract/src/CanonicalPoolRegistrar.sol#L120-L145) |
+| Route verdict (`allow`, `requote_canonical`, `requote_static`, `hold`) | [`contract/sdk/judge.ts:13`](contract/sdk/judge.ts#L13) |
+| V4Quoter `quoteExactInputSingle`, Universal Router `V4_SWAP` calldata build and pre-signing PoolKey check | [`klamp-sdk.mjs:83-133`](contract/demo/sepolia/klamp-sdk.mjs#L83-L133) |
+| Live quotes and swap calldata decoding in the web demo | [`web/src/data/protocol/sepolia.ts:177-272`](web/src/data/protocol/sepolia.ts#L177-L272) |
 
 ## Repository layout
 
@@ -96,9 +124,9 @@ pnpm build
 
 The web workspace is statically exported and deployed from `main` to GitHub Pages through `.github/workflows/deploy-pages.yml`. Its intended custom domain is `https://klamp.kro.kr`; complete the repository Pages and DNS settings described in [`web/README.md`](web/README.md) before the first production deployment.
 
-The UI models the Phase 1 SDK results as `registered`, `not_registered`, or `lookup_failed`, route comparisons as `match`, `mismatch`, or `blocked`, and route verdicts as `allow`, `requote_canonical`, `requote_static`, or `hold`. The trace follows the path A demo on Sepolia (launch, naive quote, ENS lookup, verdict, requote, verified swap) with real deployment data, demo CLI quotes and the team's Klamp-mode swap tx; only the final attack outcome is simulated and labelled in the UI. Capped hooks (stage 2) are roadmap only.
+The UI models the Phase 1 SDK results as `registered`, `not_registered`, or `lookup_failed`, route comparisons as `match`, `mismatch`, or `blocked`, and route verdicts as `allow`, `requote_canonical`, `requote_static`, or `hold`. The trace follows the path A demo on Sepolia (launch, naive quote, ENS lookup, verdict, requote, verified swap) and reads each step from Sepolia in the browser: the launch tx's `CanonicalRecorded` and `Initialize` events, V4Quoter quotes for both pools, the ENSv2 lookup, and the team's Klamp-mode swap tx, whose Universal Router calldata is decoded and checked against the judged PoolKey. Each step is labelled `Live · Sepolia #<block>`, or `Recorded snapshot` if a read fails and the recorded value is shown instead; a failed ENS lookup stays `lookup_failed`. Only the final attack outcome is simulated and labelled in the UI. Capped hooks (stage 2) are roadmap only.
 
-For presentations, the demo is an animated node diagram with a one-line caption per step. `Play` autoplays all eight steps; `→`/Space, `←`, `P` (play) and `R` (reset) drive it from the keyboard, and the progress dots seek to any step using a deterministic local mock snapshot.
+For presentations, the demo is an animated node diagram with a one-line caption per step. `Play` autoplays all eight steps; `→`/Space, `←`, `P` (play) and `R` (reset) drive it from the keyboard, and the progress dots seek to any step using a deterministic recorded snapshot (labelled as such).
 
 ## Known limits
 

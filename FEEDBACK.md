@@ -1,9 +1,5 @@
 # Uniswap Developer Feedback — Klamp (ETHGlobal Tokyo 2026)
 
-> DRAFT. The items below come from building stage 1 on Sepolia with v4-core, V4Quoter and Universal Router.
-> TODO (team): add the Trading API section after using `/quote` and `/swap`, then submit the form at
-> https://developers.uniswap.org/hackathon-feedback with a link to this file.
-
 ## What we built with Uniswap
 
 - Uniswap v4 PoolManager on Sepolia: a launchpad that initializes a hooked pool and adds single-sided liquidity in the launch tx, and an honest delta-fee hook (`afterSwap` + `afterSwapReturnDelta`).
@@ -22,7 +18,3 @@
 - Encoding `V4_SWAP` for Universal Router by hand requires reading periphery source for action codes and `ExactInputSingleParams`; a short reference table in the docs would help.
 - Hook address mining is required for every hook deployment; a documented canonical miner / CREATE2 deployer address per chain would save time.
 - Quotes include hook fees only if the hook behaves the same during simulation and execution. There is no standard, on-chain way for a router to know whether a hooked pool is the one the token issuer intended — the gap Klamp fills.
-
-## Trading API
-
-TODO (team): `/quote` with `protocols=V4` on the chains we used, whether hooked pools are routed on Sepolia, route format for v4 pools (poolId, fee, tickSpacing, hooks).
