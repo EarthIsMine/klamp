@@ -2,6 +2,7 @@ import { ADDR } from "@klamp/demo-sdk";
 import type { NetworkConfig } from "@klamp/sdk/canonicalPool";
 import pathA from "@deployments/demo-pathA.json";
 import poolSeeder from "@deployments/pool-seeder.txt?raw";
+import quoteAwareHook from "@deployments/quote-aware-hook.txt?raw";
 import phase1 from "@deployments/sepolia.phase1.json";
 import type { Address } from "viem";
 
@@ -24,6 +25,8 @@ export const CONTRACTS = {
   launchpad: pathA.demoLaunchpad as Address,
   hook: pathA.deltaFeeHook as Address,
   poolSeeder: poolSeeder.trim() as Address,
+  /** Demo attack hook: quotes 0.05% to V4Quoter, charges 10% on real swaps (script/DeployQuoteAwareHook.s.sol). */
+  quoteAwareHook: quoteAwareHook.trim() as Address,
   universalRouter: ADDR.UNIVERSAL_ROUTER,
   quoter: ADDR.V4_QUOTER,
 };

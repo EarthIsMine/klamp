@@ -155,4 +155,4 @@ export async function tokenInfo(token: Address, account: Address | null) {
 
 export const fmt = (value: bigint, digits = 2) =>
   Number(formatUnits(value, 18)).toLocaleString("en-US", { maximumFractionDigits: digits });
-export const feeLabel = (fee: number) => `${+(fee / 10_000).toFixed(3)}%`;
+export const feeLabel = (fee: number) => ((fee & 0x800000) !== 0 ? "dynamic fee" : `${+(fee / 10_000).toFixed(3)}%`);

@@ -49,6 +49,7 @@ ENSv2: the official Sepolia ENSv2 Beta set ([ENS deployments](https://docs.ens.d
 | KHOOK — path A token, hooked canonical pool declared in the launch tx | `0x4cB41E85e1E16D7de576e2a262fF1b96eE948b96` |
 | KDEMO — path B token, Pools.trade-style disposable launch | `0x5a37301CD105B8C9C85505B28FBE6327bd495188` |
 | PoolSeeder (creates the undeclared pool used in the demo) | `0x3F4bE4f833BCcf3b2A4c243f8E6e02762613Fabc` |
+| QuoteAwareFeeHook (demo attack hook: quotes 0.05% to V4Quoter, charges 10% on swaps; CREATE2-predicted, deployed with `script/DeployQuoteAwareHook.s.sol`) | `0x0795D625a3A6D17c073e889e6a2EEE0E1c728080` |
 
 Explorer: [klamp.eth](https://explorer.ens.dev/klamp.eth) · [tokens.klamp.eth](https://explorer.ens.dev/tokens.klamp.eth) (Protocol ENSv2, role holders 0).
 
@@ -75,6 +76,7 @@ The repository build of `CanonicalPoolRegistrar` matches the deployed bytecode (
 |---|---|
 | Launchpad: CREATE2 token, `PoolManager.initialize` of a hooked pool, locked single-sided liquidity, canonical record, all in the launch tx | [`DemoLaunchpad.sol:102-142`](contract/src/demo/DemoLaunchpad.sol#L102-L142) |
 | The attack Klamp routes around, on v4-core and v4-periphery's V4Quoter: a look-alike hook quotes 0.05% and charges 10% or 30% at swap time; the swap reverts or the trader loses the gap, up to their slippage (`forge test --match-contract QuoteDivergenceAttack -vv`) | [`QuoteDivergenceAttack.t.sol`](contract/test/QuoteDivergenceAttack.t.sol) |
+| The same attack live on Sepolia: a dynamic-fee hook that answers V4Quoter with 0.05% and real swaps with 10%, and a fork test against the live PoolManager, V4Quoter, Universal Router and PoolSeeder (wins the quote, reverts at 5% slippage, pays ~9.8% less at 15%) | [`QuoteAwareFeeHook.sol`](contract/src/demo/QuoteAwareFeeHook.sol), [`DeployQuoteAwareHook.s.sol`](contract/script/DeployQuoteAwareHook.s.sol), [`QuoteAwareHookFork.t.sol`](contract/test/QuoteAwareHookFork.t.sol) |
 | Delta-fee hook (`afterSwap` + `afterSwapReturnDelta`) | [`DeltaFeeHook.sol:32-46`](contract/src/demo/DeltaFeeHook.sol#L32-L46) |
 | Registrar checks the pool is initialized with `PoolManager.extsload` | [`CanonicalPoolRegistrar.sol:147-156`](contract/src/CanonicalPoolRegistrar.sol#L147-L156) |
 | Pools.trade issuer proof via Uniswap LiquidityLauncher / UERC20Factory graffiti | [`CanonicalPoolRegistrar.sol:120-145`](contract/src/CanonicalPoolRegistrar.sol#L120-L145) |

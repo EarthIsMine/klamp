@@ -23,6 +23,14 @@ const TIERS = [
 const LAUNCH_TICK = 198060;
 const PRICE_EDGE = 300;
 const RANGE = 600;
+const DYNAMIC_FEE_FLAG = 0x800000;
+
+type HookChoice = "delta" | "quoteAware" | "none";
+const HOOKS: Record<HookChoice, { label: string; name: string; note: string }> = {
+  delta: { label: "DeltaFeeHook 1%", name: "DeltaFeeHook", note: "Honest: takes 1% of each swap, the same when quoting." },
+  quoteAware: { label: "Quote-aware · 0.05% → 10%", name: "QuoteAwareFeeHook", note: "Quotes 0.05% when V4Quoter asks, charges 10% on a real swap. Dynamic fee." },
+  none: { label: "No hook", name: "no hook", note: "Fixed fee in the PoolKey: quoted = paid." },
+};
 
 const reasons: Record<string, string> = {
   NotIssuer: "Only the contract that deployed the token can declare its pool.",
@@ -45,7 +53,16 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
   goSwap: (token: Address) => void;
 }) {
   const [tier, setTier] = useState(TIERS[0]);
-  const [withHook, setWithHook] = useState(true);
+  const [hookChoice, setHookChoice] = useState<HookChoice>("delta");
+  const [quoteAwareLive, setQuoteAwareLive] = useState<boolean | null>(null);
+  const withHook = hookChoice !== "none";
+  const quoteAware = hookChoice === "quoteAware";
+  const hookAddress = hookChoice === "delta" ? CONTRACTS.hook : hookChoice === "quoteAware" ? CONTRACTS.quoteAwareHook : ETH;
+
+  // The quote-aware hook's address is fixed in advance (CREATE2); it is only selectable once it has been deployed.
+  useEffect(() => {
+    publicClient.getCode({ address: CONTRACTS.quoteAwareHook }).then((code) => setQuoteAwareLive(Boolean(code && code !== "0x"))).catch(() => setQuoteAwareLive(false));
+  }, []);
   const [exists, setExists] = useState<boolean | null>(null);
   const [symbol, setSymbol] = useState("");
   const [balance, setBalance] = useState(0n);
@@ -61,12 +78,15 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
   const key: PoolKey = useMemo(() => ({
     currency0: ETH,
     currency1: token,
-    fee: tier.fee,
-    tickSpacing: tier.tickSpacing,
-    hooks: withHook ? CONTRACTS.hook : ETH,
-  }), [token, tier, withHook]);
+    fee: quoteAware ? DYNAMIC_FEE_FLAG : tier.fee,
+    tickSpacing: quoteAware ? 60 : tier.tickSpacing,
+    hooks: hookAddress,
+  }), [token, tier, quoteAware, hookAddress]);
   const poolId = hashPoolKey(key);
-  const tickUpper = Math.floor(((declared?.tick ?? LAUNCH_TICK) + PRICE_EDGE) / tier.tickSpacing) * tier.tickSpacing;
+  // The quote-aware pool starts one spacing above the declared price: it wins the quote mostly by lying about its fee.
+  const tickUpper = quoteAware
+    ? Math.ceil((declared?.tick ?? LAUNCH_TICK) / 60) * 60 + 60
+    : Math.floor(((declared?.tick ?? LAUNCH_TICK) + PRICE_EDGE) / tier.tickSpacing) * tier.tickSpacing;
   const tickLower = tickUpper - RANGE;
 
   // The declared pool, straight from the registrar, and its live price.
@@ -191,7 +211,7 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
         <div className="field">
           <span className="field-label">Fee tier</span>
           <div className="chips">
-            {TIERS.map((option) => (
+            {quoteAware ? <span className="hint">Dynamic: the hook sets the fee on every swap.</span> : TIERS.map((option) => (
               <button key={option.fee} className={`chip ${option.fee === tier.fee ? "chip-on" : ""}`} onClick={() => setTier(option)}>{feeLabel(option.fee)}</button>
             ))}
           </div>
@@ -199,10 +219,20 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
         <div className="field">
           <span className="field-label">Hook</span>
           <div className="chips">
-            <button className={`chip ${withHook ? "chip-on" : ""}`} onClick={() => setWithHook(true)}>DeltaFeeHook 1%</button>
-            <button className={`chip ${!withHook ? "chip-on" : ""}`} onClick={() => setWithHook(false)}>No hook</button>
+            {(Object.keys(HOOKS) as HookChoice[]).map((choice) => (
+              <button
+                key={choice}
+                className={`chip ${hookChoice === choice ? "chip-on" : ""}`}
+                onClick={() => setHookChoice(choice)}
+                disabled={choice === "quoteAware" && quoteAwareLive === false}
+                title={choice === "quoteAware" && quoteAwareLive === false ? "Not deployed yet: script/DeployQuoteAwareHook.s.sol" : undefined}
+              >
+                {HOOKS[choice].label}
+              </button>
+            ))}
           </div>
-          <span className="hook-address">{withHook ? <Ext address={CONTRACTS.hook}>{CONTRACTS.hook}</Ext> : "0x0000000000000000000000000000000000000000"}</span>
+          <span className="hint">{HOOKS[hookChoice].note}</span>
+          <span className="hook-address">{withHook ? <Ext address={hookAddress}>{hookAddress}</Ext> : "0x0000000000000000000000000000000000000000"}</span>
         </div>
         <label className="box">
           <span className="box-label">Liquidity</span>
@@ -213,7 +243,7 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
         </label>
         <dl className="details">
           <div><dt>Pool</dt><dd className={exists ? "warn" : ""}><Ext tx={createdIn ?? undefined} title="Transaction that created this pool">{short(poolId)}</Ext>{exists === null ? "" : exists ? " · exists" : " · new"}</dd></div>
-          <div><dt>Starting price</dt><dd>{declared === null ? "no declared pool" : "+3% vs declared pool"} · tick {tickLower}→{tickUpper}</dd></div>
+          <div><dt>Starting price</dt><dd>{declared === null ? "no declared pool" : quoteAware ? "~0.6% above declared pool" : "+3% vs declared pool"} · tick {tickLower}→{tickUpper}</dd></div>
         </dl>
 
         {!wallet.account ? (
@@ -239,8 +269,12 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
             </motion.div>
             <motion.div key={poolId} className={`pool-card ${exists ? "live" : "draft"}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
               <span className={`badge ${withHook ? "bad" : ""}`}>{withHook ? "your pool · not in ENS" : "your pool · static"}</span>
-              <strong>{feeLabel(tier.fee)} · {withHook ? <Ext address={CONTRACTS.hook}>DeltaFeeHook</Ext> : "no hook"}</strong>
-              <span>{exists ? "Live on PoolManager." : "Not created yet."} {withHook ? "A best-quote router may pick it; Klamp requotes on the declared pool." : "Fixed fee: quoted = paid, so Klamp lets it through."}</span>
+              <strong>{feeLabel(key.fee)} · {withHook ? <Ext address={hookAddress}>{HOOKS[hookChoice].name}</Ext> : "no hook"}</strong>
+              <span>
+                {exists ? "Live on PoolManager." : "Not created yet."}{" "}
+                {quoteAware ? "It quotes 0.05% but takes 10% at swap time. A best-quote router picks it; Klamp requotes on the declared pool."
+                  : withHook ? "A best-quote router may pick it; Klamp requotes on the declared pool." : "Fixed fee: quoted = paid, so Klamp lets it through."}
+              </span>
             </motion.div>
           </div>
           <div className="declare-box">
@@ -264,7 +298,7 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
           ...(needsApproval || ("label" in tx && tx.label.startsWith("Approve")) ? [{ name: symbol || "Token", address: token, use: "approve PoolSeeder to take the liquidity", kind: "tx" as const, protocol: "token" as const }] : []),
           { name: "PoolSeeder", address: CONTRACTS.poolSeeder, use: "seed: initialize the pool and add one-sided liquidity", kind: "tx", protocol: "demo" },
           { name: "PoolManager", address: NETWORK.poolManager, use: "initialize, inside the seed transaction", kind: "inner", protocol: "uniswap" },
-          ...(withHook ? [{ name: "DeltaFeeHook", address: CONTRACTS.hook, use: "the hook in this PoolKey", kind: "inner" as const, protocol: "demo" as const }] : []),
+          ...(withHook ? [{ name: HOOKS[hookChoice].name, address: hookAddress, use: quoteAware ? "the hook in this PoolKey: 0.05% to the quoter, 10% on swaps" : "the hook in this PoolKey", kind: "inner" as const, protocol: "demo" as const }] : []),
           { name: "UniversalResolverV2", address: NETWORK.universalResolver, use: "reads the declared pool from ENS", kind: "read", protocol: "ens" },
           { name: "StateView", address: NETWORK.stateView, use: "declared pool's price, to set the starting price", kind: "read", protocol: "uniswap" },
           { name: "CanonicalPoolRegistrar", address: CONTRACTS.registrar, use: "recordByCreate2 simulated: who may declare", kind: "sim", protocol: "klamp" },
