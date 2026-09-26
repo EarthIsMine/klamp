@@ -605,3 +605,10 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - AI 실행 검증: `forge test` 34 통과. `npm test` 25 통과, typecheck 통과, `npm run test:e2e` 통과(Beta ENS 로컬 배포·등록·봉인·viem 조회·권한 smoke). 저장소 registrar 0.8.26 빌드와 Sepolia `0x820bE7…` 런타임 코드가 immutable·메타데이터 외 0바이트 차이.
 - 사람 직접 검증: 사람 검증 대기.
 - 남은 문제: 저장소 스크립트로 Sepolia 신규 배포는 미실행. Sepolia ENSv2 초기화 시 이 스크립트로 재배포해야 한다.
+
+## C15 — 팀원 인계 저장소(handoff `klamp/`) 병합
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Foundry 1.7.1, Node, Sepolia 공개 RPC / Claude Code (Opus 5.5)
+- 사람의 결정/수정: 새 공개 저장소를 만들지 않고, 인계받은 `klamp/`(커밋 `2f2558b`)의 데모 재료·테스트를 이 저장소로 작은 커밋 단위로 합치도록 결정함. 인계 폴더와 zip은 추적하지 않고 병합 후 삭제.
+- 출처 원칙: 팀원 소스는 수정하지 않고 가져온다. import 경로 차이는 remapping 별칭(`v4-core/`, `ensv2/`, `ens-contracts/`)으로 흡수한다. 팀원 저장소는 v4-core `46c6834`, 이 저장소는 `59d3ecf`(liquidity-launcher 경유)를 쓴다.
+- 1) 데모 컨트랙트 `src/demo/` 4종(DeltaFeeHook, DemoLaunchpad, DisposableLauncher, PoolSeeder): 원본 그대로 복사, `forge build` 통과(DisposableLauncher의 의도된 `selfdestruct` 경고만), 기존 `forge test` 34 통과.
