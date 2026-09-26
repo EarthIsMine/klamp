@@ -96,9 +96,9 @@ pnpm build
 
 The web workspace is statically exported and deployed from `main` to GitHub Pages through `.github/workflows/deploy-pages.yml`. Its intended custom domain is `https://klamp.kro.kr`; complete the repository Pages and DNS settings described in [`web/README.md`](web/README.md) before the first production deployment.
 
-The UI models the Phase 1 SDK results as `registered`, `not_registered`, or `lookup_failed`, and route comparisons as `match`, `mismatch`, or `blocked`. The 30% request to 1% cap sequence is an explicitly labelled Phase 2 mock; the current contracts do not implement that enforcement.
+The UI models the Phase 1 SDK results as `registered`, `not_registered`, or `lookup_failed`, route comparisons as `match`, `mismatch`, or `blocked`, and route verdicts as `allow`, `requote_canonical`, `requote_static`, or `hold`. The trace follows the path A demo (launch, naive quote, ENS lookup, verdict, requote, verified swap); the look-alike pool and its swap-time fee are simulated and labelled in the UI. Capped hooks (stage 2) are roadmap only.
 
-For presentations, the demo progress rail can seek directly to any of its eight steps using a deterministic local mock snapshot. The bottom action continues to play the normal ordered, delayed sequence, while `Previous` revisits the prior scene without pretending to reverse onchain state.
+For presentations, the demo progress rail can seek directly to any of its eight steps using a deterministic local mock snapshot. The bottom action plays the ordered, delayed sequence, and `Previous` revisits the prior scene.
 
 ## Known limits
 
