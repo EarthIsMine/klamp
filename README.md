@@ -21,7 +21,7 @@ Trading agents that buy new tokens automatically are the easiest targets for loo
 
 Built for ETHGlobal Tokyo 2026 (ENS · Uniswap). Stage 1 (launch + canonical pool record) and the Klamp routing mode are deployed and exercised on Sepolia.
 
-**Live demo: [klamp.kro.kr](https://klamp.kro.kr)**. The landing page resolves any token's canonical pool from ENSv2 in your browser (UniversalResolverV2 on Sepolia, no backend); [`/demo`](https://klamp.kro.kr/demo/) walks through the full flow with live V4Quoter quotes, a live ENSv2 lookup and the decoded launch and swap txs.
+**Live demo: [klamp.kro.kr](https://klamp.kro.kr)**. The landing page resolves any token's canonical pool from ENSv2 in your browser (UniversalResolverV2 on Sepolia, no backend); [`/demo`](https://klamp.kro.kr/demo/) walks through the full flow with live V4Quoter quotes, a live ENSv2 lookup and the decoded launch and swap txs; [`/dex`](https://klamp.kro.kr/dex/) lets you launch, open a pool and swap with your own wallet on Sepolia.
 
 The repository keeps the onchain implementation and the protocol terminal together without coupling their toolchains.
 
@@ -140,7 +140,7 @@ pnpm lint
 pnpm build
 ```
 
-The web workspace is statically exported and deployed from `main` to GitHub Pages through `.github/workflows/deploy-pages.yml`, together with `dex/` at `/dex/`. Its intended custom domain is `https://klamp.kro.kr`; complete the repository Pages and DNS settings described in [`web/README.md`](web/README.md) before the first production deployment.
+The web workspace is statically exported and deployed from `main` to GitHub Pages through `.github/workflows/deploy-pages.yml`, together with `dex/` at `/dex/`, and served at [klamp.kro.kr](https://klamp.kro.kr). Pages and DNS setup is described in [`web/README.md`](web/README.md).
 
 The UI models the Phase 1 SDK results as `registered`, `not_registered`, or `lookup_failed`, route comparisons as `match`, `mismatch`, or `blocked`, and route verdicts as `allow`, `requote_canonical`, `requote_static`, or `hold`. The trace follows the path A demo on Sepolia (launch, naive quote, ENS lookup, who can still change the record, verdict, requote, verified swap) and reads each step from Sepolia in the browser: the launch tx's `CanonicalRecorded` and `Initialize` events, V4Quoter quotes for both pools, the ENSv2 lookup, the ENSv2 role counts on the namespace, and the team's Klamp-mode swap tx, whose Universal Router calldata is decoded and checked against the judged PoolKey. Each step is labelled `Live · Sepolia #<block>`, or `Recorded snapshot` if a read fails and the recorded value is shown instead; a failed ENS lookup stays `lookup_failed`. Only the final attack outcome is simulated and labelled in the UI. Capped hooks (stage 2) are roadmap only.
 
@@ -164,6 +164,19 @@ It is deployed with the web workspace: the Pages workflow builds both and serves
 - Sepolia has no InstantLaunchStrategy, so the path B demo pool was initialized by our disposable launcher and holds no liquidity.
 - Records for other chains (e.g. Robinhood Chain) are roadmap: the registrar can only verify state on its own chain. Until then the SDK uses the verified `TokenLaunched` event from the five trusted Pools.trade strategies.
 - Stage 2 (CappedHookProxy fee cap) is designed, not built.
+
+## How this repository was built
+
+- **Start.** The first commit is from 25 Sep 2026, 23:11 JST, during ETHGlobal Tokyo 2026. Everything after it is in the commit history.
+- **Specs and planning artifacts** (kept in the repository, as the event rules ask for spec-driven work):
+  - [`contract/final_klamp_organized.md`](contract/final_klamp_organized.md): the team's final plan and spec for all four stages (Korean).
+  - [`contract/final_klamp_with_code.md`](contract/final_klamp_with_code.md): the phase 1 design doc with contract code, tests and setup.
+  - [`contract/Klamp_Phase1_Agent_Spec.md`](contract/Klamp_Phase1_Agent_Spec.md): the phase 1 spec handed to coding agents, commit by commit (C01–C11).
+  - [`AGENTS.md`](AGENTS.md) and [`contract/AGENTS.md`](contract/AGENTS.md): working rules for the agents.
+  - [`contract/docs/plans/`](contract/docs/plans/): plan changes with reasons and decision status.
+  - [`contract/docs/WORKLOG.md`](contract/docs/WORKLOG.md): per task, the human decisions and instructions, what the AI did, the commands run and their results. Prompts are not stored verbatim; this log is their record.
+- **Teammate handoff.** Commits `23e0195` to `e854399` (26 Sep, 21:42–21:45 JST) and `4178507` bring in, unmodified, a teammate's working repository (`klamp/`, commit `2f2558b`): the demo contracts in `contract/src/demo/`, the scripts that ran the Sepolia setup and demo launches with their deployment records, the Sepolia fork tests, the demo SDK and CLI in `contract/demo/sepolia/`, the Pools.trade launch analysis and `FEEDBACK.md`. Its own commit history is not part of this repository; what came in and how it was checked is listed file by file in [WORKLOG C15](contract/docs/WORKLOG.md#c15--merge-the-teammate-handoff-repository-handoff-klamp). The Sepolia deployments it records are dated 26 Sep 2026.
+- **Third-party code.** ENSv2 contracts and Uniswap's liquidity-launcher (with v4-core and v4-periphery) are git submodules under `contract/lib/`, pinned by commit (see [`contract/docs/phase1-dependencies.md`](contract/docs/phase1-dependencies.md)). They are used as libraries; this repository does not change them.
 
 ## AI usage
 
