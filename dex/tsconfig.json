@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": false,
+    "types": ["vite/client", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@klamp/sdk/*": ["../contract/sdk/*"],
+      "@deployments/*": ["../contract/deployments/*"],
+      "viem": ["./node_modules/viem"],
+      "viem/*": ["./node_modules/viem/*"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}

@@ -6,3 +6,6 @@ web/.next/
 web/out/
 web/.env*
 !web/.env.example
+dex/node_modules/
+dex/dist/
+dex/.env*
