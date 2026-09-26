@@ -27,7 +27,7 @@ contract CreateAddressHarness is CanonicalPoolRegistrar {
 
 contract CanonicalPoolRegistrarTest is RegistrarFixture {
     address internal attacker = address(0xBAD);
-    event CanonicalRecorded(address indexed token, bytes32 indexed poolId, address indexed issuer, address creator);
+    event CanonicalRecorded(address indexed token, bytes32 indexed poolId, address indexed issuer, address creator, PoolKey key);
 
     function testCreate2RecordsTextAndData() public {
         address token = deployer.deploy(bytes32(0));
@@ -35,7 +35,7 @@ contract CanonicalPoolRegistrarTest is RegistrarFixture {
         initialize(key);
         bytes32 id = keccak256(abi.encode(key));
         vm.expectEmit(address(registrar));
-        emit CanonicalRecorded(token, id, address(deployer), creator);
+        emit CanonicalRecorded(token, id, address(deployer), creator, key);
         deployer.recordWithEditor(registrar, token, key, bytes32(0), creator);
         assertEq(registrar.canonicalPoolOf(token), id);
         assertEq(resolver.text(nodeFor(token), "pool"), string.concat("eip155:", vm.toString(block.chainid), ":", vm.toString(id)));
@@ -68,7 +68,7 @@ contract CanonicalPoolRegistrarTest is RegistrarFixture {
         vm.prank(attacker); vm.expectRevert(CanonicalPoolRegistrar.NotIssuer.selector);
         registrar.recordByLiquidityLauncher(token, address(launcher));
         vm.expectEmit(address(registrar));
-        emit CanonicalRecorded(token, keccak256(abi.encode(launchKeyFor(token))), creator, creator);
+        emit CanonicalRecorded(token, keccak256(abi.encode(launchKeyFor(token))), creator, creator, launchKeyFor(token));
         vm.prank(creator); registrar.recordByLiquidityLauncher(token, address(launcher));
         assertEq(registrar.canonicalPoolOf(token), keccak256(abi.encode(launchKeyFor(token))));
         vm.prank(creator); resolver.setText(nodeFor(token), "description", "launched");

@@ -446,7 +446,7 @@ recordByLiquidityLauncherVia(token, launcher, nonce)
 
 launcher는 배포 때 고정한 LiquidityLauncher 두 버전만 받는다: v3.0.0 0x00004c4ccc709Ef590F7C81102C0689F0263D4e9, v3.2.0 0x0000FffFBE8efE702c8703aE3477FF5dE3d319C0. 둘 다 graffiti에 LiquidityLauncher를 부른 주소를 넣는다는 게 검증된 소스로 확인됐고, Sepolia와 Robinhood에 같은 바이트코드로 있다. 런치패드 심사가 아니라 증명 방식의 조건이다.
 
-기록 전에 네 가지를 본다. 토큰이 이미 배포돼 있는지(TokenNotDeployed), PoolKey에 토큰이 들어 있는지(TokenNotInPool), 이미 선언됐는지(AlreadyRecorded), 지정한 PoolManager에서 초기화된 풀인지(PoolNotInitialized). 통과하면 아래를 쓰고 CanonicalRecorded(token, poolId, issuer, creator)를 낸다. creator가 0이면 설명·링크 권한은 아무에게도 주지 않는다.
+기록 전에 네 가지를 본다. 토큰이 이미 배포돼 있는지(TokenNotDeployed), PoolKey에 토큰이 들어 있는지(TokenNotInPool), 이미 선언됐는지(AlreadyRecorded), 지정한 PoolManager에서 초기화된 풀인지(PoolNotInitialized). 통과하면 아래를 쓰고 CanonicalRecorded(token, poolId, issuer, creator, key)를 낸다. key(PoolKey)는 공개 정보(PoolManager Initialize 이벤트, data 레코드)와 같지만, 어그리게이터 인덱서가 이 이벤트 하나만 구독해 token → PoolKey를 얻도록 넣는다. creator가 0이면 설명·링크 권한은 아무에게도 주지 않는다.
 
 키
 
@@ -540,7 +540,10 @@ contract CanonicalPoolRegistrar {
 
     /// @param issuer 대표 풀을 선언한 주소 (경로 A: 런치패드 컨트랙트, 경로 B: 크리에이터)
     /// @param creator description·url을 관리할 사람 주소 (경로 B에서는 issuer와 같다)
-    event CanonicalRecorded(address indexed token, bytes32 indexed poolId, address indexed issuer, address creator);
+    /// @param key 대표 풀의 PoolKey. 인덱서가 이 이벤트 하나로 token → PoolKey를 얻는다 (poolId = keccak256(abi.encode(key)))
+    event CanonicalRecorded(
+        address indexed token, bytes32 indexed poolId, address indexed issuer, address creator, PoolKey key
+    );
 
     error NotIssuer();
     error TokenNotDeployed();
@@ -641,7 +644,7 @@ contract CanonicalPoolRegistrar {
             resolver.authorizeTextRoles(name, "url", creator, true);
         }
 
-        emit CanonicalRecorded(token, poolId, msg.sender, creator);
+        emit CanonicalRecorded(token, poolId, msg.sender, creator, key);
     }
 
     // ---------- utils ----------

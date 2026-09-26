@@ -581,3 +581,9 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람의 결정/수정: `tokenIn`을 이전 토큰으로 둔 채 조회해 원인 없이 "진행 차단"이 나온 것을 보고 수정을 요청함.
 - AI 실행 검증: 실행 중인 demo-server의 실제 `/api/check` 응답 4건(invalid-route, match, mismatch, not_registered)에 화면 로직을 적용해 기대 문구를 확인했다. 브라우저 육안 확인은 미실행.
 - 사람 직접 검증: 사람 검증 대기.
+
+## C12 — CanonicalRecorded 이벤트에 PoolKey 추가
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Foundry, 로컬 Anvil / Claude Code (Opus 5.5)
+- 사람의 결정/수정: 어그리게이터 백엔드가 ENS 조회 대신 이벤트 인덱싱으로 통합하는 경우를 위해 PoolKey를 이벤트에 넣기로 결정함. 공개 정보라 노출 문제는 없다는 판단.
+- AI 수행: `CanonicalRecorded(token, poolId, issuer, creator, key)`로 바꾸고(key는 non-indexed data), 설계 문서 `final_klamp_with_code.md`의 이벤트 정의·설명과 C12 계획을 함께 수정했다. 이벤트 테스트 2곳이 key까지 검증한다.

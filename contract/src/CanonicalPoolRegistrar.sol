@@ -64,7 +64,10 @@ contract CanonicalPoolRegistrar {
 
     /// @param issuer 대표 풀을 선언한 주소 (경로 A: 런치패드 컨트랙트, 경로 B: 크리에이터)
     /// @param creator description·url을 관리할 사람 주소 (경로 B에서는 issuer와 같다)
-    event CanonicalRecorded(address indexed token, bytes32 indexed poolId, address indexed issuer, address creator);
+    /// @param key 대표 풀의 PoolKey. 인덱서가 이 이벤트 하나로 token → PoolKey를 얻는다 (poolId = keccak256(abi.encode(key)))
+    event CanonicalRecorded(
+        address indexed token, bytes32 indexed poolId, address indexed issuer, address creator, PoolKey key
+    );
 
     error NotIssuer();
     error TokenNotDeployed();
@@ -165,7 +168,7 @@ contract CanonicalPoolRegistrar {
             resolver.authorizeTextRoles(name, "url", creator, true);
         }
 
-        emit CanonicalRecorded(token, poolId, msg.sender, creator);
+        emit CanonicalRecorded(token, poolId, msg.sender, creator, key);
     }
 
     // ---------- utils ----------
