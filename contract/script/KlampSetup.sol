@@ -6,7 +6,7 @@ import {NameCoder} from "ens-contracts/utils/NameCoder.sol";
 
 import {CanonicalPoolRegistrar, IPermissionedResolver, IPoolManager, IUERC20Factory} from "../src/CanonicalPoolRegistrar.sol";
 
-// ENSv2 Sepolia Beta(공식 세트)에서 쓰는 함수만. 시그니처는 Etherscan에 verify된 소스와 같다.
+// Only the functions we use from ENSv2 Sepolia Beta (official set). Signatures match the Etherscan-verified source.
 struct Grant {
     address account;
     uint256 roleBitmap;
@@ -37,7 +37,7 @@ interface IPermResolver {
     function setData(bytes calldata name, string calldata key, bytes calldata value) external;
 }
 
-/// @dev 읽기용 표준 프로필 (공식 resolver는 resolve(name, data)로만 읽는다, ENSIP-10)
+/// @dev Standard profile for reads (the official resolver is read only via resolve(name, data), ENSIP-10)
 interface IRecordReader {
     function text(bytes32 node, string calldata key) external view returns (string memory);
     function data(bytes32 node, string calldata key) external view returns (bytes memory);
@@ -68,9 +68,9 @@ interface IMockUSDC {
     function approve(address spender, uint256 amount) external returns (bool);
 }
 
-/// @notice 1단계 설계 문서의 셋업 스크립트를 두 단계로 나눈 것. commit 후 60초(MIN_COMMITMENT_AGE)가 지나야 register할 수 있다.
+/// @notice The phase 1 design doc's setup script split into two steps. register is allowed only 60s (MIN_COMMITMENT_AGE) after commit.
 abstract contract KlampSetup {
-    // ENSv2 Sepolia Beta (ENS 공식 문서 docs.ens.domains/learn/deployments#sepolia-ensv2-beta, ENS 앱·익스플로러가 읽는 세트)
+    // ENSv2 Sepolia Beta (official ENS docs docs.ens.domains/learn/deployments#sepolia-ensv2-beta; the set the ENS app and explorer read)
     IETHRegistrar constant ETH_REGISTRAR = IETHRegistrar(0xAbe76F6C8DFcEd81AA5A2bB8034202A7136b94ca);
     IETHRegistry constant ETH_REGISTRY = IETHRegistry(0x657eA849311d3D5823348ddEd7C2AaAFb3EDE09E);
     IVerifiableFactory constant VERIFIABLE_FACTORY = IVerifiableFactory(0x9e726Eb570beb6BCEb495AB8cdA7df517d4e841C);
@@ -85,15 +85,15 @@ abstract contract KlampSetup {
 
     string constant LABEL = "klamp";
 
-    /// @dev 실배포는 "klamp". 포크 테스트는 이미 등록된 이름과 겹치지 않게 덮어쓴다
+    /// @dev Real deployment uses "klamp". Fork tests override it to avoid clashing with the already registered name
     function _label() internal view virtual returns (string memory) {
         return LABEL;
     }
-    uint64 constant DURATION = 1000 * 365 days; // 약 4,500 MockUSDC
+    uint64 constant DURATION = 1000 * 365 days; // about 4,500 MockUSDC
 
     uint256 constant REG_ROLES = RegistryRolesLib.ROLE_REGISTRAR | RegistryRolesLib.ROLE_REGISTRAR_ADMIN
         | RegistryRolesLib.ROLE_SET_PARENT | RegistryRolesLib.ROLE_SET_PARENT_ADMIN;
-    // 공식 세트의 PermissionedResolverLib 값 (이전 버전과 ROLE_SET_DATA 비트가 다르다: 1<<36 → 1<<24)
+    // PermissionedResolverLib values from the official set (ROLE_SET_DATA bit differs from the previous version: 1<<36 → 1<<24)
     uint256 constant ROLE_SET_TEXT = 1 << 4;
     uint256 constant ROLE_SET_DATA = 1 << 24;
     uint256 constant RES_ROLES = (ROLE_SET_TEXT << 128) | (ROLE_SET_DATA << 128);
@@ -107,14 +107,14 @@ abstract contract KlampSetup {
         uint256 klampTokenId;
     }
 
-    /// 1. 레지스트리·resolver를 ENS 표준 구현 프록시로 배포하고, 등록비를 준비하고, commit 한다.
+    /// 1. Deploy the registry and resolver as proxies of the ENS standard implementations, prepare the registration fee, and commit.
     function _phase1(address me, bytes32 secret, uint256 salt) internal returns (IUserRegistry reg, IPermResolver res) {
         Grant[] memory g = new Grant[](1);
         g[0] = Grant(me, REG_ROLES);
         reg = IUserRegistry(
             VERIFIABLE_FACTORY.deployProxy(USER_REGISTRY_IMPL, salt, abi.encodeCall(IUserRegistry.initialize, (g)))
         );
-        g[0] = Grant(me, RES_ROLES); // ROLE_UPGRADE는 누구에게도 주지 않는다
+        g[0] = Grant(me, RES_ROLES); // ROLE_UPGRADE is granted to no one
         res = IPermResolver(
             VERIFIABLE_FACTORY.deployProxy(
                 PERMISSIONED_RESOLVER_IMPL, salt + 1, abi.encodeCall(IPermResolver.initialize, (g, new bytes[](0)))
@@ -128,7 +128,7 @@ abstract contract KlampSetup {
         );
     }
 
-    /// 2~5. klamp.eth 등록, tokens 라벨, 등록 컨트랙트 배포·권한 부여, 우리 권한 회수.
+    /// 2-5. Register klamp.eth, create the tokens label, deploy and grant roles to the registrar, revoke our roles.
     function _phase2(address me, bytes32 secret, IUserRegistry reg, IPermResolver res) internal returns (Deployed memory d) {
         d.reg = reg;
         d.res = res;
@@ -144,7 +144,7 @@ abstract contract KlampSetup {
         d.registrar = new CanonicalPoolRegistrar(
             IPermissionedResolver(address(res)), NameCoder.encode("tokens.klamp.eth"), POOL_MANAGER, UERC20_FACTORY, launchers
         );
-        // 키 단위 권한: pool(text·data), description·url(text)은 등록 컨트랙트만 쓴다. 이름 인자는 권한 계산에 쓰이지 않는다
+        // Per-key roles: only the registrar writes pool (text/data) and description/url (text). The name argument is not used in role checks
         bytes memory any = NameCoder.encode("");
         address r = address(d.registrar);
         res.grantSetterRoles(abi.encodeCall(IPermResolver.setText, (any, "pool", "")), r);

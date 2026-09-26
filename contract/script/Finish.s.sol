@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import {Script, console} from "forge-std/Script.sol";
 import {KlampSetup, IUserRegistry, IPermResolver} from "./KlampSetup.sol";
 
-/// 2~5단계: klamp.eth register, tokens 라벨, 등록 컨트랙트 배포·권한, 우리 권한 회수.
+/// Steps 2-5: register klamp.eth, tokens label, deploy registrar and grant roles, revoke our roles.
 contract Finish is Script, KlampSetup {
     function run() external {
         string memory j = vm.readFile("./deployments/sepolia.json");

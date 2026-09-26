@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import {Script, console} from "forge-std/Script.sol";
 import {KlampSetup, IUserRegistry, IPermResolver} from "./KlampSetup.sol";
 
-/// 1단계: 레지스트리·resolver 배포, 등록비 준비, klamp.eth commit. 60초 뒤 Finish.s.sol 실행.
+/// Step 1: deploy registry and resolver, prepare the registration fee, commit klamp.eth. Run Finish.s.sol 60s later.
 contract Commit is Script, KlampSetup {
     function run() external {
         address me = msg.sender;

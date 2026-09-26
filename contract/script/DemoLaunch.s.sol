@@ -6,11 +6,11 @@ import {KlampSetup} from "./KlampSetup.sol";
 import {CanonicalPoolRegistrar} from "../src/CanonicalPoolRegistrar.sol";
 import {DisposableLauncher} from "../src/demo/DisposableLauncher.sol";
 
-/// 데모 3: Pools.trade 방식(일회용 컨트랙트 경유) 토큰을 만들고, 크리에이터가 nonce로 대표 풀을 선언한다.
+/// Demo 3: create a token the Pools.trade way (via a disposable contract), and the creator declares the canonical pool using the nonce.
 contract DemoLaunch is Script, KlampSetup {
     string constant NAME = "Klamp Demo";
     string constant SYMBOL = "KDEMO";
-    uint160 constant SQRT_PRICE = 77371252455336267181195264; // 2^86, 값 자체는 데모에 영향 없음
+    uint160 constant SQRT_PRICE = 77371252455336267181195264; // 2^86; the value itself does not affect the demo
 
     function run() external {
         string memory j = vm.readFile("./deployments/sepolia.json");

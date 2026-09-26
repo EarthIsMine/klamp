@@ -9,10 +9,10 @@ import {BeforeSwapDelta} from "v4-core/types/BeforeSwapDelta.sol";
 import {Currency} from "v4-core/types/Currency.sol";
 import {ModifyLiquidityParams, SwapParams} from "v4-core/types/PoolOperation.sol";
 
-/// @notice D형(delta 수수료) 훅의 정직한 데모 버전. 매 스왑의 unspecified 쪽 금액에서 고정 비율을 떼어
-///         feeRecipient에게 보낸다. 호출자가 누구든 같은 비율이라 견적과 체결 수수료가 같다.
-///         권한 비트: afterSwap(6) + afterSwapReturnDelta(2) → 주소 하위 14비트 = 0x44.
-/// @dev 대표 풀에 붙는 훅이다. 이 훅 자체의 수수료 조작은 1단계가 아니라 2단계(수수료 상한)가 다룬다.
+/// @notice Honest demo version of a D-type (delta fee) hook. Takes a fixed percentage of each swap's unspecified-side amount
+///         and sends it to feeRecipient. The rate is the same for every caller, so the quote and swap execution fees match.
+///         Permission bits: afterSwap(6) + afterSwapReturnDelta(2) → lower 14 bits of the address = 0x44.
+/// @dev This hook attaches to the canonical pool. Fee manipulation by the hook itself is handled by phase 2 (fee cap), not phase 1.
 contract DeltaFeeHook is IHooks {
     uint160 public constant FLAGS = (1 << 6) | (1 << 2);
 
@@ -34,7 +34,7 @@ contract DeltaFeeHook is IHooks {
         returns (bytes4, int128)
     {
         if (msg.sender != address(poolManager)) revert NotPoolManager();
-        // unspecified 통화: exact-in이면 출력 쪽, exact-out이면 입력 쪽
+        // unspecified currency: output side for exact-in, input side for exact-out
         bool specifiedIs0 = (params.amountSpecified < 0) == params.zeroForOne;
         (Currency unspecified, int128 amount) =
             specifiedIs0 ? (key.currency1, delta.amount1()) : (key.currency0, delta.amount0());
@@ -45,7 +45,7 @@ contract DeltaFeeHook is IHooks {
         return (IHooks.afterSwap.selector, int128(int256(fee)));
     }
 
-    // ---------- 쓰지 않는 콜백 (권한 비트가 꺼져 있어 호출되지 않는다) ----------
+    // ---------- unused callbacks (never called because their permission bits are off) ----------
 
     function beforeInitialize(address, PoolKey calldata, uint160) external pure returns (bytes4) {
         revert HookNotImplemented();

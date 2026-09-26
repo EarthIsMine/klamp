@@ -8,7 +8,7 @@ import {CanonicalPoolRegistrar} from "../src/CanonicalPoolRegistrar.sol";
 import {DeltaFeeHook} from "../src/demo/DeltaFeeHook.sol";
 import {DemoLaunchpad} from "../src/demo/DemoLaunchpad.sol";
 
-/// 데모 1 준비: D형 훅(1% delta 수수료) + 경로 A 런치패드 배포, 토큰 하나를 런칭해 같은 tx에서 대표 풀 선언.
+/// Demo 1 setup: deploy a D-type hook (1% delta fee) + path A launchpad, launch one token and declare its canonical pool in the same tx.
 contract DemoPathA is Script {
     IPoolManager constant PM = IPoolManager(0xE03A1074c86CFeDd5C142C4F04F1a1536e203543);
 

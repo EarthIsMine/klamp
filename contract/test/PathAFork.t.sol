@@ -17,7 +17,7 @@ import {DeltaFeeHook} from "../src/demo/DeltaFeeHook.sol";
 import {DemoLaunchpad, DemoToken} from "../src/demo/DemoLaunchpad.sol";
 import {IPermResolver, IRecordReader} from "../script/KlampSetup.sol";
 
-/// @dev 테스트 전용 발행자: CREATE2로 토큰을 만들고 임의의 PoolKey로 선언을 시도한다 (거절 경로 확인용).
+/// @dev Test-only issuer: creates a token with CREATE2 and tries to declare an arbitrary PoolKey (to check rejection paths).
 contract TestIssuer {
     function deploy(bytes32 salt) external returns (address) {
         return address(new DemoToken{salt: salt}("T", "T", 1e18));
@@ -32,7 +32,7 @@ contract TestIssuer {
     }
 }
 
-/// @dev ETH exact-in 스왑 한 번 (구매)
+/// @dev A single ETH exact-in swap (buy)
 contract Buyer is IUnlockCallback {
     IPoolManager immutable pm;
 
@@ -54,7 +54,7 @@ contract Buyer is IUnlockCallback {
     }
 }
 
-/// @notice 경로 A(CREATE2 런치패드)와 등록 검사 4가지를 Sepolia 포크의 실제 배포 등록 컨트랙트로 확인한다.
+/// @notice Checks path A (CREATE2 launchpad) and the four registration checks against the actually deployed registrar on a Sepolia fork.
 contract PathAForkTest is Test {
     IPoolManager constant PM = IPoolManager(0xE03A1074c86CFeDd5C142C4F04F1a1536e203543);
     CanonicalPoolRegistrar registrar;
@@ -72,7 +72,7 @@ contract PathAForkTest is Test {
         registrar = CanonicalPoolRegistrar(vm.parseJsonAddress(j, ".registrar"));
         res = IPermResolver(vm.parseJsonAddress(j, ".resolver"));
 
-        // 훅 주소 하위 14비트가 권한 비트(0x44)와 정확히 같아지는 salt를 찾는다
+        // Find a salt where the hook address's lower 14 bits exactly equal the permission bits (0x44)
         bytes memory init = abi.encodePacked(type(DeltaFeeHook).creationCode, abi.encode(PM, feeTo, uint256(100)));
         bytes32 h = keccak256(init);
         uint256 salt;
@@ -105,7 +105,7 @@ contract PathAForkTest is Test {
         assertEq(registrar.creatorOf(token), creator, "creator = launch caller");
         assertEq(_text(token, "pool"), string.concat("eip155:11155111:", vm.toString(poolId)));
 
-        // 크리에이터는 설명을 쓸 수 있다. 발행자(런치패드)에게는 메타데이터 권한이 없다
+        // The creator can write the description. The issuer (launchpad) has no metadata permission
         vm.prank(creator);
         registrar.setTokenText(token, "url", "https://klamp.demo");
         assertEq(_text(token, "url"), "https://klamp.demo");
@@ -122,14 +122,14 @@ contract PathAForkTest is Test {
         uint256 out = b.buy{value: 0.01 ether}(_v4key(token));
         uint256 fee = DemoToken(token).balanceOf(feeTo);
         assertGt(out, 0, "bought");
-        // 훅 수수료 1%: fee / (out + fee) = 1%
+        // Hook fee 1%: fee / (out + fee) = 1%
         assertApproxEqRel(fee * 100, out + fee, 1e15, "hook takes 1%");
     }
 
     function test_pathA_attacker_cannot_declare() public {
         vm.prank(creator);
         address token = pad.launch("Klamp Hook Demo", "KHOOK");
-        // 이미 선언된 토큰이지만, 같은 salt·initCode를 넣어도 호출자가 런치패드가 아니면 NotIssuer
+        // Token already declared, but even with the same salt/initCode, NotIssuer if the caller is not the launchpad
         bytes32 salt = pad.saltOf(creator, "Klamp Hook Demo", "KHOOK");
         bytes32 h = pad.initCodeHash("Klamp Hook Demo", "KHOOK");
         vm.prank(attacker);
@@ -168,7 +168,7 @@ contract PathAForkTest is Test {
         PM.initialize(V4PoolKey(Currency.wrap(address(0)), Currency.wrap(token), 3000, 60, IHooks(address(0))), 2 ** 96);
         PoolKey memory k = PoolKey(address(0), token, 3000, 60, address(0));
         iss.record(registrar, token, k, bytes32(uint256(4)), h);
-        // 다른 fee의 풀로 다시 선언해도 거절
+        // Re-declaring with a pool of a different fee is also rejected
         PM.initialize(V4PoolKey(Currency.wrap(address(0)), Currency.wrap(token), 500, 10, IHooks(address(0))), 2 ** 96);
         vm.expectRevert(CanonicalPoolRegistrar.AlreadyRecorded.selector);
         iss.record(registrar, token, PoolKey(address(0), token, 500, 10, address(0)), bytes32(uint256(4)), h);

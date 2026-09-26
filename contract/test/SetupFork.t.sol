@@ -31,7 +31,7 @@ interface IPoolManagerInit {
     function initialize(PoolKey memory key, uint160 sqrtPriceX96) external returns (int24);
 }
 
-/// @dev Pools.trade 일회용 런칭 패턴: 생성자에서 LiquidityLauncher를 부르고 바로 selfdestruct (EIP-6780: 같은 tx면 코드 삭제).
+/// @dev Pools.trade disposable launch pattern: the constructor calls LiquidityLauncher and immediately selfdestructs (EIP-6780: code deleted within the same tx).
 contract DisposableLauncher {
     constructor(address launcher, address factory, string memory name, string memory symbol, address recipient) {
         ILiquidityLauncher(launcher).createToken(
@@ -41,9 +41,9 @@ contract DisposableLauncher {
     }
 }
 
-/// @notice Sepolia 포크 위에서 셋업 전체 → 경로 B 두 진입점 선언 → 조회값 확인. 실배포 전 리허설.
+/// @notice On a Sepolia fork: full setup → declare via both path B entry points → check lookup values. Rehearsal before real deployment.
 contract SetupForkTest is Test, KlampSetup {
-    /// klamp.eth는 이미 실등록돼 있어서, 같은 셋업을 다른 이름으로 재현한다
+    /// klamp.eth is already registered for real, so the same setup is reproduced under a different name
     function _label() internal pure override returns (string memory) {
         return "klampforktest";
     }
@@ -86,7 +86,7 @@ contract SetupForkTest is Test, KlampSetup {
     }
 
     function _initPool(address token) internal {
-        // 1 ETH = 1,000,000 토큰 근처. 값 자체는 검사 대상이 아니다
+        // Around 1 ETH = 1,000,000 tokens. The value itself is not under test
         IPoolManagerInit(address(POOL_MANAGER)).initialize(
             PoolKey(address(0), token, 2500, 25, address(0)), 77371252455336267181195264 /* 2^86 */
         );
@@ -128,7 +128,7 @@ contract SetupForkTest is Test, KlampSetup {
         assertEq(chainId, 11155111);
         assertEq(key.currency1, token);
 
-        // 크리에이터는 등록 컨트랙트를 거쳐 description만 쓴다. pool은 못 쓰고, resolver에 직접도 못 쓴다
+        // The creator writes only description, via the registrar. It cannot write pool, nor write to the resolver directly
         vm.startPrank(creator);
         d.registrar.setTokenText(token, "description", "demo");
         assertEq(_text(token, "description"), "demo");

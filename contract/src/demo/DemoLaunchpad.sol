@@ -14,7 +14,7 @@ import {FixedPoint96} from "v4-core/libraries/FixedPoint96.sol";
 
 import {CanonicalPoolRegistrar, PoolKey as KlampPoolKey} from "../CanonicalPoolRegistrar.sol";
 
-/// @notice 데모용 최소 ERC-20. 전체 공급량을 배포자(런치패드)에게 발행한다.
+/// @notice Minimal ERC-20 for the demo. Mints the entire supply to the deployer (launchpad).
 contract DemoToken {
     string public name;
     string public symbol;
@@ -58,20 +58,20 @@ contract DemoToken {
     }
 }
 
-/// @notice 경로 A 데모 런치패드. 한 트랜잭션에서
-///         1) 토큰을 CREATE2로 배포하고  2) D형 훅 풀(ETH/토큰)을 초기화하고
-///         3) 전체 공급량을 토큰 단면 유동성으로 넣어 영구히 두고  4) 방금 만든 풀을 대표 풀로 선언한다.
-///         런치패드 자신이 CREATE2 실행자라서 발행자(issuer)다. 크리에이터 = launch()를 부른 사람.
-/// @dev 설계 전제대로 임의 외부 호출 기능(execute, multicall 등)이 없다. 유동성을 빼는 함수도 없다.
+/// @notice Path A demo launchpad. In one transaction it
+///         1) deploys the token with CREATE2  2) initializes a D-type hook pool (ETH/token)
+///         3) adds the full supply as single-sided token liquidity, locked forever  4) declares the new pool as the canonical pool.
+///         The launchpad itself executes CREATE2, so it is the issuer. Creator = the caller of launch().
+/// @dev Per the design assumption, there is no arbitrary external call feature (execute, multicall, etc.). There is no liquidity withdrawal function either.
 contract DemoLaunchpad is IUnlockCallback {
     IPoolManager public immutable poolManager;
     CanonicalPoolRegistrar public immutable registrar;
     IHooks public immutable hook;
 
-    uint256 public constant SUPPLY = 1e27; // 10억 개
-    uint24 public constant FEE = 3000; // 0.3% (정적 LP 수수료. 훅 수수료는 별도)
+    uint256 public constant SUPPLY = 1e27; // 1 billion tokens
+    uint24 public constant FEE = 3000; // 0.3% (static LP fee; hook fee is separate)
     int24 public constant TICK_SPACING = 60;
-    int24 public constant TICK_UPPER = 198060; // 초기 가격 = 이 틱. 1 ETH ≈ 4억 토큰
+    int24 public constant TICK_UPPER = 198060; // initial price = this tick. 1 ETH ≈ 400 million tokens
     int24 public constant TICK_LOWER = -198060;
 
     event Launched(address indexed token, address indexed creator, bytes32 poolId);
@@ -123,7 +123,7 @@ contract DemoLaunchpad is IUnlockCallback {
         emit Launched(token, msg.sender, keccak256(abi.encode(key)));
     }
 
-    /// @dev 토큰 단면 유동성: 현재 틱 = TICK_UPPER 라서 [TICK_LOWER, TICK_UPPER) 구간은 토큰(currency1)만 필요하다.
+    /// @dev Single-sided token liquidity: current tick = TICK_UPPER, so the [TICK_LOWER, TICK_UPPER) range needs only the token (currency1).
     function unlockCallback(bytes calldata data) external returns (bytes memory) {
         if (msg.sender != address(poolManager)) revert NotPoolManager();
         (PoolKey memory key, address token) = abi.decode(data, (PoolKey, address));

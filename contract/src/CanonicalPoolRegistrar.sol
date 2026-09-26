@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-/// @dev Uniswap v4 PoolKey. v4-core의 PoolKey와 ABI가 같다 (Currency, IHooks = address).
+/// @dev Uniswap v4 PoolKey. Same ABI as v4-core's PoolKey (Currency, IHooks = address).
 struct PoolKey {
     address currency0; // 0x0 = ETH
     address currency1;
@@ -10,17 +10,17 @@ struct PoolKey {
     address hooks;
 }
 
-/// @dev ENSv2 PermissionedResolver (Sepolia ENSv2 Beta) 중 쓰는 함수만. 레코드는 DNS 인코딩 이름으로 쓴다.
-///      이 버전의 쓰기 권한은 키 단위다(이름 단위 위임 없음). 그래서 description·url도 등록 컨트랙트가 쓰고,
-///      토큰별 크리에이터 확인은 이 컨트랙트가 한다.
+/// @dev ENSv2 PermissionedResolver (Sepolia ENSv2 Beta), only the functions we use. Records are written by DNS-encoded name.
+///      Write permissions in this version are per key (no per-name delegation), so the registrar also writes description/url,
+///      and this contract checks the creator for each token.
 interface IPermissionedResolver {
     function setText(bytes calldata name, string calldata key, string calldata value) external;
     function setData(bytes calldata name, string calldata key, bytes calldata value) external;
 }
 
-/// @dev Uniswap UERC20Factory. 토큰 주소 = CREATE2(salt = keccak256(name, symbol, decimals, factoryCaller, graffiti)).
-///      factoryCaller는 팩토리를 부른 컨트랙트(Uniswap 코드의 `creator` 인자, Pools.trade에서는 LiquidityLauncher)다.
-///      LiquidityLauncher를 부른 주소는 graffiti 쪽에 들어간다.
+/// @dev Uniswap UERC20Factory. Token address = CREATE2(salt = keccak256(name, symbol, decimals, factoryCaller, graffiti)).
+///      factoryCaller is the contract that called the factory (the `creator` argument in Uniswap code; LiquidityLauncher on Pools.trade).
+///      The address that called LiquidityLauncher goes into graffiti.
 interface IUERC20Factory {
     function getUERC20Address(
         string memory name,
@@ -31,7 +31,7 @@ interface IUERC20Factory {
     ) external view returns (address);
 }
 
-/// @dev Uniswap v4 PoolManager 중 쓰는 함수만. 풀 상태는 extsload로 읽는다.
+/// @dev Uniswap v4 PoolManager, only the functions we use. Pool state is read via extsload.
 interface IPoolManager {
     function extsload(bytes32 slot) external view returns (bytes32);
 }
@@ -43,28 +43,28 @@ interface IERC20Metadata {
 }
 
 /// @title CanonicalPoolRegistrar
-/// @notice 토큰의 발행자(issuer)만 그 토큰의 대표 풀을 한 번 선언할 수 있다.
-///         발행자 = 토큰 주소가 암호학적으로 가리키는 주소. 남의 토큰의 대표 풀은 아무도 선언할 수 없다.
-///         기록 위치: <토큰주소>.tokens.klamp.eth 의 text("pool"), data("pool")
+/// @notice Only a token's issuer can declare that token's canonical pool, once.
+///         Issuer = the address the token address cryptographically points to. No one can declare the canonical pool of someone else's token.
+///         Stored at: text("pool"), data("pool") of <tokenAddress>.tokens.klamp.eth
 contract CanonicalPoolRegistrar {
-    IPermissionedResolver public immutable resolver; // tokens.klamp.eth 의 resolver
+    IPermissionedResolver public immutable resolver; // resolver of tokens.klamp.eth
     bytes32 public immutable tokensNode; // namehash("tokens.klamp.eth")
-    bytes public tokensName; // DNS 인코딩된 "tokens.klamp.eth"
-    IPoolManager public immutable poolManager; // 이 체인의 Uniswap v4 PoolManager
-    IUERC20Factory public immutable uerc20Factory; // 0x0이면 경로 B 끔
-    mapping(address => bool) public isLiquidityLauncher; // 배포 시 고정, 이후 변경 불가
+    bytes public tokensName; // DNS-encoded "tokens.klamp.eth"
+    IPoolManager public immutable poolManager; // Uniswap v4 PoolManager on this chain
+    IUERC20Factory public immutable uerc20Factory; // 0x0 disables path B
+    mapping(address => bool) public isLiquidityLauncher; // fixed at deployment, immutable afterwards
 
     mapping(address token => bytes32 poolId) public canonicalPoolOf;
-    /// @notice description·url을 쓸 수 있는 사람. 선언 때 정해지고 바뀌지 않는다. 0이면 아무도 못 쓴다.
+    /// @notice Who can write description/url. Set at declaration and never changes. If 0, no one can write.
     mapping(address token => address creator) public creatorOf;
 
     uint24 public constant LAUNCH_FEE = 2500; // InstantLaunchStrategy.LP_FEE
     int24 public constant LAUNCH_TICK_SPACING = 25; // InstantLaunchStrategy.TICK_SPACING
-    /// @dev v4 StateLibrary.POOLS_SLOT (v4-core 46c6834). 배포된 PoolManager에서 같은 값인지 테스트로 확인한다
+    /// @dev v4 StateLibrary.POOLS_SLOT (v4-core 46c6834). Tests confirm it matches the deployed PoolManager
     bytes32 public constant POOLS_SLOT = bytes32(uint256(6));
 
-    /// @param issuer 대표 풀을 선언한 주소 (경로 A: 런치패드 컨트랙트, 경로 B: 크리에이터)
-    /// @param creator description·url을 관리할 사람 주소 (경로 B에서는 issuer와 같다). setTokenText로 쓴다
+    /// @param issuer Address that declared the canonical pool (path A: launchpad contract, path B: creator)
+    /// @param creator Address that manages description/url (same as issuer in path B). Written via setTokenText
     event CanonicalRecorded(address indexed token, bytes32 indexed poolId, address indexed issuer, address creator);
 
     error NotIssuer();
@@ -92,12 +92,12 @@ contract CanonicalPoolRegistrar {
         }
     }
 
-    /// @notice 경로 A. issuer = 토큰을 CREATE2로 배포한 컨트랙트(런치패드) 자신.
-    ///         런칭 트랜잭션 안에서, 방금 만든 풀을 선언한다. creator는 런치패드가 넘겨주는 사람 주소.
-    ///         호출자는 CREATE2를 실제로 실행한 컨트랙트여야 한다. 런치패드가 별도 토큰 팩토리를 쓰면
-    ///         그 팩토리가 호출해야 한다 (런치패드가 대신 부르면 NotIssuer).
-    ///         전제: 발행자 컨트랙트에 임의 외부 호출 기능(execute, multicall 등)이 없어야 한다.
-    ///         있으면 제3자가 그 기능을 통해 이 함수를 부를 수 있다.
+    /// @notice Path A. issuer = the contract (launchpad) that deployed the token with CREATE2.
+    ///         Declares the just-created pool inside the launch transaction. creator is the address passed by the launchpad.
+    ///         The caller must be the contract that actually executed CREATE2. If the launchpad uses a separate token factory,
+    ///         that factory must call this (NotIssuer if the launchpad calls it instead).
+    ///         Assumption: the issuer contract must have no arbitrary external call feature (execute, multicall, etc.).
+    ///         Otherwise a third party could call this function through it.
     function recordByCreate2(
         address token,
         PoolKey calldata key,
@@ -113,19 +113,19 @@ contract CanonicalPoolRegistrar {
         _record(token, key, creator);
     }
 
-    /// @notice 경로 B. Uniswap LiquidityLauncher(Pools.trade)로 만든 토큰.
-    ///         LiquidityLauncher는 graffiti = keccak256(abi.encode(LiquidityLauncher를 부른 주소))를 넣는다.
-    ///         그 주소를 직접 부른 경우: 그 주소가 발행자이자 크리에이터다. 런칭 후 직접 호출한다.
-    ///         PoolKey는 받지 않는다. InstantLaunchStrategy가 만드는 풀 하나로 고정해 잘못된 선언을 막는다.
+    /// @notice Path B. Tokens created via Uniswap LiquidityLauncher (Pools.trade).
+    ///         LiquidityLauncher sets graffiti = keccak256(abi.encode(address that called LiquidityLauncher)).
+    ///         Direct call case: that address is both issuer and creator. It calls this directly after launch.
+    ///         Takes no PoolKey. Fixed to the single pool InstantLaunchStrategy creates, preventing a wrong declaration.
     function recordByLiquidityLauncher(address token, address launcher) external {
         _recordLaunched(token, launcher, msg.sender);
     }
 
-    /// @notice 경로 B, 일회용 컨트랙트 경유. 크리에이터가 일회용 컨트랙트를 배포하고, 그 생성자가
-    ///         LiquidityLauncher를 부른 뒤 사라진 경우. graffiti는 일회용 주소를 가리키고, 그 주소는
-    ///         CREATE(크리에이터, nonce)로 다시 계산된다. 발행자 = 그 컨트랙트를 배포한 크리에이터.
-    /// @dev 일회용 주소에 코드가 남아 있으면 거절한다. 여러 사람이 쓰는 공용 컨트랙트의 배포자가
-    ///      남의 런칭을 가로채지 못하게 하기 위해서다.
+    /// @notice Path B, via a disposable contract. The creator deploys a disposable contract whose constructor
+    ///         calls LiquidityLauncher and then self-destructs. graffiti points to the disposable address, which
+    ///         is recomputed as CREATE(creator, nonce). Issuer = the creator that deployed that contract.
+    /// @dev Rejects if code remains at the disposable address, so that the deployer of a shared contract used by many
+    ///      cannot hijack someone else's launch.
     function recordByLiquidityLauncherVia(address token, address launcher, uint256 nonce) external {
         address disposable = _createAddress(msg.sender, nonce);
         if (disposable.code.length != 0) revert NotIssuer();
@@ -140,7 +140,7 @@ contract CanonicalPoolRegistrar {
             t.name(), t.symbol(), t.decimals(), launcher, keccak256(abi.encode(graffitiOwner))
         );
         if (predicted != token) revert NotIssuer();
-        // InstantLaunchStrategy의 풀: ETH / 토큰, LP_FEE 2500, TICK_SPACING 25, 훅 없음 (liquidity-launcher v3.2.0)
+        // InstantLaunchStrategy's pool: ETH / token, LP_FEE 2500, TICK_SPACING 25, no hook (liquidity-launcher v3.2.0)
         _record(token, PoolKey(address(0), token, LAUNCH_FEE, LAUNCH_TICK_SPACING, address(0)), msg.sender);
     }
 
@@ -148,9 +148,9 @@ contract CanonicalPoolRegistrar {
         if (key.currency0 != token && key.currency1 != token) revert TokenNotInPool();
         if (canonicalPoolOf[token] != bytes32(0)) revert AlreadyRecorded();
 
-        bytes32 poolId = keccak256(abi.encode(key)); // v4 PoolIdLibrary와 같은 값
-        // 풀 상태 slot0 = pools[poolId]. sqrtPriceX96 == 0이면 미초기화.
-        // PoolManager가 initialize 때 PoolKey를 검증하므로, 초기화된 풀이면 PoolKey도 유효하다.
+        bytes32 poolId = keccak256(abi.encode(key)); // same value as v4 PoolIdLibrary
+        // Pool state slot0 = pools[poolId]. sqrtPriceX96 == 0 means uninitialized.
+        // PoolManager validates the PoolKey on initialize, so an initialized pool implies a valid PoolKey.
         bytes32 slot0 = poolManager.extsload(keccak256(abi.encodePacked(poolId, POOLS_SLOT)));
         if (uint160(uint256(slot0)) == 0) revert PoolNotInitialized();
         canonicalPoolOf[token] = poolId;
@@ -165,7 +165,7 @@ contract CanonicalPoolRegistrar {
         emit CanonicalRecorded(token, poolId, msg.sender, creator);
     }
 
-    /// @notice 토큰의 크리에이터만 그 토큰 이름의 description·url을 쓴다. pool 등 다른 키는 쓸 수 없다.
+    /// @notice Only the token's creator writes description/url on the token's name. Other keys such as pool cannot be written.
     function setTokenText(address token, string calldata key, string calldata value) external {
         address creator = creatorOf[token];
         if (creator == address(0) || msg.sender != creator) revert NotCreator();
@@ -174,15 +174,15 @@ contract CanonicalPoolRegistrar {
         resolver.setText(_tokenName(token), key, value);
     }
 
-    /// @dev DNS 인코딩된 "<0x토큰주소 소문자>.tokens.klamp.eth"
+    /// @dev DNS-encoded "<0x lowercase token address>.tokens.klamp.eth"
     function _tokenName(address token) internal view returns (bytes memory) {
-        string memory label = _hex(abi.encodePacked(token)); // "0x" + 소문자 40자
+        string memory label = _hex(abi.encodePacked(token)); // "0x" + 40 lowercase chars
         return abi.encodePacked(uint8(bytes(label).length), label, tokensName);
     }
 
     // ---------- utils ----------
 
-    /// @dev CREATE 주소 = keccak256(rlp([deployer, nonce]))의 끝 20바이트. nonce < 2^64 (EIP-2681)
+    /// @dev CREATE address = last 20 bytes of keccak256(rlp([deployer, nonce])). nonce < 2^64 (EIP-2681)
     function _createAddress(address deployer, uint256 nonce) internal pure returns (address) {
         bytes memory rlp;
         if (nonce == 0) {

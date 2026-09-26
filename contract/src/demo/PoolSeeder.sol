@@ -16,8 +16,8 @@ interface IERC20Pull {
     function transfer(address to, uint256 value) external returns (bool);
 }
 
-/// @notice 데모용: ETH/토큰 풀을 tickUpper 가격으로 초기화하고, 호출자의 토큰을 [tickLower, tickUpper) 단면 유동성으로 넣는다.
-///         "선언되지 않은 풀"을 만들 때 쓴다. 유동성은 이 컨트랙트에 남고 빼는 함수는 없다.
+/// @notice For the demo: initializes an ETH/token pool at the tickUpper price and adds the caller's tokens as single-sided [tickLower, tickUpper) liquidity.
+///         Used to create an "undeclared pool". Liquidity stays in this contract and there is no withdrawal function.
 contract PoolSeeder is IUnlockCallback {
     IPoolManager public immutable poolManager;
 
