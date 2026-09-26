@@ -55,7 +55,7 @@ const initial = {
 };
 
 const wait = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
-const LAUNCH_SEQUENCE_INTERVAL_MS = 420;
+const LAUNCH_SEQUENCE_INTERVAL_MS = 280;
 
 /** Judge the naive router's pick the way the Klamp terminal does before signing. */
 function judgeNaivePick(launch: LaunchReceipt, board: QuoteBoard, naive: NaiveSelection, canonical: CanonicalPoolResult): RouteJudgement | null {
@@ -116,7 +116,7 @@ export const useDemoStore = create<DemoState>((set, get) => ({
 
     if (state.stage === "lookup" && state.launch && state.board && state.naive && state.canonical) {
       set({ stage: "judge", busy: true });
-      await wait(700);
+      await wait(350);
       const judgement = judgeNaivePick(state.launch, state.board, state.naive, state.canonical);
       set({ judgement, furthestStage: reach("judge"), busy: false });
       return;

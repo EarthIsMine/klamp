@@ -61,14 +61,15 @@ const minOut = (quoted: number, bps = SLIPPAGE_BPS) => Math.round(quoted * (1 - 
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Short on purpose: the scene animation, not a spinner, carries each step in the recorded demo.
 const DEMO_DELAY_MS = {
-  launch: 1450,
-  quotes: 1200,
-  naive: 900,
-  lookup: 1325,
-  requote: 1200,
-  execute: 1450,
-  naiveExecute: 1300,
+  launch: 900,
+  quotes: 450,
+  naive: 350,
+  lookup: 500,
+  requote: 450,
+  execute: 500,
+  naiveExecute: 450,
 } as const;
 
 const CANONICAL_RECORD: CanonicalPoolRecord = {

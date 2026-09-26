@@ -645,3 +645,11 @@ Implementation status and human verification status are tracked separately; each
 - AI work: Steps 2–7 now use this data (real undeclared pool instead of a simulated replica, V4Quoter and Universal Router addresses, demo CLI quotes and 5% minimums, the team's swap tx). Only step 8 is simulated and labelled: if the undeclared hook charged 10% at swap time, the naive swap reverts at 5% slippage and loses 9.09% at 15%.
 - AI-run verification: `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` passed. Browser rendering not checked (headless Chromium lacks system libraries).
 - Human verification: Pending human verification.
+
+## WEB34 — Animated web trace for the demo video
+
+- Date / environment / tools: 2026-09-27 / Next.js 15.5, Motion 12 / Claude Code (Opus 5.5)
+- Human decisions/changes: Make the web demo heavily animated with much less text for a 4-minute demo video.
+- AI work: Replaced the text-heavy trace with one SVG node diagram (launchpad, ENSv2, trader, router/Klamp, declared and undeclared pools) that builds up across the eight steps: drawn edges, token packets, counting quotes, REJECT/ONCE stamps and a final two-card outcome (naive side still labelled simulated). Each step has a headline and one line. Added autoplay and keyboard controls (→/Space, ←, P, R) and shortened the mock client delays so the animation, not a spinner, carries each step. Data, states and the `judge()` path are unchanged.
+- AI-run verification: `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` passed. Browser rendering not checked (headless Chromium lacks system libraries).
+- Human verification: Pending human verification.

@@ -98,7 +98,7 @@ The web workspace is statically exported and deployed from `main` to GitHub Page
 
 The UI models the Phase 1 SDK results as `registered`, `not_registered`, or `lookup_failed`, route comparisons as `match`, `mismatch`, or `blocked`, and route verdicts as `allow`, `requote_canonical`, `requote_static`, or `hold`. The trace follows the path A demo on Sepolia (launch, naive quote, ENS lookup, verdict, requote, verified swap) with real deployment data, demo CLI quotes and the team's Klamp-mode swap tx; only the final attack outcome is simulated and labelled in the UI. Capped hooks (stage 2) are roadmap only.
 
-For presentations, the demo progress rail can seek directly to any of its eight steps using a deterministic local mock snapshot. The bottom action plays the ordered, delayed sequence, and `Previous` revisits the prior scene.
+For presentations, the demo is an animated node diagram with a one-line caption per step. `Play` autoplays all eight steps; `→`/Space, `←`, `P` (play) and `R` (reset) drive it from the keyboard, and the progress dots seek to any step using a deterministic local mock snapshot.
 
 ## Known limits
 

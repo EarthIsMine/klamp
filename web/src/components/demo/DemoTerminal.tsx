@@ -1,562 +1,317 @@
 "use client";
 
 import styled from "@emotion/styled";
-import Image from "next/image";
-import { Mark } from "@/components/brand/Mark";
+import { AnimatePresence, animate, motion } from "motion/react";
+import { useCallback, useEffect, useState } from "react";
 import { demoStageOrder, useDemoStore, type DemoStage } from "@/store/demo-store";
-import { colors, layout, mono } from "@/styles/tokens";
+import { colors, mono } from "@/styles/tokens";
 
-type Copy = { state: string; title: string; detail: string };
+/* ---------- copy: one headline and one short line per step ---------- */
 
-const copy: Record<DemoStage, Copy> = {
-  idle: { state: "Step 1 of 8", title: "Launch and declare the canonical pool", detail: "A CREATE2 launchpad deploys the token, creates its hooked pool with locked liquidity and declares that pool in the same transaction." },
-  launch: { state: "Step 1 complete", title: "Canonical pool declared once", detail: "The registrar proved the launchpad deployed KHOOK and wrote the pool to ENSv2. Nobody, including us, can change it." },
-  quotes: { state: "Step 2 complete", title: "Two hook pools quote for the same pair", detail: "A third party created a second KHOOK pool with a lower LP fee. It quotes more output than the declared pool. The token issuer did not create it." },
-  naive: { state: "Step 3 complete", title: "A naive router takes the best quote", detail: "Quoting every pool and picking the largest output sends the trader to the undeclared hook pool, whose hook the router cannot vouch for." },
-  lookup: { state: "Step 4 complete", title: "Klamp reads the declared pool from ENS", detail: "Standard ENS resolution through UniversalResolverV2 answers the wildcard name. No Klamp ABI is needed to read it." },
-  judge: { state: "Step 5 complete", title: "The picked hook pool fails the verdict", detail: "It has a hook and is not the declared pool, so its quote cannot be trusted. The verdict is requote_canonical." },
-  requote: { state: "Step 6 complete", title: "Requoted on the declared pool", detail: "V4Quoter prices the declared pool directly. The minimum output is set from this quote and the trader's slippage." },
-  execute: { state: "Step 7 complete", title: "Calldata checked, then swapped", detail: "The Universal Router calldata is decoded again before signing and must name the judged PoolKey. Shown: the team's Klamp-mode swap on Sepolia." },
-  outcome: { state: "Trace complete", title: "The quoted fee is the fee paid", detail: "Had the undeclared hook charged 10% at swap time, the naive route would revert at 5% slippage or lose 9% at a wide one. The Klamp route never touches it." },
+const captions: Record<DemoStage, { title: string; line: string }> = {
+  idle: { title: "Klamp in eight steps", line: "Press play or →" },
+  launch: { title: "The issuer declares one pool", line: "Launch tx · recordByCreate2 → ENSv2" },
+  quotes: { title: "Someone adds a look-alike pool", line: "Same pair · more output on paper" },
+  naive: { title: "A naive router takes it", line: "Best quote wins" },
+  lookup: { title: "Klamp asks ENS", line: "0x4cb4….tokens.klamp.eth → registered" },
+  judge: { title: "Undeclared hook pool: rejected", line: "verdict · requote_canonical" },
+  requote: { title: "Requote the declared pool", line: "V4Quoter · same fee at swap time" },
+  execute: { title: "Verified swap on Sepolia", line: "Universal Router · calldata = judged PoolKey" },
+  outcome: { title: "Quoted fee = paid fee", line: "Traders do nothing" },
 };
 
-const pendingCopy: Partial<Record<DemoStage, Copy>> = {
-  launch: { state: "Step 1 of 8", title: "Running the launch transaction", detail: "Deploy the token, initialize the hooked pool, add locked liquidity, then call recordByCreate2." },
-  quotes: { state: "Step 2 of 8", title: "Quoting candidate pools", detail: "The router asks V4Quoter for every pool that trades ETH for KHOOK." },
-  naive: { state: "Step 3 of 8", title: "Naive router choosing a pool", detail: "Only the quoted output decides. The router cannot tell which pool the issuer intended." },
-  lookup: { state: "Step 4 of 8", title: "Resolving the canonical pool", detail: "Klamp resolves 0x<token>.tokens.klamp.eth and checks the pinned resolver, both records and the pool state." },
-  judge: { state: "Step 5 of 8", title: "Judging the proposed route", detail: "Only pools that contain the token are judged: declared or static pools pass, other hook pools are requoted." },
-  requote: { state: "Step 6 of 8", title: "Requoting on the declared pool", detail: "V4Quoter quoteExactInputSingle on the canonical PoolKey." },
-  execute: { state: "Step 7 of 8", title: "Building and verifying the swap", detail: "V4_SWAP with SWAP_EXACT_IN_SINGLE, SETTLE_ALL, TAKE_ALL, checked against the judged route before signing." },
-  outcome: { state: "Step 8 of 8", title: "Comparing both routes", detail: "Simulating the undeclared hook as an attack hook: 0.05% at quote time, 10% at swap time." },
+const steps = demoStageOrder.filter((stage): stage is Exclude<DemoStage, "idle"> => stage !== "idle");
+/** How long autoplay lingers on a finished step before moving on (ms). */
+const DWELL: Record<DemoStage, number> = {
+  idle: 800, launch: 4200, quotes: 4000, naive: 3400, lookup: 4000, judge: 3800, requote: 3800, execute: 4800, outcome: 0,
 };
 
-const steps = [
-  { stage: "launch" as const, index: "1", title: "Launch", detail: "Declared in ENS" },
-  { stage: "quotes" as const, index: "2", title: "Quotes", detail: "Declared + undeclared" },
-  { stage: "naive" as const, index: "3", title: "Naive pick", detail: "Best quote wins" },
-  { stage: "lookup" as const, index: "4", title: "Lookup", detail: "tokens.klamp.eth" },
-  { stage: "judge" as const, index: "5", title: "Judge", detail: "requote_canonical" },
-  { stage: "requote" as const, index: "6", title: "Requote", detail: "Declared pool" },
-  { stage: "execute" as const, index: "7", title: "Execute", detail: "Calldata verified" },
-  { stage: "outcome" as const, index: "8", title: "Outcome", detail: "Quote = paid" },
-];
+/* ---------- scene geometry (SVG viewBox 1200 × 620) ---------- */
 
-function stageIndex(stage: DemoStage) { return demoStageOrder.indexOf(stage); }
-function short(value: string) { return `${value.slice(0, 8)}…${value.slice(-6)}`; }
-function amount(value: number) { return new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value); }
-function percent(bps: number) { return `${(bps / 100).toFixed(2)}%`; }
+const P = {
+  launchpad: { x: 170, y: 110 },
+  trader: { x: 170, y: 380 },
+  router: { x: 500, y: 380 },
+  ens: { x: 720, y: 110 },
+  declared: { x: 1010, y: 250 },
+  undeclared: { x: 1010, y: 500 },
+};
+const PATH = {
+  launch: `M${P.launchpad.x + 90},${P.launchpad.y} C 560,110 760,250 ${P.declared.x - 95},${P.declared.y}`,
+  record: `M${P.declared.x - 60},${P.declared.y - 40} C 930,150 850,110 ${P.ens.x + 95},${P.ens.y}`,
+  toRouter: `M${P.trader.x + 90},${P.trader.y} L${P.router.x - 95},${P.router.y}`,
+  toUndeclared: `M${P.router.x + 95},${P.router.y} C 720,380 800,500 ${P.undeclared.x - 95},${P.undeclared.y}`,
+  toDeclared: `M${P.router.x + 95},${P.router.y} C 720,380 800,250 ${P.declared.x - 95},${P.declared.y}`,
+  lookup: `M${P.router.x},${P.router.y - 40} C 540,240 620,120 ${P.ens.x - 95},${P.ens.y}`,
+};
 
-const Shell = styled.section`
-  width: 100%; max-width: ${layout.maxWidth}; height: 100%; min-width: 0; min-height: 0; margin: 0 auto; padding: 18px 24px 22px; display: flex;
-  @media (max-width: 820px), (max-height: 640px) { height: auto; min-height: calc(100dvh - 56px); padding: 14px 16px 28px; }
-`;
-const Instrument = styled.div`
-  flex: 1; min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr);
-  border-top: 3px solid ${colors.textPrimary}; border-bottom: 1px solid ${colors.borderStrong}; background: ${colors.surface};
-`;
-const InstrumentHead = styled.div`
-  min-height: 42px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 18px;
-  border-bottom: 1px solid ${colors.border}; font-size: 13px;
-`;
-const TraceName = styled.div`display: flex; align-items: center; gap: 9px; font-weight: 650;`;
-const TraceMark = styled.span<{ complete: boolean }>`width: 8px; height: 8px; background: ${({ complete }) => complete ? colors.primary : colors.textPrimary};`;
-const TraceNote = styled.span`color: ${colors.textMuted}; font-size: 12px;`;
+const fmt = (value: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+const short = (value: string) => `${value.slice(0, 6)}…${value.slice(-4)}`;
 
-const Progress = styled.ol`
-  list-style: none; margin: 0; padding: 0 16px; display: grid; grid-template-columns: repeat(8, 1fr); border-bottom: 1px solid ${colors.border}; overflow-x: auto;
-`;
-const ProgressItem = styled.li<{ active: boolean; done: boolean }>`
-  position: relative; min-width: 124px; color: ${({ active, done }) => active || done ? colors.textPrimary : colors.textMuted};
-  &::before {
-    content: ""; position: absolute; left: 10px; right: 10px; top: -1px; height: 3px;
-    background: ${({ active, done }) => active ? colors.primary : done ? colors.textPrimary : "transparent"};
-    transform-origin: left; animation: ${({ active }) => active ? "progressIn .34s ease-out" : "none"};
-  }
-  @keyframes progressIn { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-`;
-const ProgressButton = styled.button`
-  width: 100%; min-height: 61px; padding: 13px 10px 12px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer;
-  &:hover:not(:disabled) { background: ${colors.surfaceSecondary}; }
-  &:disabled { cursor: default; }
-  &:focus-visible { position: relative; z-index: 2; outline-offset: -3px; }
-`;
-const StepNumber = styled.span`font: 500 12px/1 ${mono}; margin-right: 8px;`;
-const StepTitle = styled.span`font-size: 13px; font-weight: 650;`;
-const StepDetail = styled.div`font-size: 12px; color: ${colors.textMuted}; margin: 5px 0 0 20px;`;
+/* ---------- small animated primitives ---------- */
 
-const Stage = styled.div`
-  min-height: 0; overflow: hidden; padding: 20px 24px 19px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
-  @media (max-width: 820px), (max-height: 640px) { overflow: visible; display: block; }
-  @media (max-width: 620px) { padding: 20px 16px; }
-`;
-const StageHead = styled.div`
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 430px); align-items: end; gap: 42px; margin-bottom: 16px;
-  @media (max-width: 760px) { grid-template-columns: 1fr; gap: 7px; }
-`;
-const StageState = styled.div`color: ${colors.primaryHover}; font-size: 13px; font-weight: 650; margin-bottom: 5px;`;
-const StageTitle = styled.h1`font-size: clamp(26px, 3vw, 34px); line-height: 1.05; letter-spacing: -.035em; margin: 0; font-weight: 650;`;
-const StageDetail = styled.p`color: ${colors.textSecondary}; font-size: 15px; line-height: 1.5; margin: 0;`;
+function Counter({ to, from = 0, duration = 1.4, delay = 0 }: { to: number; from?: number; duration?: number; delay?: number }) {
+  const [value, setValue] = useState(from);
+  useEffect(() => {
+    const controls = animate(from, to, { duration, delay, ease: [0.16, 1, 0.3, 1], onUpdate: setValue });
+    return () => controls.stop();
+  }, [from, to, duration, delay]);
+  return <>{fmt(value)}</>;
+}
 
-const Scene = styled.div`
-  min-height: 0; overflow: hidden; display: grid; place-items: center; padding: clamp(22px, 4vh, 42px);
-  border-top: 1px solid ${colors.borderStrong}; border-bottom: 1px solid ${colors.borderStrong};
-  animation: sceneIn .34s cubic-bezier(.2,.75,.25,1);
-  @keyframes sceneIn { from { opacity: .25; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
-  @media (max-width: 820px) { min-height: 390px; }
-`;
-const SceneLabel = styled.div`color: ${colors.textMuted}; font-size: 13px; margin-bottom: 8px;`;
-const Simulated = styled.span`
-  display: inline-block; margin-left: 8px; padding: 2px 6px; border: 1px solid ${colors.warning}; color: ${colors.warning};
-  font: 600 10px/1.2 ${mono}; text-transform: uppercase; letter-spacing: .04em; vertical-align: middle;
-`;
+function Edge({ d, color, delay = 0, dashed = false, width = 3 }: { d: string; color: string; delay?: number; dashed?: boolean; width?: number }) {
+  return (
+    <motion.path
+      d={d} fill="none" stroke={color} strokeWidth={width} strokeLinecap="round" strokeDasharray={dashed ? "8 10" : undefined}
+      initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }} exit={{ opacity: 0 }}
+      transition={{ duration: 0.9, delay, ease: "easeInOut" }}
+    />
+  );
+}
 
-const LaunchFlow = styled.div`
-  width: min(900px, 100%); display: grid; grid-template-columns: 220px 96px minmax(0, 1fr); align-items: center;
-  @media (max-width: 720px) { grid-template-columns: 1fr; gap: 20px; }
-`;
-const LaunchActor = styled.div`
-  padding: 18px 20px; background: ${colors.textPrimary}; color: white;
-  h2 { margin: 0; font-size: 19px; }
-  p { margin: 8px 0 0; color: ${colors.border}; font-size: 13px; line-height: 1.45; }
-`;
-const LaunchBridge = styled.div<{ active: boolean }>`
-  position: relative; display: grid; place-items: center;
-  &::before {
-    content: ""; position: absolute; left: 0; right: 0; height: 2px; background: ${colors.primary}; transform-origin: left;
-    transform: scaleX(0); animation: ${({ active }) => active ? "launchLine .5s ease-out both" : "none"};
-  }
-  img { position: relative; z-index: 1; background: white; padding: 8px; }
-  @keyframes launchLine { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-  @media (max-width: 720px) { display: none; }
-`;
-const LaunchReceipt = styled.dl`
-  margin: 0; padding: 0 18px; display: grid; grid-template-columns: 145px minmax(0, 1fr); border-top: 1px solid ${colors.borderStrong};
-  dt, dd { margin: 0; padding: 12px 0; border-bottom: 1px solid ${colors.border}; }
-  dt { color: ${colors.textSecondary}; font-size: 13px; }
-  dd { font: 500 13px/1.45 ${mono}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-`;
+/** Coins travelling along a path (native SVG animateMotion). */
+function Packets({ d, color, count = 3, duration = 1.6, delay = 0 }: { d: string; color: string; count?: number; duration?: number; delay?: number }) {
+  return (
+    <g>
+      {Array.from({ length: count }, (_, index) => (
+        <circle key={index} r={7} fill={color} opacity={0}>
+          <animate attributeName="opacity" values="0;1;1;0" dur={`${duration}s`} begin={`${delay + (index * duration) / count}s`} repeatCount="indefinite" />
+          <animateMotion dur={`${duration}s`} begin={`${delay + (index * duration) / count}s`} repeatCount="indefinite" path={d} />
+        </circle>
+      ))}
+    </g>
+  );
+}
 
-const CandidateBoard = styled.div`
-  width: min(900px, 100%); display: grid; grid-template-columns: 180px minmax(50px, 1fr) minmax(420px, 1.6fr); align-items: center;
-  @media (max-width: 720px) { grid-template-columns: 1fr; gap: 20px; }
-`;
-const CandidateSource = styled.div`
-  display: grid; justify-items: center; gap: 10px; text-align: center;
-  img { width: 54px; height: 54px; }
-  strong { font-size: 16px; }
-  span { color: ${colors.textMuted}; font-size: 12px; }
-`;
-const ForkRail = styled.div`
-  position: relative; height: 126px;
-  &::before, &::after { content: ""; position: absolute; left: 0; width: 100%; height: 2px; background: ${colors.borderStrong}; transform-origin: left; animation: forkOut .6s ease-out both; }
-  &::before { top: 28%; transform: rotate(-12deg); }
-  &::after { bottom: 28%; transform: rotate(12deg); animation-delay: .14s; }
-  i { position: absolute; left: 42%; top: calc(28% - 5px); width: 10px; height: 10px; background: ${colors.primary}; animation: candidatePacket .68s ease-out .22s both; }
-  i + i { top: auto; bottom: calc(28% - 5px); background: ${colors.danger}; animation-delay: .38s; }
-  @keyframes forkOut { from { opacity: 0; scale: 0 1; } to { opacity: 1; scale: 1 1; } }
-  @keyframes candidatePacket { from { opacity: 0; translate: -38px 0; } to { opacity: 1; translate: 38px 0; } }
-  @media (max-width: 720px) { display: none; }
-`;
-const CandidateList = styled.div`display: grid; gap: 12px;`;
-const CandidatePool = styled.div<{ undeclared?: boolean }>`
-  position: relative; padding: 15px 18px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center;
-  border: 1px solid ${({ undeclared }) => undeclared ? colors.danger : colors.borderStrong}; background: ${({ undeclared }) => undeclared ? colors.dangerSoft : colors.surface};
-  animation: candidateIn .46s ease-out ${({ undeclared }) => undeclared ? ".38s" : ".22s"} both;
-  h2 { margin: 0 0 5px; font-size: 17px; }
-  p { margin: 0; color: ${colors.textSecondary}; font: 500 12px/1.35 ${mono}; }
-  strong { font: 500 24px/1 ${mono}; color: ${({ undeclared }) => undeclared ? colors.danger : colors.textPrimary}; }
-  span { display: block; margin-top: 4px; color: ${colors.textMuted}; font-size: 11px; text-align: right; }
-  @keyframes candidateIn { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: translateX(0); } }
-`;
+type Tone = "ink" | "klamp" | "danger" | "muted" | "ok";
+const toneColor: Record<Tone, string> = { ink: colors.textPrimary, klamp: colors.primary, danger: colors.danger, muted: colors.borderStrong, ok: colors.success };
 
-const DecisionBoard = styled.div`
-  width: min(880px, 100%); display: grid; grid-template-columns: 1fr 92px 1fr; align-items: stretch;
-  @media (max-width: 680px) { grid-template-columns: 1fr; gap: 14px; }
-`;
-const DecisionColumn = styled.div`
-  border-top: 1px solid ${colors.borderStrong};
-  h2 { margin: 0; padding: 12px 14px; font-size: 15px; border-bottom: 1px solid ${colors.border}; }
-`;
-type Tone = "pass" | "fail" | "pick" | undefined;
-const DecisionRow = styled.div<{ tone?: Tone; struck?: boolean }>`
-  position: relative; padding: 14px; border-bottom: 1px solid ${colors.border}; opacity: ${({ struck }) => struck ? .62 : 1};
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px;
-  background: ${({ tone }) => tone === "pick" ? colors.dangerSoft : "transparent"};
-  strong { font-size: 14px; }
-  code { display: block; margin-top: 5px; color: ${colors.textMuted}; font: 500 12px/1.3 ${mono}; }
-  b { color: ${({ tone }) => tone === "fail" || tone === "pick" ? colors.danger : tone === "pass" ? colors.success : colors.textSecondary}; font-size: 13px; }
-  ${({ struck }) => struck ? `&::after { content: ""; position: absolute; left: 10px; right: 10px; top: 50%; height: 2px; background: ${colors.danger}; transform-origin: left; animation: strikeLine .52s ease-out .5s both; }` : ""}
-  @keyframes strikeLine { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-`;
-const DecisionGate = styled.div`
-  display: grid; place-items: center; position: relative;
-  &::before { content: ""; position: absolute; top: 12%; bottom: 12%; width: 3px; background: ${colors.primary}; animation: gateDrop .4s ease-out .3s both; }
-  img { position: relative; z-index: 1; padding: 7px; background: white; }
-  @keyframes gateDrop { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-  @media (max-width: 680px) { min-height: 54px; &::before { top: 50%; left: 18%; right: 18%; bottom: auto; width: auto; height: 3px; transform-origin: left; } }
-`;
+function Node({ x, y, glyph, label, sub, tone = "ink", show = true, pulse = false, dim = false }: {
+  x: number; y: number; glyph: string; label: string; sub?: string; tone?: Tone; show?: boolean; pulse?: boolean; dim?: boolean;
+}) {
+  const color = toneColor[tone];
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.g
+          initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: dim ? 0.35 : 1, scale: 1 }} exit={{ opacity: 0, scale: 0.6 }}
+          transition={{ type: "spring", stiffness: 260, damping: 22 }} style={{ transformOrigin: `${x}px ${y}px` }}
+        >
+          {pulse && (
+            <motion.rect x={x - 95} y={y - 42} width={190} height={84} rx={16} fill="none" stroke={color} strokeWidth={2}
+              animate={{ opacity: [0.7, 0], scale: [1, 1.18] }} transition={{ duration: 1.3, repeat: Infinity }} style={{ transformOrigin: `${x}px ${y}px` }} />
+          )}
+          <rect x={x - 95} y={y - 42} width={190} height={84} rx={16} fill={colors.surface} stroke={color} strokeWidth={tone === "ink" ? 1.5 : 3} />
+          <circle cx={x - 58} cy={y} r={22} fill={color} />
+          <text x={x - 58} y={y + 7} textAnchor="middle" fontSize={20} fontWeight={700} fill="white">{glyph}</text>
+          <text x={x - 26} y={y - 4} fontSize={17} fontWeight={650} fill={colors.textPrimary}>{label}</text>
+          {sub && <text x={x - 26} y={y + 18} fontSize={13} fontFamily={mono} fill={colors.textSecondary}>{sub}</text>}
+        </motion.g>
+      )}
+    </AnimatePresence>
+  );
+}
 
-const RecordProof = styled.div`
-  width: min(900px, 100%); display: grid; grid-template-columns: minmax(0, 1fr) 360px; column-gap: 48px; row-gap: 22px; align-items: center;
-  @media (max-width: 760px) { grid-template-columns: 1fr; gap: 20px; }
-`;
-const RecordIdentity = styled.div`
-  display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 24px; align-items: center;
-  h2 { margin: 0 0 8px; font-size: 23px; }
-  p { margin: 0; color: ${colors.textSecondary}; font: 500 13px/1.5 ${mono}; overflow-wrap: anywhere; }
-`;
-const Metrics = styled.div`
-  display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid ${colors.borderStrong}; border-bottom: 1px solid ${colors.borderStrong};
-  > div + div { border-left: 1px solid ${colors.borderStrong}; }
-  @media (max-width: 430px) { grid-template-columns: 1fr; > div + div { border-left: 0; border-top: 1px solid ${colors.border}; } }
-`;
-const Metric = styled.div<{ ready: boolean; muted?: boolean }>`
-  min-width: 0; padding: 15px 18px 16px;
-  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 8px; }
-  strong { display: block; font: 500 clamp(26px, 3vw, 36px)/1 ${mono}; letter-spacing: -.05em; color: ${({ muted }) => muted ? colors.textSecondary : colors.primaryHover}; overflow-wrap: anywhere; }
-  p { margin: 8px 0 0; color: ${colors.textSecondary}; font-size: 12px; line-height: 1.35; }
-  opacity: ${({ ready }) => ready ? 1 : .35}; animation: ${({ ready }) => ready ? "metricIn .44s ease-out .22s both" : "none"};
-  @keyframes metricIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
-`;
-const Checks = styled.div`
-  grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid ${colors.borderStrong};
-  div { padding: 13px 0; min-width: 0; }
-  div + div { border-left: 1px solid ${colors.border}; padding-left: 22px; }
-  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 4px; }
-  strong { font-size: 14px; }
-  @media (max-width: 700px) {
-    grid-template-columns: 1fr 1fr;
-    div:nth-of-type(3) { border-left: 0; border-top: 1px solid ${colors.border}; }
-    div:nth-of-type(4) { border-top: 1px solid ${colors.border}; }
-  }
-`;
+function Chip({ x, y, text, tone = "ink", delay = 0, big = false }: { x: number; y: number; text: React.ReactNode; tone?: Tone; delay?: number; big?: boolean }) {
+  const color = toneColor[tone];
+  const width = big ? 230 : 200;
+  const height = big ? 50 : 36;
+  return (
+    <motion.g initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.45, delay }}>
+      <rect x={x - width / 2} y={y - height / 2} width={width} height={height} rx={height / 2} fill={color} />
+      <text x={x} y={y + (big ? 8 : 5)} textAnchor="middle" fontSize={big ? 22 : 15} fontWeight={650} fontFamily={mono} fill="white">{text}</text>
+    </motion.g>
+  );
+}
 
-const RouteJourney = styled.div`width: min(920px, 100%);`;
-const RoutePipeline = styled.div`
-  width: min(920px, 100%); display: grid; grid-template-columns: 170px minmax(44px, 1fr) 170px minmax(44px, 1fr) 180px;
-  align-items: center; margin-bottom: 24px;
-  @media (max-width: 680px) { grid-template-columns: 1fr 32px 1fr 32px 1fr; margin-bottom: 20px; }
-`;
-const RouteActor = styled.div<{ delay?: number }>`
-  display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 11px; align-items: center;
-  animation: actorIn .42s ease-out ${({ delay = 0 }) => delay}s both;
-  img { width: 44px; height: 44px; }
-  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 3px; }
-  strong { display: block; font-size: 14px; }
-  @keyframes actorIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
-  @media (max-width: 680px) { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: 6px; img { width: 38px; height: 38px; } }
-`;
-const RouteEndpoint = styled(RouteActor)`
-  padding: 9px 11px; border: 1px solid ${colors.borderStrong};
-  img { width: 38px; height: 38px; }
-`;
-const RouteRail = styled.div<{ delay: number }>`
-  position: relative; height: 2px; margin: 0 10px; background: ${colors.border}; overflow: visible;
-  &::after {
-    content: ""; position: absolute; top: -4px; left: 0; width: 10px; height: 10px; background: ${colors.primary};
-    animation: routePacket .74s cubic-bezier(.2,.7,.3,1) ${({ delay }) => delay}s both;
-  }
-  @keyframes routePacket { from { opacity: 0; left: 0; } 20% { opacity: 1; } to { opacity: 1; left: calc(100% - 10px); } }
-  @media (max-width: 680px) { margin: 0 4px; }
-`;
-const RouteHandoff = styled.div`
-  width: min(760px, 100%); display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid ${colors.borderStrong};
-  div { padding: 13px 18px 0; min-width: 0; }
-  div + div { border-left: 1px solid ${colors.border}; }
-  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 4px; }
-  strong { display: block; font: 600 13px/1.35 ${mono}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-`;
+function Stamp({ x, y, text, tone, delay = 0 }: { x: number; y: number; text: string; tone: Tone; delay?: number }) {
+  return (
+    <motion.g initial={{ opacity: 0, scale: 1.9, rotate: -14 }} animate={{ opacity: 1, scale: 1, rotate: -8 }} transition={{ type: "spring", stiffness: 320, damping: 16, delay }}
+      style={{ transformOrigin: `${x}px ${y}px` }}>
+      <rect x={x - 70} y={y - 20} width={140} height={40} rx={6} fill="white" stroke={toneColor[tone]} strokeWidth={3} />
+      <text x={x} y={y + 7} textAnchor="middle" fontSize={18} fontWeight={800} letterSpacing=".06em" fill={toneColor[tone]}>{text}</text>
+    </motion.g>
+  );
+}
 
-const OutcomeComparison = styled.div`
-  width: min(900px, 100%); display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
-  @media (max-width: 680px) { grid-template-columns: 1fr; }
-`;
-const Outcome = styled.div<{ guarded?: boolean }>`
-  position: relative; padding: 18px 20px; border-top: 4px solid ${({ guarded }) => guarded ? colors.primary : colors.danger};
-  background: ${({ guarded }) => guarded ? colors.primarySoft : colors.dangerSoft}; overflow: hidden;
-  animation: ${({ guarded }) => guarded ? "safeOutcome .54s ease-out .4s both" : "unsafeOutcome .54s ease-out .62s both"};
-  h2 { margin: 0 0 16px; font-size: 18px; }
-  dl { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 9px 16px; }
-  dt { color: ${colors.textSecondary}; font-size: 13px; }
-  dd { margin: 0; font: 600 14px/1.3 ${mono}; }
-  strong { display: block; margin-top: 18px; font: 500 clamp(34px, 4.5vw, 52px)/1 ${mono}; color: ${({ guarded }) => guarded ? colors.primaryHover : colors.danger}; }
-  p { margin: 7px 0 0; color: ${colors.textSecondary}; font-size: 13px; }
-  @keyframes safeOutcome { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: translateX(0); } }
-  @keyframes unsafeOutcome { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
-`;
+/* ---------- layout ---------- */
 
-const Bottom = styled.div`
-  min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 20px;
-  @media (max-width: 620px) { align-items: stretch; flex-direction: column; padding-top: 16px; }
+const Screen = styled.section`
+  flex: 1; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: ${colors.background};
+  padding: 22px clamp(16px, 3vw, 40px) 18px;
 `;
-const Statuses = styled.div`display: flex; align-items: center; gap: 28px;`;
-const Status = styled.div`
-  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 3px; }
-  strong { font-size: 14px; font-weight: 650; }
+const Head = styled.header`display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; min-height: 96px;`;
+const Count = styled.div`font: 600 14px/1 ${mono}; color: ${colors.primaryHover}; margin-bottom: 10px;`;
+const Title = styled.h1`margin: 0; font-size: clamp(30px, 4.2vw, 54px); line-height: 1; letter-spacing: -.04em; font-weight: 700;`;
+const Line = styled.p`margin: 10px 0 0; font: 500 clamp(14px, 1.4vw, 18px)/1.3 ${mono}; color: ${colors.textSecondary};`;
+const Tag = styled.span`
+  display: inline-block; padding: 4px 8px; border: 1.5px solid ${colors.warning}; color: ${colors.warning};
+  font: 700 11px/1 ${mono}; letter-spacing: .06em; text-transform: uppercase;
 `;
-const Actions = styled.div`
-  display: flex; gap: 9px; justify-content: flex-end;
-  @media (max-width: 620px) { display: grid; grid-template-columns: auto auto minmax(0, 1fr); }
+const Canvas = styled.div`position: relative; min-height: 0; display: grid; place-items: center;`;
+const Svg = styled.svg`width: 100%; height: 100%; max-height: 100%; overflow: visible; font-family: inherit;`;
+const Outcome = styled(motion.div)`
+  position: absolute; inset: auto 0 4% 0; margin: 0 auto; width: min(980px, 96%); display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+  @media (max-width: 720px) { grid-template-columns: 1fr; }
 `;
-const Next = styled.button`
-  border: 1px solid ${colors.primary}; padding: 12px 18px; background: ${colors.primary}; color: ${colors.textPrimary}; cursor: pointer;
-  font-weight: 700; font-size: 14px; min-width: 180px; transition: transform .12s ease, background .12s ease;
-  &:hover { background: ${colors.primaryHover}; border-color: ${colors.primaryHover}; color: white; }
-  &:active { transform: translateY(2px); }
-  &:disabled { cursor: wait; opacity: .65; }
-  @media (max-width: 620px) { min-width: 0; padding-inline: 12px; }
+const Card = styled(motion.div)<{ tone: "klamp" | "danger" }>`
+  padding: 20px 24px; background: ${colors.surface}; border-top: 5px solid ${({ tone }) => tone === "klamp" ? colors.primary : colors.danger};
+  box-shadow: 0 18px 40px rgba(32, 32, 30, .12);
+  h2 { margin: 0 0 6px; font-size: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  strong { display: block; font: 600 clamp(36px, 5vw, 60px)/1 ${mono}; letter-spacing: -.05em; color: ${({ tone }) => tone === "klamp" ? colors.primaryHover : colors.danger}; }
+  p { margin: 10px 0 0; color: ${colors.textSecondary}; font: 500 14px/1.4 ${mono}; }
 `;
-const Reset = styled.button`
-  border: 1px solid ${colors.borderStrong}; padding: 12px 15px; background: transparent; color: ${colors.textSecondary}; cursor: pointer; font-weight: 600; font-size: 13px;
-  &:not(:disabled):hover { color: ${colors.textPrimary}; border-color: ${colors.textPrimary}; }
-  &:disabled { cursor: wait; opacity: .45; }
+const Foot = styled.footer`display: flex; align-items: center; justify-content: space-between; gap: 18px; padding-top: 12px;`;
+const Dots = styled.ol`list-style: none; margin: 0; padding: 0; display: flex; gap: 8px;`;
+const Dot = styled.button<{ state: "done" | "active" | "todo" }>`
+  width: ${({ state }) => state === "active" ? 34 : 12}px; height: 12px; border-radius: 6px; border: 0; padding: 0; cursor: pointer; transition: all .25s ease;
+  background: ${({ state }) => state === "active" ? colors.primary : state === "done" ? colors.textPrimary : colors.border};
 `;
-const Previous = styled(Reset)``;
-
+const Controls = styled.div`display: flex; gap: 8px; align-items: center;`;
+const Hint = styled.span`color: ${colors.textMuted}; font: 500 12px/1 ${mono}; margin-right: 8px; @media (max-width: 720px) { display: none; }`;
+const Button = styled.button<{ primary?: boolean }>`
+  min-width: 44px; height: 40px; padding: 0 16px; border: 1px solid ${({ primary }) => primary ? colors.primary : colors.borderStrong};
+  background: ${({ primary }) => primary ? colors.primary : "transparent"}; color: ${colors.textPrimary}; font-weight: 700; font-size: 14px; cursor: pointer;
+  &:disabled { opacity: .45; cursor: default; }
+`;
 const ReducedMotion = styled.div`
   display: contents;
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 `;
 
-function actionLabel(stage: DemoStage, busy: boolean) {
-  if (busy) {
-    const working: Partial<Record<DemoStage, string>> = {
-      launch: "Launching…", quotes: "Quoting pools…", naive: "Picking best quote…", lookup: "Resolving ENS…",
-      judge: "Judging route…", requote: "Requoting…", execute: "Swapping…", outcome: "Comparing…",
-    };
-    return working[stage] ?? "Working…";
-  }
-  const next: Record<DemoStage, string> = {
-    idle: "Launch and declare", launch: "Quote candidate pools", quotes: "Run the naive router", naive: "Look up the canonical pool",
-    lookup: "Judge the naive route", judge: "Requote on the declared pool", requote: "Verify calldata and swap", execute: "Compare both executions",
-    outcome: "Start over",
-  };
-  return next[stage];
-}
+/* ---------- the demo ---------- */
 
 export function DemoTerminal() {
-  const { stage, busy, launchStep, launch, board, naive, canonical, judgement, requote, execution, naiveOutcome, advance, goBack, goToStage, reset } = useDemoStore();
-  const current = stageIndex(stage);
-  const view = (busy && pendingCopy[stage]) || copy[stage];
-  const record = launch?.canonicalPool ?? null;
-  const declared = board?.candidates.find((candidate) => candidate.id === "canonical") ?? null;
-  const undeclared = board?.candidates.find((candidate) => candidate.id === "undeclared") ?? null;
-  const registered = canonical?.status === "registered" ? canonical : null;
-  const tokenReady = Boolean(record) || launchStep === "initializing" || launchStep === "recording" || launchStep === "complete";
-  const poolReady = Boolean(record) || launchStep === "recording" || launchStep === "complete";
-  const tokenValue = record ? `${launch?.symbol} · ${short(record.token)}` : launchStep === "deploying" ? "Deploying with CREATE2…" : tokenReady ? "Complete" : "Waiting";
-  const poolValue = record ? short(record.poolId) : launchStep === "initializing" ? "Initializing…" : poolReady ? "Complete" : "Waiting";
-  const ensValue = record?.ensName ?? (launchStep === "recording" ? "recordByCreate2…" : launchStep === "idle" ? "0x<token>.tokens.klamp.eth" : "Waiting");
-  const sceneKey = stage === "idle" ? "launch" : stage;
-  const recordStatus = record ? "Declared once" : "Not declared";
-  const routeStatus = execution ? "Declared pool" : requote ? "Requoted" : judgement ? judgement.verdict : naive ? "Naive pick: undeclared" : board ? "Two candidates" : "Not started";
-  const executionStatus = naiveOutcome ? "Compared" : execution ? "Received = quote" : "Not started";
+  const { stage, busy, launch, board, naive, canonical, judgement, requote, execution, naiveOutcome, advance, goBack, goToStage, reset } = useDemoStore();
+  const [playing, setPlaying] = useState(false);
+  const s = demoStageOrder.indexOf(stage);
+  const at = (target: DemoStage) => s >= demoStageOrder.indexOf(target);
+  const only = (target: DemoStage) => stage === target;
+  const declared = board?.candidates.find((candidate) => candidate.id === "canonical");
+  const undeclared = board?.candidates.find((candidate) => candidate.id === "undeclared");
+  const registered = canonical?.status === "registered";
+
+  const next = useCallback(() => { void advance(); }, [advance]);
+
+  // Autoplay: linger on each finished step, then advance. Stops at the outcome.
+  useEffect(() => {
+    if (!playing || busy) return;
+    if (stage === "outcome") { setPlaying(false); return; }
+    const timer = setTimeout(next, DWELL[stage]);
+    return () => clearTimeout(timer);
+  }, [playing, busy, stage, next]);
+
+  // Keyboard for recording: → / Space next, ← previous, P play, R reset.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "ArrowRight" || event.key === " ") { event.preventDefault(); next(); }
+      else if (event.key === "ArrowLeft") goBack();
+      else if (event.key.toLowerCase() === "p") setPlaying((value) => !value);
+      else if (event.key.toLowerCase() === "r") { setPlaying(false); reset(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [next, goBack, reset]);
+
+  const caption = captions[stage];
 
   return (
     <ReducedMotion>
-      <Shell>
-        <Instrument>
-          <InstrumentHead>
-            <TraceName><TraceMark complete={stage === "outcome" && !busy} />Klamp routing trace · Path A (KHOOK, Sepolia)</TraceName>
-            <TraceNote>Sepolia data (deployment, demo CLI, team swap tx); step 8 attack is simulated</TraceNote>
-          </InstrumentHead>
-          <Progress aria-label="Trace progress">
-            {steps.map((item) => {
-              const index = stageIndex(item.stage);
-              const active = stage === "idle" ? item.stage === "launch" : stage === item.stage;
-              const done = current > index || (current === index && !busy);
-              return (
-                <ProgressItem key={item.stage} active={active} done={done} aria-current={active ? "step" : undefined}>
-                  <ProgressButton type="button" disabled={busy} onClick={() => goToStage(item.stage)} aria-label={`Go to step ${item.index}: ${item.title}`}>
-                    <StepNumber>{item.index}</StepNumber><StepTitle>{item.title}</StepTitle><StepDetail>{item.detail}</StepDetail>
-                  </ProgressButton>
-                </ProgressItem>
-              );
-            })}
-          </Progress>
-          <Stage aria-live="polite">
-            <StageHead>
-              <div><StageState>{view.state}</StageState><StageTitle>{view.title}</StageTitle></div>
-              <StageDetail>{view.detail}</StageDetail>
-            </StageHead>
+      <Screen>
+        <Head>
+          <div>
+            <Count>{stage === "idle" ? "Klamp · Sepolia" : `${s} / 8`}</Count>
+            <AnimatePresence mode="wait">
+              <motion.div key={stage} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.35 }}>
+                <Title>{caption.title}</Title>
+                <Line>{caption.line}</Line>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          {only("outcome") && <Tag>Naive side simulated</Tag>}
+        </Head>
 
-            {(stage === "idle" || stage === "launch") && (
-              <Scene key={sceneKey}>
-                <LaunchFlow>
-                  <LaunchActor>
-                    <SceneLabel>Path A · one launch transaction</SceneLabel>
-                    <h2>DemoLaunchpad</h2>
-                    <p>Deploy the token with CREATE2, create the hooked pool with locked liquidity, then declare it through the registrar.</p>
-                  </LaunchActor>
-                  <LaunchBridge active={stage === "launch"}><Mark size={62} /></LaunchBridge>
-                  <LaunchReceipt>
-                    <dt>Token deployed</dt><dd>{tokenValue}</dd>
-                    <dt>Pool initialized</dt><dd>{poolValue}</dd>
-                    <dt>Pool hook</dt><dd>{poolReady ? "DeltaFeeHook · 1% delta fee" : "Waiting"}</dd>
-                    <dt>Issuer proof</dt><dd>{record ? `CREATE2(launchpad ${short(record.issuer)})` : "Waiting"}</dd>
-                    <dt>Canonical pool</dt><dd>{ensValue}</dd>
-                  </LaunchReceipt>
-                </LaunchFlow>
-              </Scene>
+        <Canvas>
+          <Svg viewBox="0 0 1200 620" role="img" aria-label={`${caption.title}. ${caption.line}`}>
+            {/* edges first so nodes sit on top */}
+            <AnimatePresence>
+              {at("launch") && launch && <Edge key="launch" d={PATH.launch} color={colors.textPrimary} />}
+              {at("launch") && launch && <Edge key="record" d={PATH.record} color={colors.primary} delay={0.8} dashed />}
+              {at("naive") && naive && <Edge key="toRouter" d={PATH.toRouter} color={colors.textPrimary} />}
+              {at("naive") && naive && !at("judge") && <Edge key="toUndeclared" d={PATH.toUndeclared} color={colors.danger} delay={0.4} width={5} />}
+              {at("judge") && <Edge key="toUndeclaredCut" d={PATH.toUndeclared} color={colors.border} dashed />}
+              {only("lookup") && canonical && <Edge key="lookup" d={PATH.lookup} color={colors.primary} width={4} />}
+              {at("requote") && requote && <Edge key="toDeclared" d={PATH.toDeclared} color={colors.primary} delay={0.1} width={5} />}
+            </AnimatePresence>
+
+            {only("launch") && launch && <Packets d={PATH.record} color={colors.primary} count={2} duration={1.4} delay={1.2} />}
+            {only("naive") && naive && <Packets d={PATH.toUndeclared} color={colors.danger} />}
+            {only("lookup") && canonical && <Packets d={PATH.lookup} color={colors.primary} count={2} duration={1.2} />}
+            {only("execute") && execution && <><Packets d={PATH.toRouter} color={colors.textPrimary} count={2} duration={1.2} /><Packets d={PATH.toDeclared} color={colors.primary} count={3} duration={1.4} delay={0.5} /></>}
+
+            <Node {...P.launchpad} glyph="L" label="Launchpad" sub="CREATE2 · path A" tone="ink" dim={at("quotes")} pulse={only("launch") && busy} />
+            <Node {...P.ens} glyph="E" label="ENSv2" sub="tokens.klamp.eth" tone={at("launch") && launch ? "klamp" : "muted"} pulse={only("lookup") && !busy} />
+            <Node {...P.trader} glyph="T" label="Trader" sub="0.0005 ETH → KHOOK" show={at("naive")} />
+            <Node {...P.router} glyph={at("lookup") ? "K" : "R"} label={at("execute") ? "Klamp + UR" : at("lookup") ? "Klamp" : "Router"} sub={at("lookup") ? "judge · requote" : "best quote"}
+              tone={at("lookup") ? "klamp" : "ink"} show={at("naive")} pulse={(only("naive") || only("judge")) && busy} />
+            <Node {...P.declared} glyph="✓" label="Declared pool" sub={declared ? short(declared.poolId) : "KHOOK / ETH"} tone={at("lookup") && registered ? "ok" : "ink"} show={at("launch") && Boolean(launch)} />
+            <Node {...P.undeclared} glyph="?" label="Undeclared pool" sub={undeclared ? short(undeclared.poolId) : "same pair"} tone={at("judge") ? "muted" : "danger"} show={at("quotes") && Boolean(board)} dim={at("requote")} />
+
+            <AnimatePresence>
+              {only("launch") && launch && <Chip key="rec" x={880} y={150} text="pool = 0xcd97…95f6" tone="klamp" delay={1.3} />}
+              {only("launch") && launch && <Stamp key="once" x={P.declared.x} y={P.declared.y - 78} text="ONCE" tone="klamp" delay={1.9} />}
+              {at("quotes") && !at("requote") && board && declared && <Chip key="qd" x={P.declared.x} y={P.declared.y + 72} text={<Counter to={declared.quotedOut} />} tone="ink" />}
+              {at("quotes") && !at("requote") && board && undeclared && <Chip key="qu" x={P.undeclared.x} y={P.undeclared.y + 72} text={<Counter to={undeclared.quotedOut} delay={0.2} />} tone="danger" />}
+              {only("quotes") && board && <Chip key="third" x={P.undeclared.x - 10} y={P.undeclared.y - 70} text="third party" tone="muted" delay={0.3} />}
+              {only("naive") && naive && <Stamp key="best" x={P.undeclared.x - 170} y={P.undeclared.y - 60} text="BEST?" tone="danger" delay={0.6} />}
+              {only("lookup") && registered && <Chip key="reg" x={600} y={200} text="registered · 0xcd97…" tone="klamp" delay={0.8} />}
+              {at("judge") && judgement && !at("requote") && <Stamp key="x" x={P.undeclared.x} y={P.undeclared.y} text="REJECT" tone="danger" delay={0.2} />}
+              {only("judge") && judgement && <Chip key="verdict" x={P.router.x} y={P.router.y + 80} text={judgement.verdict} tone="klamp" delay={0.6} big />}
+              {at("requote") && requote && !at("outcome") && <Chip key="rq" x={P.declared.x} y={P.declared.y + 72} text={<Counter to={requote.quotedOut} />} tone="klamp" big />}
+              {only("execute") && execution && <Chip key="cd" x={P.router.x} y={P.router.y + 80} text="calldata ✓ judged key" tone="ok" delay={0.3} />}
+              {only("execute") && execution && <Chip key="got" x={P.trader.x} y={P.trader.y + 80} text={<Counter to={execution.receivedOut} delay={1.2} duration={1.8} />} tone="klamp" big delay={1} />}
+            </AnimatePresence>
+          </Svg>
+
+          <AnimatePresence>
+            {only("outcome") && naiveOutcome && execution && requote && (
+              <Outcome initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <Card tone="klamp" initial={{ x: -40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
+                  <h2>Klamp · declared pool</h2>
+                  <strong><Counter to={execution.receivedOut} duration={1.6} /></strong>
+                  <p>KHOOK received · tx {short(execution.txHash)}</p>
+                </Card>
+                <Card tone="danger" initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.35 }}>
+                  <h2>Naive · if its hook charged 10% <Tag>Simulated</Tag></h2>
+                  <strong><Counter from={naiveOutcome.quotedOut} to={naiveOutcome.receivedOut} duration={2.2} delay={0.9} /></strong>
+                  <p>−{(naiveOutcome.lossBps / 100).toFixed(2)}% at {naiveOutcome.wideSlippageBps / 100}% slippage · reverts at {naiveOutcome.traderSlippageBps / 100}%</p>
+                </Card>
+              </Outcome>
             )}
+          </AnimatePresence>
+        </Canvas>
 
-            {stage === "quotes" && (
-              <Scene key={sceneKey}>
-                <CandidateBoard>
-                  <CandidateSource><Image src="/aggregator.svg" width={54} height={54} alt="" aria-hidden /><strong>{board?.quoter ?? "V4Quoter"}</strong><span>{board ? `${short(board.quoterAddress)} · ${board.amountIn} → ${board.tokenOut}` : "Quoting…"}</span></CandidateSource>
-                  <ForkRail aria-hidden="true"><i /><i /></ForkRail>
-                  <CandidateList>
-                    <CandidatePool>
-                      <div><h2>{declared?.label ?? "Declared pool"}</h2><p>{declared ? `${short(declared.poolId)} · ${declared.hookBehavior}` : "Quoting…"}</p></div>
-                      <div><strong>{declared ? amount(declared.quotedOut) : "…"}</strong><span>{declared ? `quoted ${percent(declared.quotedFeeBps)}` : ""}</span></div>
-                    </CandidatePool>
-                    <CandidatePool undeclared>
-                      <div><h2>{undeclared?.label ?? "Undeclared pool"}</h2><p>{undeclared ? `${short(undeclared.poolId)} · ${undeclared.hookBehavior}` : "Quoting…"}</p></div>
-                      <div><strong>{undeclared ? amount(undeclared.quotedOut) : "…"}</strong><span>{undeclared ? `quoted ${percent(undeclared.quotedFeeBps)}` : ""}</span></div>
-                    </CandidatePool>
-                  </CandidateList>
-                </CandidateBoard>
-              </Scene>
-            )}
-
-            {stage === "naive" && (
-              <Scene key={sceneKey}>
-                <DecisionBoard>
-                  <DecisionColumn>
-                    <h2>Quoted output (KHOOK)</h2>
-                    <DecisionRow struck={Boolean(naive)}><div><strong>Declared pool</strong><code>{declared ? amount(declared.quotedOut) : "…"}</code></div><b>{naive ? "SKIPPED" : "…"}</b></DecisionRow>
-                    <DecisionRow tone={naive ? "pick" : undefined}><div><strong>Undeclared hook pool</strong><code>{undeclared ? amount(undeclared.quotedOut) : "…"}</code></div><b>{naive ? "CHOSEN" : "…"}</b></DecisionRow>
-                  </DecisionColumn>
-                  <DecisionGate><Image src="/router.svg" width={54} height={54} alt="" aria-hidden /></DecisionGate>
-                  <DecisionColumn>
-                    <h2>Naive router</h2>
-                    <DecisionRow><div><strong>Rule</strong><code>largest quoted output wins</code></div><b>BEST</b></DecisionRow>
-                    <DecisionRow><div><strong>Minimum output</strong><code>{naive ? `${amount(naive.minOut)} · ${percent(naive.slippageBps)} slippage` : "…"}</code></div><b>{naive ? "SET" : "…"}</b></DecisionRow>
-                  </DecisionColumn>
-                </DecisionBoard>
-              </Scene>
-            )}
-
-            {stage === "lookup" && (
-              <Scene key={sceneKey}>
-                <RecordProof>
-                  <RecordIdentity>
-                    <Mark size={72} />
-                    <div>
-                      <SceneLabel>ENSv2 wildcard name · UniversalResolverV2</SceneLabel>
-                      <h2>{registered ? "registered" : "Resolving…"}</h2>
-                      <p>{record?.ensName ?? "0x<token>.tokens.klamp.eth"}</p>
-                    </div>
-                  </RecordIdentity>
-                  <Metrics>
-                    <Metric ready={Boolean(registered)}><span>{`text("pool")`}</span><strong>{registered ? short(registered.poolId) : "…"}</strong><p>eip155:{record?.chainId ?? "…"}:&lt;poolId&gt;</p></Metric>
-                    <Metric ready={Boolean(registered)} muted><span>{`data("pool")`}</span><strong>{registered ? `fee ${registered.key.fee}` : "…"}</strong><p>abi.encode(chainId, PoolKey)</p></Metric>
-                  </Metrics>
-                  <Checks>
-                    <div><span>Pinned resolver</span><strong>{registered && record ? short(record.resolver) : "Checking"}</strong></div>
-                    <div><span>text vs data</span><strong>{registered ? "PoolId matches" : "Checking"}</strong></div>
-                    <div><span>Pool state</span><strong>{registered ? "Initialized" : "Checking"}</strong></div>
-                    <div><span>Klamp ABI needed</span><strong>{registered ? "None" : "…"}</strong></div>
-                  </Checks>
-                </RecordProof>
-              </Scene>
-            )}
-
-            {stage === "judge" && (
-              <Scene key={sceneKey}>
-                <DecisionBoard>
-                  <DecisionColumn>
-                    <h2>Naive route · undeclared hop</h2>
-                    <DecisionRow tone={judgement ? "fail" : undefined}><div><strong>Static pool?</strong><code>{undeclared ? `hooks ${short(undeclared.key.hooks)} · fee ${undeclared.key.fee}` : "…"}</code></div><b>{judgement ? "NO" : "…"}</b></DecisionRow>
-                    <DecisionRow tone={judgement ? "fail" : undefined}><div><strong>Declared pool?</strong><code>{undeclared && registered ? `${short(undeclared.poolId)} ≠ ${short(registered.poolId)}` : "…"}</code></div><b>{judgement ? judgement.comparison.status.toUpperCase() : "…"}</b></DecisionRow>
-                  </DecisionColumn>
-                  <DecisionGate><Mark size={58} /></DecisionGate>
-                  <DecisionColumn>
-                    <h2>judge()</h2>
-                    <DecisionRow><div><strong>Lookup</strong><code>{canonical?.status ?? "…"}</code></div><b>{registered ? "OK" : "…"}</b></DecisionRow>
-                    <DecisionRow tone={judgement ? "pass" : undefined}><div><strong>Verdict</strong><code>declared and static pools pass; other hook pools are requoted</code></div><b>{judgement?.verdict ?? "…"}</b></DecisionRow>
-                  </DecisionColumn>
-                </DecisionBoard>
-              </Scene>
-            )}
-
-            {stage === "requote" && (
-              <Scene key={sceneKey}>
-                <RecordProof>
-                  <RecordIdentity>
-                    <Mark size={72} />
-                    <div>
-                      <SceneLabel>{requote?.quoter ?? "V4Quoter"}</SceneLabel>
-                      <h2>{requote ? "Declared pool requoted" : "Requoting…"}</h2>
-                      <p>{registered ? `PoolKey(ETH, KHOOK, ${registered.key.fee}, ${registered.key.tickSpacing}, ${short(registered.key.hooks)})` : "…"}</p>
-                    </div>
-                  </RecordIdentity>
-                  <Metrics>
-                    <Metric ready={Boolean(requote)}><span>Requoted output</span><strong>{requote ? amount(requote.quotedOut) : "…"}</strong><p>Declared pool, same fee at swap time</p></Metric>
-                    <Metric ready={Boolean(requote)} muted><span>Minimum output</span><strong>{requote ? amount(requote.minOut) : "…"}</strong><p>{requote ? `${percent(requote.slippageBps)} slippage` : "…"}</p></Metric>
-                  </Metrics>
-                  <Checks>
-                    <div><span>Naive quote</span><strong>{naive ? amount(naive.quotedOut) : "…"}</strong></div>
-                    <div><span>Why lower</span><strong>Declared, not cheapest</strong></div>
-                    <div><span>Trader action</span><strong>None</strong></div>
-                    <div><span>Pool</span><strong>{requote ? short(requote.poolId) : "…"}</strong></div>
-                  </Checks>
-                </RecordProof>
-              </Scene>
-            )}
-
-            {stage === "execute" && (
-              <Scene key={sceneKey}>
-                <RouteJourney>
-                  <RoutePipeline aria-label="Klamp SDK to Universal Router to PoolManager">
-                    <RouteActor><Mark size={44} /><div><span>Klamp SDK</span><strong>buildSwap · verifySwapCalldata</strong></div></RouteActor>
-                    <RouteRail delay={0.22} aria-hidden="true" />
-                    <RouteActor delay={0.42}><Image src="/router.svg" width={44} height={44} alt="" aria-hidden /><div><span>{execution ? `${execution.router} ${short(execution.routerAddress)}` : "Universal Router"}</span><strong>{execution ? "V4_SWAP executed" : "Encoding V4_SWAP"}</strong></div></RouteActor>
-                    <RouteRail delay={0.65} aria-hidden="true" />
-                    <RouteEndpoint delay={0.86}><Image src="/pool-manager.svg" width={38} height={38} alt="" aria-hidden /><div><span>PoolManager</span><strong>{execution ? "Declared pool swapped" : "Waiting"}</strong></div></RouteEndpoint>
-                  </RoutePipeline>
-                  <RouteHandoff>
-                    <div><span>Calldata PoolKey</span><strong>{execution?.calldataVerified ? `= judged route · ${execution.actions.join(" → ")}` : "Checking…"}</strong></div>
-                    <div><span>{execution ? `Received for ${execution.amountIn}` : "Received"}</span><strong>{execution ? `${amount(execution.receivedOut)} KHOOK (+${amount(execution.hookFeeOut)} hook fee)` : "…"}</strong></div>
-                    <div><span>{execution ? `Sepolia block ${execution.blockNumber}` : "Transaction"}</span><strong>{execution ? short(execution.txHash) : "…"}</strong></div>
-                  </RouteHandoff>
-                </RouteJourney>
-              </Scene>
-            )}
-
-            {stage === "outcome" && (
-              <Scene key={sceneKey}>
-                <OutcomeComparison>
-                  <Outcome guarded>
-                    <h2>Klamp route · declared pool</h2>
-                    <dl><dt>Pool</dt><dd>declared</dd><dt>Fee at swap</dt><dd>same as quoted</dd><dt>Minimum</dt><dd>{requote ? amount(requote.minOut) : "…"}</dd></dl>
-                    <strong>{requote ? amount(requote.quotedOut) : "—"}</strong><p>Current quote on the declared pool; the undeclared hook is never called.</p>
-                  </Outcome>
-                  <Outcome>
-                    <h2>Naive route · if its hook attacked<Simulated>Simulated</Simulated></h2>
-                    <dl><dt>Quoted</dt><dd>{naiveOutcome ? amount(naiveOutcome.quotedOut) : "…"}</dd><dt>Fee at swap</dt><dd>{naiveOutcome ? percent(naiveOutcome.executedFeeBps) : "…"}</dd><dt>{naiveOutcome ? `At ${percent(naiveOutcome.traderSlippageBps)} slippage` : "Trader slippage"}</dt><dd>{naiveOutcome ? `reverts (min ${amount(naiveOutcome.traderMinOut)})` : "…"}</dd></dl>
-                    <strong>{naiveOutcome ? amount(naiveOutcome.receivedOut) : "—"}</strong><p>{naiveOutcome ? `At ${percent(naiveOutcome.wideSlippageBps)} slippage it executes: −${percent(naiveOutcome.lossBps)} versus its quote.` : "Executing…"}</p>
-                  </Outcome>
-                </OutcomeComparison>
-              </Scene>
-            )}
-
-            <Bottom>
-              <Statuses>
-                <Status><span>Canonical pool</span><strong>{recordStatus}</strong></Status>
-                <Status><span>Route</span><strong>{routeStatus}</strong></Status>
-                <Status><span>Execution</span><strong>{executionStatus}</strong></Status>
-              </Statuses>
-              <Actions>
-                {stage !== "idle" && <Reset onClick={reset} disabled={busy}>Reset</Reset>}
-                {stage !== "idle" && <Previous onClick={goBack} disabled={busy}>Previous</Previous>}
-                <Next onClick={() => advance()} disabled={busy}>{actionLabel(stage, busy)}</Next>
-              </Actions>
-            </Bottom>
-          </Stage>
-        </Instrument>
-      </Shell>
+        <Foot>
+          <Dots aria-label="Steps">
+            {steps.map((step, index) => (
+              <li key={step}>
+                <Dot
+                  type="button" aria-label={`Go to step ${index + 1}: ${captions[step].title}`} disabled={busy}
+                  state={stage === step ? "active" : s > index + 1 ? "done" : "todo"}
+                  onClick={() => { setPlaying(false); goToStage(step); }}
+                />
+              </li>
+            ))}
+          </Dots>
+          <Controls>
+            <Hint>→ next · ← back · P play · R reset</Hint>
+            <Button onClick={() => { setPlaying(false); reset(); }} disabled={busy || stage === "idle"}>Reset</Button>
+            <Button onClick={goBack} disabled={busy || stage === "idle"} aria-label="Previous step">←</Button>
+            <Button onClick={() => setPlaying((value) => !value)} aria-label={playing ? "Pause" : "Play"}>{playing ? "Pause" : "Play"}</Button>
+            <Button primary onClick={next} disabled={busy} aria-label="Next step">{stage === "outcome" ? "Replay" : "Next →"}</Button>
+          </Controls>
+        </Foot>
+      </Screen>
     </ReducedMotion>
   );
 }
