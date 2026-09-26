@@ -286,12 +286,11 @@ export function DemoTerminal() {
         <Head>
           <div>
             <Count>{stage === "idle" ? "Klamp · Sepolia" : `${s} / ${steps.length}`}</Count>
-            <AnimatePresence mode="wait">
-              <motion.div key={stage} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.35 }}>
-                <Title>{caption.title}</Title>
-                <Line>{caption.line}</Line>
-              </motion.div>
-            </AnimatePresence>
+            {/* Remount per step instead of AnimatePresence mode="wait": fast key presses interrupted its exit and left a stale title. */}
+            <motion.div key={stage} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+              <Title>{caption.title}</Title>
+              <Line>{caption.line}</Line>
+            </motion.div>
           </div>
           {only("outcome") && <Tag>Naive side simulated</Tag>}
           {!busy && evidence && (

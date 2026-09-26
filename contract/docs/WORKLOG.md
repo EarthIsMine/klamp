@@ -713,3 +713,12 @@ Implementation status and human verification status are tracked separately; each
 - AI work: `SealStatus` / `Seal` gain `registryRegistrarAdmin` (live read of slot 128 in web `sepolia.ts` and dex `seal.ts`, 1 in the recorded snapshot). The web seal slide and the dex badge show `REGISTRAR ×1 + admin ×1 · for hooks.klamp.eth`; the dex panel note says two roles are left, both ours, and neither can replace tokens.klamp.eth. Root, web and dex READMEs say REGISTRAR and its admin. `docs/phase1-permissions.md` already said so. The team spec draft (`final_klamp_organized.md`, not tracked) was corrected in the same two places.
 - AI-run verification: web `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm build`; dex `pnpm build`. Screenshots of the web seal slide and the dex seal panel show `REGISTRAR ×1 + admin ×1` from live reads at block 11787908.
 - Human verification: Pending human verification.
+
+## WEB38 — Keep the step title in sync with fast key presses
+
+- Date / environment / tools: 2026-09-27 / Next.js 15.5, Motion 12, headless Chromium / Claude Code (Opus 5.5)
+- Human decisions/changes: None; found while checking WEB37. Fixed because a presenter pressing → quickly while recording would hit it.
+- Finding: pressing → as soon as each step finished left the step 3 title ("A naive router takes it") on screen at step 5, still stale after 5 s. The title's `AnimatePresence mode="wait"` exit was interrupted by the next key change.
+- AI work: the title and line remount per step with a fade-in and no exit animation.
+- AI-run verification: `pnpm lint`, `pnpm build`. Headless Chromium pressing → as soon as each step finished shows "Nobody can rewrite it" at step 5 and "Quoted fee = paid fee" at step 9, immediately and after 1 s and 5 s.
+- Human verification: Pending human verification.
