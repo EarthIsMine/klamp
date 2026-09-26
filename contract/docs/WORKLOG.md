@@ -697,3 +697,10 @@ Implementation status and human verification status are tracked separately; each
 - Correction to an earlier record: the design doc's table shows −9.94%; this test measures −9.95% (fee gap 9.95 points on a 1e18 trade in 1e24 liquidity). The doc was not edited.
 - Human verification: Pending human verification (`forge build && forge test --match-contract QuoteDivergenceAttack -vv`).
 
+## DEX4 — Explain why the larger quote is not the better trade
+
+- Date / environment / tools: 2026-09-27 / Vite 8, Sepolia public RPC, headless Chromium screenshots / Claude Code (Opus 5.5)
+- Human decisions/changes: In the review, the Swap tab read as "Klamp pays less" (196,119.71 vs 196,739.12 KHOOK), because the Sepolia look-alike is an honest hook; fix this without deploying an attack hook.
+- AI work: `SwapPanel` shows a note under the route. Klamp off, best quote from an undeclared hook pool: the quote is not a promise; the swap can revert or pay the slippage minimum (live value). Klamp on with `requote_canonical`: how much output was given up versus the best quote and why. Both link to the ATK1 test (GitHub `main`, live after push). The calldata row is shown only with Klamp on (with it off nothing is judged, so "matches judged PoolKey" was misleading). The look-alike caption says the hook can quote one fee and charge another. dex README limits point to the test.
+- AI-run verification: `pnpm build` passed. Screenshots of `dist` served locally, desktop and 390 px, with live KHOOK quotes: Klamp on shows "619.41 KHOOK (0.31%) below the best quote, on purpose"; Klamp off shows "This number is a quote, not a promise" with 186,902.16 KHOOK at 5% slippage and no calldata row. Wallet flows were not exercised (no browser wallet in the agent environment).
+- Human verification: Pending human verification.

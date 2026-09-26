@@ -35,4 +35,6 @@ export type KnownToken = { address: Address; symbol: string; fromBlock?: string;
 export const KNOWN_TOKENS: KnownToken[] = [{ address: pathA.khookToken as Address, symbol: "KHOOK", fromBlock: "11786000" }];
 
 export const EXPLORER = "https://sepolia.etherscan.io";
+/** v4-core reproduction: a hook that quotes 0.05% and charges 10% or 30% at swap time. */
+export const ATTACK_TEST_URL = "https://github.com/EarthIsMine/klamp/blob/main/contract/test/QuoteDivergenceAttack.t.sol";
 export const RPC_URL = import.meta.env.VITE_SEPOLIA_RPC_URL || "https://ethereum-sepolia-rpc.publicnode.com";

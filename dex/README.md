@@ -42,7 +42,7 @@ KHOOK is preselected and already has an undeclared look-alike pool, so step 4 wo
 
 ## Limits
 
-- The look-alike uses the same honest `DeltaFeeHook`, so the naive route really does pay out its quote here. The point is that Klamp only trusts the pool the issuer declared; a hook that charges more at swap time than at quote time is not deployed on Sepolia.
+- The look-alike uses the same honest `DeltaFeeHook`, so the naive route really does pay out its quote here. The point is that Klamp only trusts the pool the issuer declared; a hook that charges more at swap time than at quote time is not deployed on Sepolia. It is reproduced on v4-core in [`contract/test/QuoteDivergenceAttack.t.sol`](../contract/test/QuoteDivergenceAttack.t.sol), and the Swap tab says so under the route: without Klamp, a note that the undeclared pool's quote can shrink to the slippage minimum; with Klamp, how much output it gave up versus the best quote and why.
 - Buys only (ETH → token). Selling needs a Permit2 approval flow that this demo does not build.
 - Pools are discovered from `Initialize` logs in 50,000-block windows, the last 200,000 blocks by default (from the launch block for tokens launched here). Launched and pasted tokens are remembered in this browser only.
 - A pool can only pay out what it holds: if the look-alike has less liquidity than one trade's output it returns no quote and the naive router skips it.

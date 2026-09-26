@@ -4,7 +4,7 @@ import { parseEther, parseEventLogs, type Address } from "viem";
 import type { PoolKey } from "@klamp/sdk/poolKey";
 import { tokenAbi } from "../lib/abis";
 import { ensureSepolia, errorText, sendTx, short, walletClient, type TxState } from "../lib/chain";
-import { CONTRACTS, type KnownToken } from "../lib/config";
+import { ATTACK_TEST_URL, CONTRACTS, type KnownToken } from "../lib/config";
 import { discoverPools, feeLabel, fmt, kindOf, planRoute, swapCalldata, tokenInfo, type RoutePlan } from "../lib/pools";
 import type { Wallet } from "../lib/wallet";
 import { RouteView } from "./RouteView";
@@ -145,7 +145,7 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
             <dt>Slippage</dt>
             <dd><input className="inline" value={slippage} onChange={(event) => setSlippage(event.target.value)} aria-label="Slippage percent" />%</dd>
           </div>
-          <div><dt>Calldata</dt><dd className={swap?.check.ok ? "ok" : ""}>{swap ? (swap.check.ok ? "matches judged PoolKey" : "mismatch") : "–"}</dd></div>
+          {klampOn && <div><dt>Calldata</dt><dd className={swap?.check.ok ? "ok" : ""}>{swap ? (swap.check.ok ? "matches judged PoolKey" : "mismatch") : "–"}</dd></div>}
         </dl>
 
         {!wallet.account ? (
@@ -178,7 +178,47 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
               : plan?.klamp?.verdict === "hold" ? "ENS lookup failed. Holding: static pools only." : ""
             : "A normal router takes the largest quote."}
         </p>
+        <RiskNote plan={plan} klampOn={klampOn} minOut={swap?.minOut ?? null} slippage={slippage} symbol={symbol} />
       </section>
     </div>
   );
+}
+
+/**
+ * Why the larger quote is not the better trade. The look-alike here is honest, so without this the demo
+ * only shows Klamp paying less; the attack itself is reproduced on v4-core in the linked test.
+ */
+function RiskNote({ plan, klampOn, minOut, slippage, symbol }: { plan: RoutePlan | null; klampOn: boolean; minOut: bigint | null; slippage: string; symbol: string }) {
+  const best = plan?.best;
+  if (!plan || !best?.out) return null;
+  const canonical = plan.klamp?.canonical;
+  const risky = kindOf(best.poolId, best.key, canonical) === "hooked";
+  if (!klampOn && risky && plan.chosen?.poolId === best.poolId) {
+    return (
+      <div className="risk risk-danger">
+        <strong>This number is a quote, not a promise.</strong>
+        <span>
+          Nobody declared this hook pool, and a hook can charge one fee when V4Quoter asks and another when you swap.
+          If it does, the swap reverts or pays as little as {minOut !== null ? `${fmt(minOut)} ${symbol}` : "your minimum"}: everything your {slippage}% slippage allows.
+        </span>
+        <a href={ATTACK_TEST_URL} target="_blank" rel="noreferrer">Reproduced on v4-core: quote 0.05%, swap 10% →</a>
+      </div>
+    );
+  }
+  const chosen = plan.chosen;
+  if (klampOn && plan.klamp?.verdict === "requote_canonical" && chosen?.out && chosen.poolId !== best.poolId) {
+    const gap = best.out - chosen.out;
+    const pct = (Number(gap) / Number(best.out)) * 100;
+    return (
+      <div className="risk risk-klamp">
+        <strong>{fmt(gap)} {symbol} ({pct.toFixed(2)}%) below the best quote, on purpose.</strong>
+        <span>
+          The best quote came from a hook pool nobody declared, so it can change at swap time and cost up to your full {slippage}% slippage.
+          Klamp pays the issuer's declared pool instead.
+        </span>
+        <a href={ATTACK_TEST_URL} target="_blank" rel="noreferrer">See the attack reproduced on v4-core →</a>
+      </div>
+    );
+  }
+  return null;
 }

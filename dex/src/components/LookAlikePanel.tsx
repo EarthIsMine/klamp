@@ -223,7 +223,7 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
           )}
           <p className="caption">
             {withHook
-              ? "A hook pool nobody declared. A normal router may pick it; Klamp requotes on the declared pool."
+              ? "A hook pool nobody declared. Its hook can quote one fee and charge another at swap time. A normal router may pick it; Klamp requotes on the declared pool."
               : "A pool with no hook has a fixed fee. Klamp lets it through."}
           </p>
         </div>
