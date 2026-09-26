@@ -157,7 +157,7 @@ export default function Home() {
         <HeroGrid>
           <HeroCopy>
             <Headline>A token issuer declares one canonical pool.</Headline>
-            <Lead>Klamp lets clients compare every proposed route against that ENSv2 record before execution.</Lead>
+            <Lead>Klamp records it in ENSv2. Routers read it with standard ENS tools and requote around look-alike hook pools before the trader signs.</Lead>
             <HeroAction href="/demo/">View a verification trace</HeroAction>
           </HeroCopy>
           <ProtocolTerminal aria-label="Illustrative Klamp verification output">
@@ -166,22 +166,22 @@ export default function Home() {
               <MacTitle>klamp — zsh — 80×24</MacTitle>
             </MacTitleBar>
             <TuiBar><span>klamp.verify</span><span>sepolia:11155111</span></TuiBar>
-            <TuiTarget><span>target</span><code>0x7A4b2F65…eB02d135</code><span>route.json</span></TuiTarget>
+            <TuiTarget><span>target</span><code>KHOOK 0x4cB41E85…eE948b96</code><span>0.0005 ETH</span></TuiTarget>
             <TuiSection>
               <TuiSectionHead><span>01</span>resolve canonical record</TuiSectionHead>
               <TuiRows>
-                <TuiRow><span>ensv2</span><code>tokens.klamp.eth</code><span>[registered]</span></TuiRow>
-                <TuiRow><span>chain</span><code>11155111</code><span>[ok]</span></TuiRow>
-                <TuiRow><span>poolManager</span><code>0xE03A…3543</code><span>[ok]</span></TuiRow>
-                <TuiRow><span>poolId</span><code>0x91f6…e46b0</code><span>[ok]</span></TuiRow>
+                <TuiRow><span>ensv2</span><code>0x4cb4…8b96.tokens.klamp.eth</code><span>[registered]</span></TuiRow>
+                <TuiRow><span>resolver</span><code>0xa783…dC18 (pinned)</code><span>[ok]</span></TuiRow>
+                <TuiRow><span>poolId</span><code>0xcd97…95f6</code><span>[ok]</span></TuiRow>
+                <TuiRow><span>text vs data</span><code>PoolKey hash</code><span>[ok]</span></TuiRow>
               </TuiRows>
             </TuiSection>
             <TuiSection>
-              <TuiSectionHead><span>02</span>compare proposed route</TuiSectionHead>
-              <TuiChecks><div><span>chain</span><strong>ok</strong></div><div><span>manager</span><strong>ok</strong></div><div><span>poolId</span><strong>ok</strong></div></TuiChecks>
-              <TuiRows><TuiRow><span>route[0]</span><code>canonical pool</code><span>[match]</span></TuiRow></TuiRows>
+              <TuiSectionHead><span>02</span>judge quoted route</TuiSectionHead>
+              <TuiChecks><div><span>static</span><strong>no</strong></div><div><span>declared</span><strong>no</strong></div><div><span>verdict</span><strong>requote</strong></div></TuiChecks>
+              <TuiRows><TuiRow><span>requote</span><code>declared pool · 196,119.71</code><span>[verify ok]</span></TuiRow></TuiRows>
             </TuiSection>
-            <TuiStatus><strong>MATCH</strong><span>canonical route confirmed</span><span>exit 0</span></TuiStatus>
+            <TuiStatus><strong>REQUOTE</strong><span>look-alike pool skipped</span><span>exit 0</span></TuiStatus>
           </ProtocolTerminal>
         </HeroGrid>
       </Hero>
@@ -189,33 +189,33 @@ export default function Home() {
         <BoundaryInner>
           <BoundaryIntro>
             <h2>A precise boundary</h2>
-            <p>The contract establishes who may write a canonical pool record. The client resolves that record and decides whether a proposed route is safe to continue.</p>
+            <p>The contract establishes who may write a canonical pool record, once. The client resolves that record, judges the quoted route, requotes when needed and checks the calldata it signs.</p>
           </BoundaryIntro>
           <BoundaryGrid>
             <BoundaryColumn>
               <h3>The contract proves</h3>
               <ul>
-                <li>Issuer authority through CREATE2 or LiquidityLauncher graffiti</li>
-                <li>The pool is deployed, initialized, and contains the token</li>
-                <li>The canonical record can only be written once</li>
+                <li>Issuer authority: the CREATE2 launchpad, or the Pools.trade creator via LiquidityLauncher graffiti (direct or through a disposable contract)</li>
+                <li>The token is deployed, is in the PoolKey, and the pool is initialized</li>
+                <li>The canonical record can only be written once; no upgrades</li>
               </ul>
             </BoundaryColumn>
             <BoundaryColumn>
               <h3>The client checks</h3>
               <ul>
-                <li>The resolver returns a valid, unambiguous record</li>
-                <li>Chain, PoolManager, and PoolId match the proposed route</li>
-                <li>Every declared branch that touches the token is checked</li>
+                <li>The pinned resolver answers, and the text and data records agree</li>
+                <li>Declared and static pools pass; other hook pools are requoted</li>
+                <li>The Universal Router calldata names the judged PoolKey before signing</li>
               </ul>
             </BoundaryColumn>
           </BoundaryGrid>
           <FeeCapNote>
-            <h3>Fee cap preview</h3>
-            <p>After the route is verified, the demo resolves the hook identity under <strong>hooks.klamp.eth</strong>, then simulates a <strong>30% request</strong> being limited to its recorded <strong>1% maximum</strong>. That enforcement is not part of the current contract build.</p>
+            <h3>Roadmap: capped hooks</h3>
+            <p>A <strong>CappedHookProxy</strong> would let hook pools that are not declared still route, by recording an immutable fee cap under <strong>hooks.klamp.eth</strong>. It is designed, not built: nothing in this demo or the deployed contracts enforces a fee cap.</p>
           </FeeCapNote>
         </BoundaryInner>
       </Boundary>
-      <Footer><FooterBrand><Mark size={20} />Klamp, ETHGlobal Tokyo 2026</FooterBrand><span>ENSv2 identity and Uniswap v4 enforcement</span></Footer>
+      <Footer><FooterBrand><Mark size={20} />Klamp, ETHGlobal Tokyo 2026</FooterBrand><span>Canonical pools in ENSv2 for Uniswap v4 routing</span></Footer>
     </>
   );
 }
