@@ -2,18 +2,8 @@
 
 import styled from "@emotion/styled";
 import { Mark } from "@/components/brand/Mark";
-import { colors, layout, mono } from "@/styles/tokens";
-
-const omz = {
-  background: "#002B36",
-  surface: "#073642",
-  muted: "#839496",
-  text: "#EEE8D5",
-  cyan: "#2AA198",
-  green: "#859900",
-  yellow: "#B58900",
-  blue: "#268BD2",
-} as const;
+import { LiveLookup } from "@/components/lookup/LiveLookup";
+import { colors, layout } from "@/styles/tokens";
 
 const Nav = styled.header`
   position: absolute; inset: 0 0 auto; z-index: 10; width: 100%; max-width: ${layout.maxWidth};
@@ -50,64 +40,6 @@ const HeroAction = styled.a`
   display: inline-flex; align-items: center; margin-top: 36px; min-height: 44px; padding: 0 17px;
   background: ${colors.primary}; color: ${colors.textPrimary}; font-size: 14px; font-weight: 650;
   &:hover { background: ${colors.primaryHover}; color: white; }
-`;
-
-const ProtocolTerminal = styled.aside`
-  min-width: 0; overflow: hidden; border: 1px solid #B8B8B5; border-radius: 10px;
-  background: ${omz.background}; color: ${omz.text}; font-family: ${mono};
-  box-shadow: 0 18px 45px rgba(32, 32, 30, .14), 0 2px 7px rgba(32, 32, 30, .1);
-`;
-const MacTitleBar = styled.div`
-  min-height: 30px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 11px;
-  background: #EAEAE8; border-bottom: 1px solid #C8C8C5; color: #4F4F4C;
-  font: 500 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-`;
-const WindowControls = styled.div`
-  display: flex; align-items: center; gap: 7px;
-  i { display: block; width: 10px; height: 10px; border-radius: 50%; }
-  i:nth-of-type(1) { background: #FF5F57; border: 1px solid #E0443E; }
-  i:nth-of-type(2) { background: #FEBC2E; border: 1px solid #DFA123; }
-  i:nth-of-type(3) { background: #28C840; border: 1px solid #1AAB29; }
-`;
-const MacTitle = styled.span`grid-column: 2; white-space: nowrap;`;
-const TuiBar = styled.div`
-  display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 10px 13px;
-  background: ${omz.surface}; color: ${omz.cyan}; font-size: 11px; line-height: 1;
-  span:last-of-type { color: ${omz.blue}; }
-`;
-const TuiTarget = styled.div`
-  display: grid; grid-template-columns: 78px minmax(0, 1fr) auto; gap: 12px; padding: 14px 13px; font-size: 11px; line-height: 1.4;
-  span:first-of-type { color: ${omz.muted}; }
-  span:last-of-type { color: ${omz.cyan}; }
-  code { color: ${omz.text}; font: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  @media (max-width: 520px) { grid-template-columns: 60px minmax(0, 1fr); span:last-of-type { display: none; } }
-`;
-const TuiSection = styled.section`border-top: 1px solid ${omz.muted};`;
-const TuiSectionHead = styled.h2`
-  display: flex; align-items: center; gap: 10px; margin: 0; padding: 8px 13px; background: ${omz.surface};
-  color: ${omz.text}; font: 500 11px/1 ${mono};
-  span { color: ${omz.yellow}; }
-`;
-const TuiRows = styled.div`padding: 12px 13px 14px; display: grid; gap: 9px;`;
-const TuiRow = styled.div`
-  display: grid; grid-template-columns: 128px minmax(0, 1fr) auto; gap: 12px; align-items: baseline; font-size: 11px; line-height: 1.45;
-  span:first-of-type { color: ${omz.muted}; }
-  code { color: ${omz.text}; font: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  span:last-of-type { color: ${omz.green}; }
-  @media (max-width: 520px) { grid-template-columns: 106px minmax(0, 1fr); span:last-of-type { display: none; } }
-`;
-const TuiChecks = styled.div`
-  display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid ${omz.muted};
-  div { display: flex; justify-content: space-between; gap: 12px; padding: 11px 13px; color: ${omz.text}; font-size: 11px; }
-  div + div { border-left: 1px solid ${omz.muted}; }
-  strong { color: ${omz.green}; font-weight: 600; }
-  @media (max-width: 520px) { grid-template-columns: 1fr; div + div { border-left: 0; border-top: 1px solid ${omz.muted}; } }
-`;
-const TuiStatus = styled.div`
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; background: ${omz.surface}; color: ${omz.text}; font-size: 11px;
-  strong { align-self: stretch; display: flex; align-items: center; padding: 12px 13px; background: ${omz.green}; color: ${omz.background}; font-weight: 700; }
-  span { padding: 0 13px; }
-  span:last-of-type { color: ${omz.cyan}; }
 `;
 
 const Boundary = styled.section`border-top: 1px solid ${colors.border}; padding: 92px 24px 100px;`;
@@ -160,29 +92,7 @@ export default function Home() {
             <Lead>Klamp records it in ENSv2. Routers read it with standard ENS tools and requote around look-alike hook pools before the trader signs.</Lead>
             <HeroAction href="/demo/">View a verification trace</HeroAction>
           </HeroCopy>
-          <ProtocolTerminal aria-label="Illustrative Klamp verification output">
-            <MacTitleBar>
-              <WindowControls aria-hidden="true"><i /><i /><i /></WindowControls>
-              <MacTitle>klamp — zsh — 80×24</MacTitle>
-            </MacTitleBar>
-            <TuiBar><span>klamp.verify</span><span>sepolia:11155111</span></TuiBar>
-            <TuiTarget><span>target</span><code>KHOOK 0x4cB41E85…eE948b96</code><span>0.0005 ETH</span></TuiTarget>
-            <TuiSection>
-              <TuiSectionHead><span>01</span>resolve canonical record</TuiSectionHead>
-              <TuiRows>
-                <TuiRow><span>ensv2</span><code>0x4cb4…8b96.tokens.klamp.eth</code><span>[registered]</span></TuiRow>
-                <TuiRow><span>resolver</span><code>0xa783…dC18 (pinned)</code><span>[ok]</span></TuiRow>
-                <TuiRow><span>poolId</span><code>0xcd97…95f6</code><span>[ok]</span></TuiRow>
-                <TuiRow><span>text vs data</span><code>PoolKey hash</code><span>[ok]</span></TuiRow>
-              </TuiRows>
-            </TuiSection>
-            <TuiSection>
-              <TuiSectionHead><span>02</span>judge quoted route</TuiSectionHead>
-              <TuiChecks><div><span>static</span><strong>no</strong></div><div><span>declared</span><strong>no</strong></div><div><span>verdict</span><strong>requote</strong></div></TuiChecks>
-              <TuiRows><TuiRow><span>requote</span><code>declared pool · 196,119.71</code><span>[verify ok]</span></TuiRow></TuiRows>
-            </TuiSection>
-            <TuiStatus><strong>REQUOTE</strong><span>undeclared pool skipped</span><span>exit 0</span></TuiStatus>
-          </ProtocolTerminal>
+          <LiveLookup />
         </HeroGrid>
       </Hero>
       <Boundary id="architecture">

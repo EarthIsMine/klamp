@@ -1,7 +1,9 @@
+import { parseEther } from "viem";
 import type {
   CandidatePool,
   CanonicalPoolRecord,
   CanonicalPoolResult,
+  Evidence,
   HexAddress,
   LaunchReceipt,
   NaiveOutcome,
@@ -10,18 +12,20 @@ import type {
   PresentationSnapshot,
   QuoteBoard,
   Requote,
+  ResolvedCanonicalPool,
   SwapExecution,
 } from "@/domain/protocol";
+import { getCanonicalPool, quoteExactIn, readLaunch, readSwap, sepoliaClient, tokenName } from "@/data/protocol/sepolia";
 
 /**
- * The UI only talks to this port. A viem-backed Sepolia adapter (contract/demo/sepolia/klamp-sdk.mjs)
- * can replace the mock without changing demo components or Zustand state.
+ * The UI only talks to this port. `sepoliaProtocolClient` reads Sepolia live; `mockProtocolClient`
+ * replays the recorded snapshot and backs the presentation seek.
  */
 export interface ProtocolClient {
   launchToken(): Promise<LaunchReceipt>;
   quoteCandidates(token: HexAddress): Promise<QuoteBoard>;
   naivePick(board: QuoteBoard): Promise<NaiveSelection>;
-  resolveCanonicalPool(token: HexAddress): Promise<CanonicalPoolResult>;
+  resolveCanonicalPool(token: HexAddress): Promise<ResolvedCanonicalPool>;
   requoteCanonical(key: PoolKey, poolId: HexAddress): Promise<Requote>;
   buildAndExecute(requote: Requote): Promise<SwapExecution>;
   executeNaive(selection: NaiveSelection): Promise<NaiveOutcome>;
@@ -51,15 +55,22 @@ const CHAIN_ID = 11155111;
 export const CANONICAL_KEY: PoolKey = { currency0: ZERO, currency1: KHOOK, fee: 3000, tickSpacing: 60, hooks: DELTA_FEE_HOOK };
 const UNDECLARED_KEY: PoolKey = { currency0: ZERO, currency1: KHOOK, fee: 500, tickSpacing: 10, hooks: DELTA_FEE_HOOK };
 
+const LAUNCH_TX: HexAddress = "0x88939990e4361d2a422ce1abad0a3d41f6372a71bb89b6bed2789de86db5e682";
+const SWAP_TX: HexAddress = "0x1cf6fddea42c635071e039f954659c1e5422ac33def47925e039f2e0f39ce04e";
+
 const AMOUNT_IN = "0.0005 ETH";
+const AMOUNT_IN_WEI = parseEther("0.0005");
 const SLIPPAGE_BPS = 500; // demo CLI default
 const WIDE_SLIPPAGE_BPS = 1500; // a meme trader's wide tolerance
 const CANONICAL_OUT = 196_119.71;
 const UNDECLARED_OUT = 196_739.12;
-const ATTACKED_OUT = 178_853.75; // UNDECLARED_OUT × 0.90 / 0.99: the 1% delta fee replaced by 10%
+/** The quoted output if the undeclared pool's hook charged 10% at swap time instead of its 1% delta fee. */
+const attackedOut = (quoted: number) => Math.round(((quoted * 0.9) / 0.99) * 100) / 100;
 const minOut = (quoted: number, bps = SLIPPAGE_BPS) => Math.round(quoted * (1 - bps / 10_000) * 100) / 100;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const RECORDED: Evidence = { kind: "recorded" };
+const live = (blockNumber: number | bigint): Evidence => ({ kind: "live", blockNumber: Number(blockNumber) });
 
 // Short on purpose: the scene animation, not a spinner, carries each step in the recorded demo.
 const DEMO_DELAY_MS = {
@@ -88,13 +99,14 @@ const CANONICAL_RECORD: CanonicalPoolRecord = {
 };
 
 const launchReceipt = (): LaunchReceipt => ({
-  txHash: "0x88939990e4361d2a422ce1abad0a3d41f6372a71bb89b6bed2789de86db5e682",
+  txHash: LAUNCH_TX,
   blockNumber: 11786120,
   token: KHOOK,
   symbol: "KHOOK",
   launchpad: DEMO_LAUNCHPAD,
   liquidityLocked: true,
   canonicalPool: CANONICAL_RECORD,
+  evidence: RECORDED,
 });
 
 const candidates = (): CandidatePool[] => [
@@ -127,22 +139,23 @@ const quoteBoard = (): QuoteBoard => ({
   quoter: "V4Quoter",
   quoterAddress: V4_QUOTER,
   candidates: candidates(),
+  evidence: RECORDED,
 });
 
-const naiveSelection = (): NaiveSelection => ({
-  chosen: "undeclared",
-  quotedOut: UNDECLARED_OUT,
-  slippageBps: SLIPPAGE_BPS,
-  minOut: minOut(UNDECLARED_OUT),
-});
+/** The naive router: the largest quote wins. */
+const naiveSelection = (board: QuoteBoard = quoteBoard()): NaiveSelection => {
+  const best = board.candidates.reduce((a, b) => (b.quotedOut > a.quotedOut ? b : a));
+  return { chosen: best.id, quotedOut: best.quotedOut, slippageBps: SLIPPAGE_BPS, minOut: minOut(best.quotedOut) };
+};
 
-const canonicalResult = (): Extract<CanonicalPoolResult, { status: "registered" }> => ({
+const canonicalResult = (): Extract<CanonicalPoolResult, { status: "registered" }> & { evidence: Evidence } => ({
   status: "registered",
   source: "ens",
   chainId: BigInt(CHAIN_ID),
   poolManager: POOL_MANAGER,
   poolId: CANONICAL_POOL_ID,
   key: CANONICAL_KEY,
+  evidence: RECORDED,
 });
 
 const requote = (): Requote => ({
@@ -152,6 +165,7 @@ const requote = (): Requote => ({
   quotedOut: CANONICAL_OUT,
   slippageBps: SLIPPAGE_BPS,
   minOut: minOut(CANONICAL_OUT),
+  evidence: RECORDED,
 });
 
 const execution = (): SwapExecution => ({
@@ -162,21 +176,25 @@ const execution = (): SwapExecution => ({
   amountIn: AMOUNT_IN,
   receivedOut: 196_197.61,
   hookFeeOut: 1_981.79,
-  txHash: "0x1cf6fddea42c635071e039f954659c1e5422ac33def47925e039f2e0f39ce04e",
+  txHash: SWAP_TX,
   blockNumber: 11786159,
+  evidence: RECORDED,
 });
 
-const naiveOutcome = (): NaiveOutcome => ({
-  quotedOut: UNDECLARED_OUT,
-  executedFeeBps: 1000,
-  receivedOut: ATTACKED_OUT,
-  lossBps: Math.round((1 - ATTACKED_OUT / UNDECLARED_OUT) * 10_000),
-  traderSlippageBps: SLIPPAGE_BPS,
-  traderMinOut: minOut(UNDECLARED_OUT),
-  wideSlippageBps: WIDE_SLIPPAGE_BPS,
-  wideMinOut: minOut(UNDECLARED_OUT, WIDE_SLIPPAGE_BPS),
-  simulated: true,
-});
+const naiveOutcome = (quotedOut = UNDECLARED_OUT): NaiveOutcome => {
+  const receivedOut = attackedOut(quotedOut);
+  return {
+    quotedOut,
+    executedFeeBps: 1000,
+    receivedOut,
+    lossBps: Math.round((1 - receivedOut / quotedOut) * 10_000),
+    traderSlippageBps: SLIPPAGE_BPS,
+    traderMinOut: minOut(quotedOut),
+    wideSlippageBps: WIDE_SLIPPAGE_BPS,
+    wideMinOut: minOut(quotedOut, WIDE_SLIPPAGE_BPS),
+    simulated: true,
+  };
+};
 
 export const mockProtocolClient: ProtocolClient = {
   async launchToken() {
@@ -187,9 +205,9 @@ export const mockProtocolClient: ProtocolClient = {
     await wait(DEMO_DELAY_MS.quotes);
     return quoteBoard();
   },
-  async naivePick() {
+  async naivePick(board) {
     await wait(DEMO_DELAY_MS.naive);
-    return naiveSelection();
+    return naiveSelection(board);
   },
   async resolveCanonicalPool() {
     await wait(DEMO_DELAY_MS.lookup);
@@ -203,9 +221,9 @@ export const mockProtocolClient: ProtocolClient = {
     await wait(DEMO_DELAY_MS.execute);
     return execution();
   },
-  async executeNaive() {
+  async executeNaive(selection) {
     await wait(DEMO_DELAY_MS.naiveExecute);
-    return naiveOutcome();
+    return naiveOutcome(selection.quotedOut);
   },
   getPresentationSnapshot() {
     const launch = launchReceipt();
@@ -227,4 +245,92 @@ export const mockProtocolClient: ProtocolClient = {
       naiveOutcome: naiveOutcome(),
     };
   },
+};
+
+/** Runs a live read alongside the scene's minimum delay, so a fast RPC does not rush the animation. */
+async function paced<T>(ms: number, read: Promise<T>): Promise<T> {
+  const [value] = await Promise.all([read, wait(ms)]);
+  return value;
+}
+
+/**
+ * Reads every step from Sepolia in the browser. Quotes and the ENSv2 lookup are fresh on each run; the launch
+ * and the Klamp-mode swap are the team's txs, decoded from their receipts and calldata. A launch, quote or swap
+ * read that fails falls back to the recorded value and is labelled as such. A failed ENS lookup stays
+ * `lookup_failed`, as in the SDK: it is never replaced by a recorded `registered`.
+ */
+export const sepoliaProtocolClient: ProtocolClient = {
+  async launchToken() {
+    try {
+      const launch = await paced(DEMO_DELAY_MS.launch, readLaunch(LAUNCH_TX));
+      return {
+        ...launchReceipt(),
+        blockNumber: launch.blockNumber,
+        token: launch.token,
+        launchpad: launch.issuer,
+        canonicalPool: {
+          ...CANONICAL_RECORD,
+          ensName: tokenName(launch.token),
+          token: launch.token,
+          poolId: launch.poolId,
+          key: launch.key,
+          issuer: launch.issuer,
+          creator: launch.creator,
+          textRecord: `eip155:${CHAIN_ID}:${launch.poolId}`,
+        },
+        evidence: live(launch.blockNumber),
+      };
+    } catch {
+      return launchReceipt();
+    }
+  },
+  async quoteCandidates() {
+    // Candidate discovery is the router's job; the two KHOOK/ETH pools are fixed, their quotes are live.
+    const read = async () => {
+      const blockNumber = await sepoliaClient.getBlockNumber();
+      const pools = candidates();
+      const quotes = await Promise.all(pools.map((pool) => quoteExactIn(pool.key, AMOUNT_IN_WEI, blockNumber)));
+      if (quotes.some((quote) => quote === null)) return quoteBoard();
+      return { ...quoteBoard(), candidates: pools.map((pool, index) => ({ ...pool, quotedOut: quotes[index]! })), evidence: live(blockNumber) };
+    };
+    return paced(DEMO_DELAY_MS.quotes, read().catch(() => quoteBoard()));
+  },
+  async naivePick(board) {
+    await wait(DEMO_DELAY_MS.naive);
+    return naiveSelection(board);
+  },
+  async resolveCanonicalPool(token) {
+    const lookup = await paced(DEMO_DELAY_MS.lookup, getCanonicalPool(token));
+    return lookup.blockNumber === null ? lookup.result : { ...lookup.result, evidence: live(lookup.blockNumber) };
+  },
+  async requoteCanonical(key, poolId) {
+    const read = async () => {
+      const blockNumber = await sepoliaClient.getBlockNumber();
+      const quotedOut = await quoteExactIn(key, AMOUNT_IN_WEI, blockNumber);
+      if (quotedOut === null) return requote();
+      return { ...requote(), key, poolId, quotedOut, minOut: minOut(quotedOut), evidence: live(blockNumber) };
+    };
+    return paced(DEMO_DELAY_MS.requote, read().catch(() => requote()));
+  },
+  async buildAndExecute(judged) {
+    try {
+      const swap = await paced(DEMO_DELAY_MS.execute, readSwap(SWAP_TX, judged.key.currency1));
+      return {
+        ...execution(),
+        routerAddress: swap.router ?? UNIVERSAL_ROUTER,
+        calldataVerified: swap.pools.length > 0 && swap.pools.every((poolId) => poolId.toLowerCase() === judged.poolId.toLowerCase()),
+        receivedOut: swap.receivedOut,
+        hookFeeOut: swap.hookFeeOut,
+        blockNumber: swap.blockNumber,
+        evidence: live(swap.blockNumber),
+      };
+    } catch {
+      return execution();
+    }
+  },
+  async executeNaive(selection) {
+    await wait(DEMO_DELAY_MS.naiveExecute);
+    return naiveOutcome(selection.quotedOut);
+  },
+  getPresentationSnapshot: mockProtocolClient.getPresentationSnapshot,
 };

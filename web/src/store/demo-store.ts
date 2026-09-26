@@ -8,10 +8,11 @@ import {
   type NaiveSelection,
   type QuoteBoard,
   type Requote,
+  type ResolvedCanonicalPool,
   type RouteJudgement,
   type SwapExecution,
 } from "@/domain/protocol";
-import { mockProtocolClient, type ProtocolClient } from "@/data/protocol/client";
+import { mockProtocolClient, sepoliaProtocolClient, type ProtocolClient } from "@/data/protocol/client";
 
 export type DemoStage = "idle" | "launch" | "quotes" | "naive" | "lookup" | "judge" | "requote" | "execute" | "outcome";
 export type LaunchVisualStep = "idle" | "deploying" | "initializing" | "recording" | "complete";
@@ -28,7 +29,7 @@ type DemoState = {
   launch: LaunchReceipt | null;
   board: QuoteBoard | null;
   naive: NaiveSelection | null;
-  canonical: CanonicalPoolResult | null;
+  canonical: ResolvedCanonicalPool | null;
   judgement: RouteJudgement | null;
   requote: Requote | null;
   execution: SwapExecution | null;
@@ -75,7 +76,7 @@ function judgeNaivePick(launch: LaunchReceipt, board: QuoteBoard, naive: NaiveSe
 
 export const useDemoStore = create<DemoState>((set, get) => ({
   ...initial,
-  async advance(client = mockProtocolClient) {
+  async advance(client = sepoliaProtocolClient) {
     const state = get();
     if (state.busy) return;
     const reach = (stage: DemoStage) => laterStage(get().furthestStage, stage);

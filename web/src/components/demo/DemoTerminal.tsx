@@ -3,6 +3,7 @@
 import styled from "@emotion/styled";
 import { AnimatePresence, animate, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
+import type { Evidence } from "@/domain/protocol";
 import { demoStageOrder, useDemoStore, type DemoStage } from "@/store/demo-store";
 import { colors, mono } from "@/styles/tokens";
 
@@ -144,8 +145,8 @@ const Head = styled.header`display: flex; align-items: flex-end; justify-content
 const Count = styled.div`font: 600 14px/1 ${mono}; color: ${colors.primaryHover}; margin-bottom: 10px;`;
 const Title = styled.h1`margin: 0; font-size: clamp(30px, 4.2vw, 54px); line-height: 1; letter-spacing: -.04em; font-weight: 700;`;
 const Line = styled.p`margin: 10px 0 0; font: 500 clamp(14px, 1.4vw, 18px)/1.3 ${mono}; color: ${colors.textSecondary};`;
-const Tag = styled.span`
-  display: inline-block; padding: 4px 8px; border: 1.5px solid ${colors.warning}; color: ${colors.warning};
+const Tag = styled.span<{ live?: boolean }>`
+  display: inline-block; padding: 4px 8px; border: 1.5px solid ${({ live }) => live ? colors.success : colors.warning}; color: ${({ live }) => live ? colors.success : colors.warning};
   font: 700 11px/1 ${mono}; letter-spacing: .06em; text-transform: uppercase;
 `;
 const Canvas = styled.div`position: relative; min-height: 0; display: grid; place-items: center;`;
@@ -190,6 +191,10 @@ export function DemoTerminal() {
   const declared = board?.candidates.find((candidate) => candidate.id === "canonical");
   const undeclared = board?.candidates.find((candidate) => candidate.id === "undeclared");
   const registered = canonical?.status === "registered";
+  const evidence: Evidence | undefined = {
+    idle: undefined, launch: launch?.evidence, quotes: board?.evidence, naive: board?.evidence, lookup: canonical?.evidence,
+    judge: canonical?.evidence, requote: requote?.evidence, execute: execution?.evidence, outcome: undefined,
+  }[stage];
 
   const next = useCallback(() => { void advance(); }, [advance]);
 
@@ -213,7 +218,11 @@ export function DemoTerminal() {
     return () => window.removeEventListener("keydown", onKey);
   }, [next, goBack, reset]);
 
-  const caption = captions[stage];
+  const caption = {
+    ...captions[stage],
+    ...(only("lookup") && launch && canonical && { line: `${short(launch.token.toLowerCase())}.tokens.klamp.eth → ${canonical.status}` }),
+    ...(only("judge") && judgement && { line: `verdict · ${judgement.verdict}` }),
+  };
 
   return (
     <ReducedMotion>
@@ -229,6 +238,11 @@ export function DemoTerminal() {
             </AnimatePresence>
           </div>
           {only("outcome") && <Tag>Naive side simulated</Tag>}
+          {!busy && evidence && (
+            <Tag live={evidence.kind === "live"} title={evidence.kind === "live" ? "Read from Sepolia in this browser" : "Recorded demo snapshot"}>
+              {evidence.kind === "live" ? `Live · Sepolia #${evidence.blockNumber}` : "Recorded snapshot"}
+            </Tag>
+          )}
         </Head>
 
         <Canvas>
@@ -258,13 +272,15 @@ export function DemoTerminal() {
             <Node {...P.undeclared} glyph="?" label="Undeclared pool" sub={undeclared ? short(undeclared.poolId) : "same pair"} tone={at("judge") ? "muted" : "danger"} show={at("quotes") && Boolean(board)} dim={at("requote")} />
 
             <AnimatePresence>
-              {only("launch") && launch && <Chip key="rec" x={880} y={150} text="pool = 0xcd97…95f6" tone="klamp" delay={1.3} />}
+              {only("launch") && launch && <Chip key="rec" x={880} y={150} text={`pool = ${short(launch.canonicalPool.poolId)}`} tone="klamp" delay={1.3} />}
               {only("launch") && launch && <Stamp key="once" x={P.declared.x} y={P.declared.y - 78} text="ONCE" tone="klamp" delay={1.9} />}
               {at("quotes") && !at("requote") && board && declared && <Chip key="qd" x={P.declared.x} y={P.declared.y + 72} text={<Counter to={declared.quotedOut} />} tone="ink" />}
               {at("quotes") && !at("requote") && board && undeclared && <Chip key="qu" x={P.undeclared.x} y={P.undeclared.y + 72} text={<Counter to={undeclared.quotedOut} delay={0.2} />} tone="danger" />}
               {only("quotes") && board && <Chip key="third" x={P.undeclared.x - 10} y={P.undeclared.y - 70} text="third party" tone="muted" delay={0.3} />}
               {only("naive") && naive && <Stamp key="best" x={P.undeclared.x - 170} y={P.undeclared.y - 60} text="BEST?" tone="danger" delay={0.6} />}
-              {only("lookup") && registered && <Chip key="reg" x={600} y={200} text="registered · 0xcd97…" tone="klamp" delay={0.8} />}
+              {only("lookup") && canonical && (
+                <Chip key="reg" x={600} y={200} text={canonical.status === "registered" ? `registered · ${canonical.poolId.slice(0, 6)}…` : canonical.status} tone={registered ? "klamp" : "danger"} delay={0.8} />
+              )}
               {at("judge") && judgement && !at("requote") && <Stamp key="x" x={P.undeclared.x} y={P.undeclared.y} text="REJECT" tone="danger" delay={0.2} />}
               {only("judge") && judgement && <Chip key="verdict" x={P.router.x} y={P.router.y + 80} text={judgement.verdict} tone="klamp" delay={0.6} big />}
               {at("requote") && requote && !at("outcome") && <Chip key="rq" x={P.declared.x} y={P.declared.y + 72} text={<Counter to={requote.quotedOut} />} tone="klamp" big />}

@@ -8,6 +8,9 @@ export type PoolKey = {
   hooks: HexAddress;
 };
 
+/** Where a step's values came from: read from Sepolia in this browser session, or the recorded demo snapshot. */
+export type Evidence = { kind: "live"; blockNumber: number } | { kind: "recorded" };
+
 export type IssuerProof = "create2" | "liquidity_launcher" | "liquidity_launcher_via";
 
 export type CanonicalPoolRecord = {
@@ -50,6 +53,9 @@ export type CanonicalPoolResult =
         | "multiple-launch-pools";
     };
 
+/** A lookup result as the UI receives it: the SDK state plus where it came from. */
+export type ResolvedCanonicalPool = CanonicalPoolResult & { evidence?: Evidence };
+
 export type RouteHop = {
   chainId: bigint;
   poolManager: HexAddress;
@@ -75,6 +81,7 @@ export type LaunchReceipt = {
   launchpad: HexAddress;
   liquidityLocked: true;
   canonicalPool: CanonicalPoolRecord;
+  evidence?: Evidence;
 };
 
 /** A candidate v4 pool as a quoting router sees it. `simulated` marks data that is not a live Sepolia pool. */
@@ -96,6 +103,7 @@ export type QuoteBoard = {
   quoter: string;
   quoterAddress: HexAddress;
   candidates: CandidatePool[];
+  evidence?: Evidence;
 };
 
 /** A naive router picks the largest quote and trusts it. */
@@ -121,6 +129,7 @@ export type Requote = {
   quotedOut: number;
   slippageBps: number;
   minOut: number;
+  evidence?: Evidence;
 };
 
 /** A Klamp-mode swap the team executed on Sepolia through the Universal Router. */
@@ -134,6 +143,7 @@ export type SwapExecution = {
   hookFeeOut: number;
   txHash: HexAddress;
   blockNumber: number;
+  evidence?: Evidence;
 };
 
 /**
