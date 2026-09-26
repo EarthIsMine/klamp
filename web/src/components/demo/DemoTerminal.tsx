@@ -5,30 +5,33 @@ import { Mark } from "@/components/brand/Mark";
 import { useDemoStore, type DemoStage } from "@/store/demo-store";
 import { colors, layout, mono } from "@/styles/tokens";
 
-const stageOrder: DemoStage[] = ["idle", "launch", "verify", "request", "enforce", "complete"];
+const stageOrder: DemoStage[] = ["idle", "launch", "verify", "attest", "request", "enforce", "complete"];
 
 const copy = {
-  idle: { state: "Step 1 of 4", title: "Declare the canonical pool", detail: "Write the issuer-authorized pool record once." },
-  launch: { state: "Step 1 complete", title: "Canonical pool recorded", detail: "The record now has an issuer proof and permanent PoolId." },
-  verify: { state: "Step 2 complete", title: "Route matched", detail: "Chain, PoolManager, and PoolId match the ENSv2 record." },
-  request: { state: "Step 3 complete", title: "Hook logic requested 30%", detail: "The fee cap simulation begins with a malicious request." },
-  enforce: { state: "Step 4 of 4", title: "Applying the 1% cap", detail: "Klamp returns the lower of the request and configured maximum." },
-  complete: { state: "Trace complete", title: "The request was capped", detail: "The route matched. The simulated applied fee is 1%." },
+  idle: { state: "Step 1 of 5", title: "Launch and record the pool", detail: "The issuer launches a token and writes its canonical pool under tokens.klamp.eth." },
+  launch: { state: "Step 1 complete", title: "Launch recorded in ENS", detail: "The token, initialized pool, and issuer-authorized record were created together." },
+  verify: { state: "Step 2 complete", title: "Canonical route verified", detail: "The resolver, chain, pool data, and proposed route agree." },
+  attest: { state: "Step 3 complete", title: "Hook cap verified", detail: "The pool hook resolves under hooks.klamp.eth with a 1% maximum." },
+  request: { state: "Step 4 complete", title: "Hook logic requested 30%", detail: "Malicious logic inside the verified proxy sends a 3,000 bps request." },
+  enforce: { state: "Step 5 of 5", title: "Applying the verified cap", detail: "Klamp applies the maximum resolved from the hook identity record." },
+  complete: { state: "Trace complete", title: "The request was capped", detail: "The canonical route held and the simulated swap applied the verified 1% maximum." },
 };
 
 const steps = [
-  { stage: "launch" as const, index: "1", title: "Declare", detail: "Canonical record" },
-  { stage: "verify" as const, index: "2", title: "Verify", detail: "Route match" },
-  { stage: "request" as const, index: "3", title: "Request 30%", detail: "Mock input" },
-  { stage: "enforce" as const, index: "4", title: "Apply 1%", detail: "Mock cap" },
+  { stage: "launch" as const, index: "1", title: "Launch", detail: "ENS record" },
+  { stage: "verify" as const, index: "2", title: "Verify route", detail: "Canonical pool" },
+  { stage: "attest" as const, index: "3", title: "Verify hook", detail: "ENS cap" },
+  { stage: "request" as const, index: "4", title: "Request 30%", detail: "Attack input" },
+  { stage: "enforce" as const, index: "5", title: "Enforce 1%", detail: "Capped output" },
 ];
 
 function stageIndex(stage: DemoStage) { return stageOrder.indexOf(stage); }
 function short(value: string) { return `${value.slice(0, 8)}…${value.slice(-6)}`; }
+function amount(value: number) { return new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value); }
 
 const Shell = styled.section`
   width: 100%; max-width: ${layout.maxWidth}; height: 100%; min-height: 0; margin: 0 auto; padding: 18px 24px 22px; display: flex;
-  @media (max-width: 820px), (max-height: 700px) { height: auto; min-height: calc(100dvh - 56px); padding: 14px 16px 28px; }
+  @media (max-width: 820px), (max-height: 640px) { height: auto; min-height: calc(100dvh - 56px); padding: 14px 16px 28px; }
 `;
 const Instrument = styled.div`
   flex: 1; min-width: 0; min-height: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr);
@@ -43,11 +46,11 @@ const LiveMark = styled.span<{ complete: boolean }>`width: 8px; height: 8px; bac
 const Network = styled.div`color: ${colors.textMuted}; font-size: 12px;`;
 
 const Progress = styled.ol`
-  list-style: none; margin: 0; padding: 0 16px; display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid ${colors.border};
+  list-style: none; margin: 0; padding: 0 16px; display: grid; grid-template-columns: repeat(5, 1fr); border-bottom: 1px solid ${colors.border};
   @media (max-width: 680px) { padding: 0; overflow-x: auto; }
 `;
 const ProgressItem = styled.li<{ active: boolean; done: boolean }>`
-  position: relative; min-width: 148px; padding: 13px 10px 12px; color: ${({ active, done }) => active || done ? colors.textPrimary : colors.textMuted};
+  position: relative; min-width: 132px; padding: 13px 10px 12px; color: ${({ active, done }) => active || done ? colors.textPrimary : colors.textMuted};
   &::before {
     content: ""; position: absolute; left: 10px; right: 10px; top: -1px; height: 3px;
     background: ${({ active, done }) => active ? colors.primary : done ? colors.textPrimary : "transparent"};
@@ -56,12 +59,12 @@ const ProgressItem = styled.li<{ active: boolean; done: boolean }>`
   @keyframes progressIn { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 `;
 const StepNumber = styled.span`font: 500 12px/1 ${mono}; margin-right: 8px;`;
-const StepTitle = styled.span`font-size: 14px; font-weight: 650;`;
+const StepTitle = styled.span`font-size: 13px; font-weight: 650;`;
 const StepDetail = styled.div`font-size: 12px; color: ${colors.textMuted}; margin: 5px 0 0 20px;`;
 
 const Stage = styled.div`
   min-height: 0; overflow: hidden; padding: 20px 24px 19px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
-  @media (max-width: 820px), (max-height: 700px) { overflow: visible; display: block; }
+  @media (max-width: 820px), (max-height: 640px) { overflow: visible; display: block; }
   @media (max-width: 620px) { padding: 20px 16px; }
 `;
 const StageHead = styled.div`
@@ -81,17 +84,28 @@ const Scene = styled.div`
 `;
 const SceneLabel = styled.div`color: ${colors.textMuted}; font-size: 13px; margin-bottom: 8px;`;
 
-const Declaration = styled.div`width: min(720px, 100%); display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 30px; align-items: center;`;
-const DeclarationMark = styled.div`display: grid; place-items: center;`;
-const DeclarationCopy = styled.div`
-  h2 { margin: 0 0 8px; font-size: 24px; }
-  > p { margin: 0 0 22px; color: ${colors.textSecondary}; font-size: 15px; }
+const LaunchFlow = styled.div`
+  width: min(900px, 100%); display: grid; grid-template-columns: 220px 96px minmax(0, 1fr); align-items: center;
+  @media (max-width: 720px) { grid-template-columns: 1fr; gap: 20px; }
 `;
-const Receipt = styled.dl`
-  margin: 0; display: grid; grid-template-columns: 120px minmax(0, 1fr); border-top: 1px solid ${colors.borderStrong};
-  dt, dd { margin: 0; padding: 11px 0; border-bottom: 1px solid ${colors.border}; }
-  dt { color: ${colors.textMuted}; font-size: 13px; }
+const LaunchActor = styled.div`
+  padding: 18px 20px; background: ${colors.textPrimary}; color: white;
+  h2 { margin: 0; font-size: 19px; }
+  p { margin: 8px 0 0; color: ${colors.border}; font-size: 13px; line-height: 1.45; }
+`;
+const LaunchBridge = styled.div`
+  position: relative; display: grid; place-items: center;
+  &::before { content: ""; position: absolute; left: 0; right: 0; height: 2px; background: ${colors.primary}; transform-origin: left; animation: launchLine .42s ease-out both; }
+  img { position: relative; z-index: 1; background: white; padding: 8px; }
+  @keyframes launchLine { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @media (max-width: 720px) { display: none; }
+`;
+const LaunchReceipt = styled.dl`
+  margin: 0; display: grid; grid-template-columns: 145px minmax(0, 1fr); border-top: 1px solid ${colors.borderStrong};
+  dt, dd { margin: 0; padding: 12px 0; border-bottom: 1px solid ${colors.border}; }
+  dt { color: ${colors.textSecondary}; font-size: 13px; }
   dd { font: 500 13px/1.45 ${mono}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  dd[data-complete="true"] { color: ${colors.textPrimary}; }
 `;
 
 const Comparison = styled.div`width: min(880px, 100%); display: grid; grid-template-columns: 1fr 104px 1fr; align-items: center;`;
@@ -109,9 +123,37 @@ const AnimatedClamp = styled.div<{ matched: boolean }>`
   @keyframes join { from { transform: scaleX(0); } to { transform: scaleX(1); } }
   @keyframes clamp { 0% { transform: scale(1.16); } 65% { transform: scale(.94); } 100% { transform: scale(1); } }
 `;
-const MatchResult = styled.div`
-  grid-column: 1 / -1; margin-top: 30px; padding: 14px 18px; background: ${colors.primarySoft}; text-align: center; font-size: 15px;
-  strong { font-weight: 700; }
+const VerificationChecks = styled.div`
+  grid-column: 1 / -1; margin-top: 30px; display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid ${colors.borderStrong};
+  div { padding: 12px 14px; }
+  div + div { border-left: 1px solid ${colors.border}; }
+  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 4px; }
+  strong { font-size: 13px; }
+  @media (max-width: 680px) { grid-template-columns: 1fr 1fr; div:nth-of-type(3) { border-left: 0; border-top: 1px solid ${colors.border}; } div:nth-of-type(4) { border-top: 1px solid ${colors.border}; } }
+`;
+
+const HookProof = styled.div`
+  width: min(880px, 100%); display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 48px; align-items: center;
+  @media (max-width: 700px) { grid-template-columns: 1fr; gap: 24px; }
+`;
+const HookIdentity = styled.div`
+  display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 24px; align-items: center;
+  h2 { margin: 0 0 8px; font-size: 23px; }
+  p { margin: 0; color: ${colors.textSecondary}; font: 500 13px/1.5 ${mono}; overflow-wrap: anywhere; }
+`;
+const HookCap = styled.div`
+  padding-left: 34px; border-left: 1px solid ${colors.borderStrong}; text-align: right;
+  span { display: block; color: ${colors.textMuted}; font-size: 13px; margin-bottom: 9px; }
+  strong { font: 500 clamp(52px, 6vw, 76px)/1 ${mono}; letter-spacing: -.07em; color: ${colors.primaryHover}; animation: capReveal .42s cubic-bezier(.2,.8,.3,1) both; }
+  @keyframes capReveal { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: scale(1); } }
+  @media (max-width: 700px) { border-left: 0; border-top: 1px solid ${colors.borderStrong}; padding: 20px 0 0; text-align: left; }
+`;
+const HookChecks = styled.div`
+  grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid ${colors.borderStrong};
+  div { padding: 13px 0; }
+  div + div { border-left: 1px solid ${colors.border}; padding-left: 22px; }
+  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 4px; }
+  strong { font-size: 14px; }
 `;
 
 const AttackSequence = styled.div`
@@ -206,9 +248,13 @@ const AppliedFee = styled(FeeSide)`
   strong { color: ${colors.primaryHover}; }
   @keyframes appliedReveal { from { opacity: 0; transform: translateX(-26px) scale(.84); } to { opacity: 1; transform: translateX(0) scale(1); } }
 `;
-const EnforcementResult = styled.div`
-  grid-column: 1 / -1; margin-top: 28px; color: ${colors.textSecondary}; font-size: 15px; animation: resultIn .28s ease-out .72s both;
-  strong { color: ${colors.textPrimary}; }
+const SettlementProof = styled.div`
+  grid-column: 1 / -1; width: min(560px, 100%); margin: 28px auto 0; display: grid; grid-template-columns: 1fr 1fr;
+  border-top: 1px solid ${colors.borderStrong}; animation: resultIn .28s ease-out .72s both;
+  div { padding: 12px 18px 0; }
+  div + div { border-left: 1px solid ${colors.border}; }
+  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 4px; }
+  strong { font: 600 15px/1.3 ${mono}; color: ${colors.textPrimary}; }
   @keyframes resultIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
 `;
 
@@ -240,37 +286,46 @@ const ReducedMotion = styled.div`
 `;
 
 function actionLabel(stage: DemoStage, busy: boolean) {
-  if (busy && stage === "launch") return "Declaring…";
-  if (busy && stage === "verify") return "Verifying…";
+  if (busy && stage === "launch") return "Launching…";
+  if (busy && stage === "verify") return "Verifying route…";
+  if (busy && stage === "attest") return "Verifying hook…";
   if (busy && stage === "enforce") return "Applying cap…";
-  if (stage === "idle") return "Declare canonical pool";
+  if (stage === "idle") return "Launch token and record pool";
   if (stage === "launch") return "Verify proposed route";
-  if (stage === "verify") return "Request 30% fee";
+  if (stage === "verify") return "Verify hook cap";
+  if (stage === "attest") return "Request 30% fee";
   if (stage === "request") return "Apply 1% cap";
   if (stage === "complete") return "Start over";
   return "Working…";
 }
 
+function poolStatus(recorded: boolean) {
+  return recorded ? "Written once" : "Not started";
+}
+
 function routeStatus(stage: DemoStage, matched: boolean) {
   if (matched) return "Route matched";
-  if (stageIndex(stage) >= stageIndex("launch")) return "Pool declared";
+  if (stageIndex(stage) >= stageIndex("verify")) return "Checking";
   return "Not started";
 }
 
-function feeCapStatus(stage: DemoStage, enforced: boolean) {
-  if (enforced) return "Capped at 1%";
-  if (stageIndex(stage) >= stageIndex("request")) return "30% requested";
+function feeCapStatus(stage: DemoStage, verified: boolean, enforced: boolean) {
+  if (enforced) return "Applied at 1%";
+  if (verified) return "Verified at 1%";
   return "Not started";
 }
 
 export function DemoTerminal() {
-  const { stage, busy, launch, canonical, comparison, enforcement, advance, reset } = useDemoStore();
+  const { stage, busy, launch, canonical, comparison, attestation, enforcement, advance, reset } = useDemoStore();
   const current = stageIndex(stage);
   const view = copy[stage];
   const found = canonical?.status === "found";
   const matched = comparison?.status === "match";
+  const hookVerified = attestation?.status === "verified";
   const record = launch?.canonicalPool ?? null;
   const enforced = enforcement !== null;
+  const capBps = attestation?.capBps ?? 100;
+  const capPercent = (capBps / 100).toFixed(2);
   const poolId = found ? canonical.poolId : record?.poolId;
   const manager = found ? short(canonical.poolManager) : "Resolving after declaration";
   const sceneKey = stage === "enforce" || stage === "complete"
@@ -283,7 +338,7 @@ export function DemoTerminal() {
         <Instrument translate="no">
           <InstrumentHead>
             <TraceName><LiveMark complete={stage === "complete"} />Verification trace 01</TraceName>
-            <Network>Sepolia fixture</Network>
+            <Network>Local mock</Network>
           </InstrumentHead>
           <Progress aria-label="Trace progress">
             {steps.map((item) => {
@@ -305,18 +360,19 @@ export function DemoTerminal() {
 
             {(stage === "idle" || stage === "launch") && (
               <Scene key={sceneKey}>
-                <Declaration>
-                  <DeclarationMark><Mark size={82} /></DeclarationMark>
-                  <DeclarationCopy>
-                    <SceneLabel>Canonical pool record</SceneLabel>
-                    <h2>{record ? "Record written" : busy ? "Writing record…" : "Ready to declare"}</h2>
-                    <p>{record?.ensName ?? "0x<token>.tokens.klamp.eth"}</p>
-                    <Receipt>
-                      <dt>Issuer proof</dt><dd>{record?.issuerProof ?? "Pending"}</dd>
-                      <dt>PoolId</dt><dd>{record ? short(record.poolId) : "Not written"}</dd>
-                    </Receipt>
-                  </DeclarationCopy>
-                </Declaration>
+                <LaunchFlow>
+                  <LaunchActor>
+                    <SceneLabel>Launch actor</SceneLabel>
+                    <h2>CREATE2 launcher</h2>
+                    <p>Deploys the token, initializes its pool, and calls the registrar.</p>
+                  </LaunchActor>
+                  <LaunchBridge><Mark size={62} /></LaunchBridge>
+                  <LaunchReceipt>
+                    <dt>Token deployed</dt><dd data-complete={Boolean(record)}>{record ? short(record.token) : busy ? "Deploying…" : "Waiting"}</dd>
+                    <dt>Pool initialized</dt><dd data-complete={Boolean(record)}>{record ? short(record.poolId) : busy ? "Initializing…" : "Waiting"}</dd>
+                    <dt>ENS record written</dt><dd data-complete={Boolean(record)}>{record?.ensName ?? (busy ? "Writing…" : "0x<token>.tokens.klamp.eth")}</dd>
+                  </LaunchReceipt>
+                </LaunchFlow>
               </Scene>
             )}
 
@@ -326,15 +382,41 @@ export function DemoTerminal() {
                   <CompareSide><SceneLabel>ENSv2 record</SceneLabel><h2>Canonical pool</h2><strong>{poolId ? short(poolId) : "Resolving…"}</strong><p>Chain 11155111 · {manager}</p></CompareSide>
                   <AnimatedClamp matched={matched}><Mark size={70} /></AnimatedClamp>
                   <CompareSideRight><SceneLabel>Proposed route</SceneLabel><h2>Route branch 0</h2><strong>{matched && poolId ? short(poolId) : "Waiting…"}</strong><p>{matched ? "Chain and PoolManager agree" : "Comparing declared fields"}</p></CompareSideRight>
-                  {matched && <MatchResult><strong>Match.</strong> The proposed route uses the canonical pool.</MatchResult>}
+                  <VerificationChecks>
+                    <div><span>Resolver</span><strong>{found ? "Trusted" : "Checking"}</strong></div>
+                    <div><span>Chain</span><strong>{found ? "Verified" : "Checking"}</strong></div>
+                    <div><span>Pool data</span><strong>{found && record?.dataVerified ? "Recomputed" : "Checking"}</strong></div>
+                    <div><span>Route</span><strong>{matched ? "Match" : "Checking"}</strong></div>
+                  </VerificationChecks>
                 </Comparison>
+              </Scene>
+            )}
+
+            {stage === "attest" && (
+              <Scene key={sceneKey}>
+                <HookProof>
+                  <HookIdentity>
+                    <Mark size={72} />
+                    <div>
+                      <SceneLabel>Hook identity record</SceneLabel>
+                      <h2>{hookVerified ? "Verified capped proxy" : "Resolving hook identity…"}</h2>
+                      <p>{attestation?.ensName ?? `${record?.key.hooks.toLowerCase()}.hooks.klamp.eth`}</p>
+                    </div>
+                  </HookIdentity>
+                  <HookCap><span>Maximum fee</span><strong>{hookVerified ? `${capPercent}%` : "…"}</strong></HookCap>
+                  <HookChecks>
+                    <div><span>ENS identity</span><strong>{hookVerified ? "Verified" : "Checking"}</strong></div>
+                    <div><span>Code hash</span><strong>{attestation ? short(attestation.codeHash) : "Checking"}</strong></div>
+                    <div><span>Namespace</span><strong>hooks.klamp.eth</strong></div>
+                  </HookChecks>
+                </HookProof>
               </Scene>
             )}
 
             {stage === "request" && (
               <Scene key={sceneKey}>
                 <AttackSequence>
-                  <AttackOrigin><span>Request source</span><strong>Malicious hook</strong><code>feeOverride(3000)</code></AttackOrigin>
+                  <AttackOrigin><span>Inside verified proxy</span><strong>Malicious logic</strong><code>feeOverride(3000)</code></AttackOrigin>
                   <AttackRail aria-hidden="true"><i /><i /><i /></AttackRail>
                   <AttackPayload><SceneLabel>Incoming fee request</SceneLabel><FeeValue>30.00%</FeeValue><FeeCaption>3,000 bps sent toward the pool.</FeeCaption></AttackPayload>
                 </AttackSequence>
@@ -345,17 +427,21 @@ export function DemoTerminal() {
               <Scene key={sceneKey}>
                 <Enforcement>
                   <IncomingFee><span>Incoming</span><strong style={{ color: colors.danger }}>30.00%</strong></IncomingFee>
-                  <Cap><Mark size={76} /><span>maximum 1%</span></Cap>
-                  <AppliedFee><span>Applied</span><strong>{enforced ? "1.00%" : "…"}</strong></AppliedFee>
-                  <EnforcementResult>{enforced ? <><strong>Cap enforced.</strong> The simulated quote keeps the configured maximum.</> : "Calculating min(requested fee, configured cap)…"}</EnforcementResult>
+                  <Cap><Mark size={76} /><span>ENS maximum {capPercent}%</span></Cap>
+                  <AppliedFee><span>Applied</span><strong>{enforced ? `${(enforcement.appliedBps / 100).toFixed(2)}%` : "…"}</strong></AppliedFee>
+                  <SettlementProof>
+                    <div><span>Quoted output</span><strong>{amount(enforcement?.quotedOut ?? 41842.17)}</strong></div>
+                    <div><span>Received output</span><strong>{enforced ? amount(enforcement.receivedOut) : "…"}</strong></div>
+                  </SettlementProof>
                 </Enforcement>
               </Scene>
             )}
 
             <Bottom>
               <Statuses>
-                <Status><span>Pool verification</span><strong>{routeStatus(stage, matched)}</strong></Status>
-                <Status><span>Fee cap preview</span><strong>{feeCapStatus(stage, enforced)}</strong></Status>
+                <Status><span>Pool record</span><strong>{poolStatus(Boolean(record))}</strong></Status>
+                <Status><span>Route</span><strong>{routeStatus(stage, matched)}</strong></Status>
+                <Status><span>Hook cap</span><strong>{feeCapStatus(stage, hookVerified, enforced)}</strong></Status>
               </Statuses>
               <Actions>
                 {stage !== "idle" && <Reset onClick={reset}>Reset</Reset>}

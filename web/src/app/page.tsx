@@ -211,7 +211,7 @@ export default function Home() {
           </BoundaryGrid>
           <FeeCapNote>
             <h3>Fee cap preview</h3>
-            <p>After the route is verified, the demo simulates a CappedHook limiting a <strong>30% request</strong> to a <strong>1% cap</strong>. That enforcement is not part of the current contract build.</p>
+            <p>After the route is verified, the demo resolves the hook identity under <strong>hooks.klamp.eth</strong>, then simulates a <strong>30% request</strong> being limited to its recorded <strong>1% maximum</strong>. That enforcement is not part of the current contract build.</p>
           </FeeCapNote>
         </BoundaryInner>
       </Boundary>

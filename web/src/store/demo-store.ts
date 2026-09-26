@@ -9,7 +9,7 @@ import {
 } from "@/domain/protocol";
 import { mockProtocolClient, type ProtocolClient } from "@/data/protocol/client";
 
-export type DemoStage = "idle" | "launch" | "verify" | "request" | "enforce" | "complete";
+export type DemoStage = "idle" | "launch" | "verify" | "attest" | "request" | "enforce" | "complete";
 
 type DemoState = {
   stage: DemoStage;
@@ -60,12 +60,18 @@ export const useDemoStore = create<DemoState>((set, get) => ({
         tokenIn: state.launch.canonicalPool.key.currency0,
         tokenOut: state.launch.token,
       }]]);
-      const attestation = await client.resolveHookAttestation(state.launch.canonicalPool.key.hooks);
-      set({ canonical, comparison, attestation, stage: "verify", busy: false });
+      set({ canonical, comparison, stage: "verify", busy: false });
       return;
     }
 
-    if (state.stage === "verify") {
+    if (state.stage === "verify" && state.launch) {
+      set({ stage: "attest", busy: true });
+      const attestation = await client.resolveHookAttestation(state.launch.canonicalPool.key.hooks);
+      set({ attestation, stage: "attest", busy: false });
+      return;
+    }
+
+    if (state.stage === "attest") {
       set({ stage: "request" });
       return;
     }

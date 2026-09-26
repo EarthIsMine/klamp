@@ -7,7 +7,7 @@ import { colors, layout } from "@/styles/tokens";
 
 const Screen = styled.main`
   height: 100dvh; min-height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden;
-  @media (max-width: 820px), (max-height: 700px) { height: auto; overflow: visible; }
+  @media (max-width: 820px), (max-height: 640px) { height: auto; overflow: visible; }
 `;
 const Header = styled.header`border-bottom: 1px solid ${colors.border}; background: ${colors.background};`;
 const HeaderInner = styled.div`
@@ -36,9 +36,9 @@ export default function DemoPage() {
           <Brand href="/"><Mark />Klamp</Brand>
           <Session aria-label="Demo context">
             <strong>Protocol trace</strong>
-            <span>Canonical route</span>
-            <span>Fee cap preview</span>
-            <span>Sepolia fixture</span>
+            <span>klamp.eth namespaces</span>
+            <span>Mock data</span>
+            <span>No wallet or RPC</span>
           </Session>
           <Back href="/">Project overview</Back>
         </HeaderInner>

@@ -28,12 +28,12 @@ Replace the mock `ProtocolClient` with a viem-backed adapter to connect the UI. 
 
 ## State model and demo scope
 
-The frontend follows the implemented Phase 1 SDK state model:
+The frontend follows the implemented canonical-pool SDK state model:
 
 - canonical pool resolution: `found | missing | invalid | unavailable | ambiguous`
 - route comparison: `match | mismatch | blocked`
 
-The happy path launches a token, resolves the write-once ENSv2 canonical pool record, and verifies the declared route. It then continues into a clearly labelled Phase 2 mock where a 3,000 bps fee request is capped at 100 bps. That cap is not implemented by the current contracts, and mock addresses or receipts are not live-chain claims.
+The five-step happy path launches a token and writes its pool under `<token>.tokens.klamp.eth`, verifies the canonical route, resolves a 100 bps hook cap under `<hook>.hooks.klamp.eth`, sends a 3,000 bps request, and simulates the proxy applying 100 bps while quoted and received output remain equal. The demo uses the typed mock client: no wallet, RPC, ENS lookup, or transaction is performed, and mock addresses or receipts are not live-chain claims.
 
 ## GitHub Pages deployment
 

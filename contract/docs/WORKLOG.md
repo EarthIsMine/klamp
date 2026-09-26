@@ -376,3 +376,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/demo/`의 네 번째 버튼을 누르고 clamp 충돌 애니메이션이 한 번만 실행되며 동일한 화면에서 1% 결과가 나타나는지 확인한다.
 - 남은 문제: 실제 GitHub Pages 배포 화면과 모바일 실기기의 애니메이션 검증은 미실행이다.
+
+## WEB16 — klamp.eth 기반 5단계 mock 검증 흐름
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×700 검증 / Codex, `frontend-design` skill
+- AI 수행: 데모를 `Launch + ENS record` → `Verify route` → `Verify hook` → `Request 30%` → `Enforce 1%`의 다섯 단계로 재구성했다. 런처가 토큰과 풀을 만든 뒤 `tokens.klamp.eth`에 canonical pool을 기록하는 과정, route 재계산, `hooks.klamp.eth`에서 확인한 hook code hash와 1% 상한, verified proxy 내부 악성 로직의 3,000 bps 요청, 최종 1% 적용과 quoted/received output 일치를 각 장면에 반영했다. 기존 공격 payload와 clamp 충돌 애니메이션은 유지했고, 화면 상단과 계측기 안에 local mock 및 wallet/RPC 미연결 상태를 명시했다.
+- 사람의 결정/수정: 실제 컨트랙트 연결은 보류하고, 기존 상호작용과 애니메이션 수준을 유지하면서 컨트랙트 연결 및 mock 여부 표시 직전까지의 프론트 데모 구성을 우선 진행하도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `frontend-design` skill.
+- AI 실행 검증: `pnpm lint`, `pnpm build`를 통과했다. Chrome에서 다섯 단계의 상태와 버튼을 순서대로 실행해 ENS record, canonical route, hook cap, 30% request, 1% applied 및 quoted/received output 일치를 확인했다. `Start over` 복귀와 1470×700 화면에서 document/viewport 높이가 모두 700px인 것도 확인했다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 다섯 버튼을 순서대로 누르며 각 ENS namespace와 검증 결과, 공격/방어 애니메이션, 최종 output 일치, `Mock data`와 `No wallet or RPC` 표기를 확인한다.
+- 남은 문제: 실제 wallet/RPC/ENS 및 배포 컨트랙트 연결, Sepolia live data 전환, 모바일 실기기 검증은 미실행이다.
