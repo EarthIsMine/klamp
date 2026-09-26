@@ -1,8 +1,8 @@
-# 배포와 검증 재현
+# Deployment and Verification Reproduction
 
-모든 명령은 `contract/`에서 실행한다. 공개 네트워크 실배포는 아직 수행하지 않았다. `deployments/sepolia.candidates.json`은 원문 및 고정 ENS 저장소의 후보 주소이며 검증된 manifest가 아니다.
+Run all commands from `contract/`. A real public network deployment has not been performed yet. `deployments/sepolia.candidates.json` holds candidate addresses from the original text and the pinned ENS repository; it is not a verified manifest.
 
-## 로컬 전체 실행
+## Full Local Run
 
 ```sh
 ./scripts/setup-dependencies.sh
@@ -12,44 +12,44 @@ npm run typecheck
 npm run test:e2e
 ```
 
-마지막 명령은 새 Anvil을 시작해 실제 ENSv2·v4·registrar·ERC20 probe를 배포하고, 풀 초기화·등록·봉인·viem 조회·권한 eth_call을 검증한 뒤 Anvil을 종료한다. 생성 파일은 `deployments/local.json`, `deployments/local.verification.json`이다. verification은 공개 주소·버전·관측 코드 해시·배포 블록·트랜잭션 해시·만료·봉인 상태를 포함한다. 로컬은 소스에서 배포한 환경이며 Sepolia 증거가 아니다.
+The last command starts a fresh Anvil, deploys real ENSv2, v4, the registrar and an ERC20 probe, verifies pool initialization, registration, seal, viem lookup and permission eth_calls, then shuts down Anvil. Generated files are `deployments/local.json` and `deployments/local.verification.json`. The verification file includes public addresses, versions, observed code hashes, deployment block, transaction hashes, expiry and seal state. Local is an environment deployed from source and is not Sepolia evidence.
 
-데모를 계속 사용하려면 별도 터미널에서 로컬 노드를 유지한다.
+To keep using the demo, keep a local node running in a separate terminal.
 
 ```sh
 anvil --silent --port 18545
-# 다른 터미널, contract/:
+# In another terminal, contract/:
 export RPC_URL=http://127.0.0.1:18545
 export OPERATOR=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 forge script script/LocalPhase1.s.sol:LocalPhase1 --rpc-url "$RPC_URL" --broadcast --unlocked --slow
 npm run demo
 ```
 
-브라우저에서 http://127.0.0.1:4173 를 연다. ProbeToken은 실제 ERC20이며 초기화 풀에 유동성은 추가하지 않는다. 거래 전송은 제공하지 않는다. 로컬 공개 개발 계정은 테스트 전용이다.
+Open http://127.0.0.1:4173 in a browser. ProbeToken is a real ERC20, and no liquidity is added to the initialized pool. Sending trades is not provided. The local public development account is for testing only.
 
-## Sepolia 팀 배포 (2026-09-26)
+## Sepolia Team Deployment (2026-09-26)
 
-팀원이 Sepolia **ENSv2 Beta 세트**에 1단계를 배포하고 역할을 회수했다. 주소는 [`deployments/sepolia.phase1.json`](../deployments/sepolia.phase1.json)에 체인에서 다시 읽은 값으로 기록했다.
+A team member deployed Phase 1 to the Sepolia **ENSv2 Beta set** and performed role revocation. Addresses are recorded in [`deployments/sepolia.phase1.json`](../deployments/sepolia.phase1.json) as values re-read from the chain.
 
-- UniversalResolver는 `0x5d25c1d6…`다. 설계 문서의 `0x85edf8…`는 이전 후보 세트(ETH registry `0x67b728…`)를 따라가며, 거기에도 같은 운영자가 먼저 만든 `klamp.eth`가 남아 있다. 조회에는 Beta 세트만 쓴다.
-- 배포 registrar는 Beta resolver API(이름 기반 `setText(bytes name, …)`, 키 단위 권한)에 맞춘 버전이다. description·url은 `setTokenText`로 registrar가 크리에이터를 확인해 쓴다. C14에서 이 저장소의 `src/`를 Sourcify 검증 소스와 동일하게 맞췄고, 0.8.26 빌드 결과가 immutable·메타데이터를 제외하고 배포 바이트코드와 일치한다. 셋업·로컬 테스트도 같은 ENS 커밋(`f2f0a05`) 위에서 돈다.
-- 역할: `klamp.eth`·`tokens.klamp.eth` 역할 0. klamp 레지스트리 루트에 운영자의 REGISTRAR + admin만 남음(hooks 등록용). 역할 회수 트랜잭션에서 토큰 ID가 재발행되어 익스플로러에는 "transferred → 0x0"로 보이지만 소유권 이전·소각이 아니다.
-- explorer.ens.dev는 `klamp.eth`·`tokens.klamp.eth`를 보여주지만, 와일드카드 토큰 이름(`0x….tokens.klamp.eth`)은 Not found다. 등록된 라벨만 표시하는 것으로 보이며, 레코드는 viem `getEnsText`로 읽힌다.
-- ENSv2 Sepolia는 주기적으로 초기화될 수 있다(익스플로러 공지, 최근 2026-09-15). 발표 전 녹화본을 확보한다.
+- The UniversalResolver is `0x5d25c1d6…`. The design doc's `0x85edf8…` follows the earlier candidate set (ETH registry `0x67b728…`), where a `klamp.eth` created earlier by the same operator also remains. Only the Beta set is used for lookups.
+- The deployed registrar is a version adapted to the Beta resolver API (name-based `setText(bytes name, …)`, per-key permissions). description and url are written through `setTokenText`, with the registrar checking the creator. In C14 this repository's `src/` was made identical to the Sourcify-verified source; in C16 its Korean comments were translated to English, so the code is identical but the comments (and therefore the metadata hash) differ. The 0.8.26 build output matches the deployed bytecode except for immutables and metadata. Setup and local tests also run on the same ENS commit (`f2f0a05`).
+- Roles: `klamp.eth` and `tokens.klamp.eth` have 0 roles. Only the operator's REGISTRAR + admin remain on the klamp registry root (for hooks registration). In the role revocation transaction the token ID was reissued, so the explorer shows "transferred → 0x0", but it is not an ownership transfer or burn.
+- explorer.ens.dev shows `klamp.eth` and `tokens.klamp.eth`, but wildcard token names (`0x….tokens.klamp.eth`) are Not found. It appears to display only registered labels; the records are readable with viem `getEnsText`.
+- ENSv2 Sepolia may be reset periodically (explorer notice, most recently 2026-09-15). Secure a recording before the presentation.
 
-Sepolia 조회 데모 (읽기 전용):
+Sepolia lookup demo (read-only):
 
 ```sh
 PORT=4174 MANIFEST=deployments/sepolia.phase1.json RPC_URL=<sepolia RPC> npm run demo
 ```
 
-## Sepolia 준비와 dry-run
+## Sepolia Preparation and Dry-Run
 
-1. `.env.example`을 무시되는 `.env`로 복사해 설정한다. 서명은 Foundry keystore를 사용하고 비밀키를 manifest에 넣지 않는다. registration secret은 로컬에서 새로 생성하여 commit과 register 사이 동일하게 유지한다.
-2. 후보 JSON을 `deployments/sepolia.private.json`으로 복사하고 operator, 검증된 tokenFactory/launchers(LiquidityLauncher v3.0.0·v3.2.0 후보), 최대 등록비를 채운다. 각 프로토콜 주소의 runtime code hash를 독립적으로 확인한 빌드/공식 배포 근거와 대조한 뒤 `expectedCodeHashes`에 필드명별로 넣는다. 현재 RPC에서 읽은 값을 그대로 넣는 것은 버전 검증이 아니다. immutable·프록시 구현과 protocol role도 확인한다.
-3. dotenv 파일은 명령 실행 환경에 로드한다. JSON과 env의 chain/address/operator 설정은 일치시킨다. root 이름은 klamp.eth로 고정하며 충돌 시 다른 이름으로 몰래 바꾸지 않는다.
-4. `npx tsx scripts/preflight.ts`는 체인, 코드 해시, UniversalResolver/registry/StateView 연결, registrar 역할, 이름 소유자, 등록 가격 상한·잔액·allowance·gas 잔액을 읽기 전용으로 검사한다. 미기입·미검증 값이 있으면 실패한다. RPC/서명/코드 신뢰가 준비되지 않았다면 여기서 공개 배포 준비가 완료된 것으로 표시하지 않는다.
-5. 다음 명령은 `--broadcast`가 없으므로 시뮬레이션이다. 단계가 아직 온체인에 없으면 다음 단계는 선행 단계의 실제 배포 후에 재현할 수 있다.
+1. Copy `.env.example` to the ignored `.env` and configure it. Use a Foundry keystore for signing and do not put private keys in the manifest. Generate a new registration secret locally and keep it the same between commit and register.
+2. Copy the candidate JSON to `deployments/sepolia.private.json` and fill in the operator, verified tokenFactory/launchers (LiquidityLauncher v3.0.0 and v3.2.0 candidates) and the maximum registration fee. Cross-check each protocol address's runtime code hash against independently confirmed build or official deployment evidence, then put it in `expectedCodeHashes` by field name. Copying the value read from the current RPC as-is is not version verification. Also check immutables, proxy implementations and protocol roles.
+3. Load the dotenv file into the command's execution environment. Keep the chain/address/operator settings in the JSON and env consistent. The root name is fixed as klamp.eth; on a conflict, do not silently switch to another name.
+4. `npx tsx scripts/preflight.ts` performs read-only checks of the chain, code hashes, UniversalResolver/registry/StateView connections, registrar roles, name owner, registration price cap, balance, allowance and gas balance. It fails if any value is unfilled or unverified. If RPC, signing or code trust is not ready, do not mark public deployment preparation as complete here.
+5. The following commands have no `--broadcast`, so they are simulations. If a step is not on-chain yet, the next step can only be reproduced after the preceding step is actually deployed.
 
 ```sh
 forge script script/DeployPhase1.s.sol:DeployPhase1 --rpc-url "$RPC_URL"
@@ -58,24 +58,24 @@ forge script script/ProbePhase1.s.sol:ProbePhase1 --rpc-url "$RPC_URL"
 forge script script/SealPhase1.s.sol:SealPhase1 --rpc-url "$RPC_URL"
 ```
 
-## 실배포 순서와 재개
+## Real Deployment Order and Resume
 
-검증한 설정과 허용된 네트워크·서명 계정으로만 위 단계에 `--broadcast --slow --account <keystore-alias>`를 추가한다. 이 문서 작성 중에는 실행하지 않았다. 각 dry-run에서 sender와 예상 gas를 확인한다.
+Add `--broadcast --slow --account <keystore-alias>` to the steps above only with a verified configuration and an allowed network and signing account. This was not run while writing this document. Check the sender and expected gas in each dry-run.
 
-- Deploy: registry/resolver/registrar 공개 주소를 반환·receipt에서 확인해 REGISTRY/RESOLVER/REGISTRAR에 저장한다. 재개 시 원래 DEPLOYMENT_SALT와 REGISTRAR를 유지한다. 이미 있는 프록시는 factory가 구현을 검증한 뒤 재사용한다. registrar 배포 직후 중단됐다면 receipt에서 주소를 복구한다.
-- RegisterRoot: 최초에는 commit만 한다. `readyAt` 이후 같은 설정과 secret으로 재실행하면 정확한 가격만 approve하고 register→setParent를 수행한다. 대기 중 재실행은 쓰기 없음, 만료 commitment는 다시 commit, 이미 같은 namespace가 등록됐으면 중복 결제 없음. 타인 소유/다른 연결은 오류로 중단한다.
-- ProbePhase1: 테스트넷 전용 ERC20·ETH 풀을 초기화하고 실제 CREATE2 배포 주체로 등록한다. `deployments/probe.json`의 create2Launcher를 PROBE_LAUNCHER, token을 PROBE_TOKEN으로 보존한다. 재실행은 동일 salt/launcher를 사용한다. JSON은 시뮬레이션에서도 생성되므로 receipt와 코드 확인 전 실배포 증거로 쓰지 않는다.
-- Seal: 실제 ENS probe 조회와 예상 권한 상태를 검증한 후 봉인한다. 이미 봉인됐다면 회수 쓰기를 생략한다. hooks 관리 권한은 별도로 남는다.
-- Smoke: 아래 public manifest를 채운 후 `npx tsx scripts/deployment-smoke.ts`. editor 성공과 운영자/덮어쓰기 실패는 eth_call이므로 추가 거래를 보내지 않는다. 검증 보고서는 SMOKE_OUTPUT에 저장한다.
+- Deploy: confirm the public registry/resolver/registrar addresses from the return value and receipt, and save them to REGISTRY/RESOLVER/REGISTRAR. When resuming, keep the original DEPLOYMENT_SALT and REGISTRAR. Existing proxies are reused after the factory verifies the implementation. If interrupted right after the registrar deployment, recover the address from the receipt.
+- RegisterRoot: the first run only commits. Re-running after `readyAt` with the same configuration and secret approves only the exact price and performs register→setParent. Re-running while waiting writes nothing, an expired commitment is committed again, and if the same namespace is already registered there is no double payment. Ownership by someone else or a different linkage stops with an error.
+- ProbePhase1: initializes a testnet-only ERC20/ETH pool and registers it with a real CREATE2 deployer. Preserve create2Launcher in `deployments/probe.json` as PROBE_LAUNCHER and token as PROBE_TOKEN. Re-runs use the same salt/launcher. The JSON is generated even in simulation, so do not use it as real deployment evidence before checking the receipt and code.
+- Seal: seal after verifying a real ENS probe lookup and the expected permission state. If already sealed, skip the revocation writes. hooks management permissions remain separately.
+- Smoke: after filling in the public manifest below, run `npx tsx scripts/deployment-smoke.ts`. The editor success and operator/overwrite failures are eth_calls, so no additional transactions are sent. The verification report is saved to SMOKE_OUTPUT.
 
-등록·갱신은 고정 ETHRegistrar의 `getRegisterPrice`/`getRenewPrice`로 가격을 확인한다. 갱신 ABI는 `renew(string,uint64,IERC20,bytes32)`이다. klamp.eth 만료 전에 담당자가 비용·기간을 확인해 갱신해야 한다. 갱신 자동 실행은 이번 구현 범위에 없다.
+For registration and renewal, check the price with the pinned ETHRegistrar's `getRegisterPrice`/`getRenewPrice`. The renewal ABI is `renew(string,uint64,IERC20,bytes32)`. Before klamp.eth expires, the person in charge must check the cost and duration and renew it. Automatic renewal is not in this implementation's scope.
 
-## 공개 manifest 필드
+## Public Manifest Fields
 
-`deployments/sepolia.phase1.json`은 실제 배포 후 작성한다. 미실행 주소를 가짜 manifest로 만들지 않는다. `deployments/local.json`과 `versions.json`을 구조 참고로 사용한다.
+Write `deployments/sepolia.phase1.json` after the real deployment. Do not create a fake manifest with addresses that were never deployed. Use `deployments/local.json` and `versions.json` as structural references.
 
 - chainId, rootRegistry, ethRegistry, registry, resolver, registryImplementation, resolverImplementation, universalResolver, registrar, stateView, poolManager, launcher, tokenFactory
-- operator, editor(생략 시 operator), token, poolId, create2Launcher, salt, initCodeHash
-- independently verified expectedCodeHashes(위 각 코드 주소 필드에 대응), deploymentBlock, publicTransactions(공개 tx 해시 목록)
+- operator, editor (operator if omitted), token, poolId, create2Launcher, salt, initCodeHash
+- independently verified expectedCodeHashes (one for each code address field above), deploymentBlock, publicTransactions (list of public tx hashes)
 
-smoke는 이 설정을 읽고 text/data·권한·봉인·코드를 검증하여 실제 observedCodeHashes, expiry, checkedBlock, versions를 보고서에 남긴다. 코드 해시 일치만으로 공급자 코드 안전성이나 감사 완료를 주장하지 않는다. ENS 앱 표시 여부와 사람이 SDK 문서를 읽고 직접 실행했는지는 별도 수동 확인이다.
+smoke reads this configuration, verifies text/data, permissions, seal and code, and records the actual observedCodeHashes, expiry, checkedBlock and versions in the report. A code hash match alone is not a claim of provider code safety or a completed audit. Whether the ENS app displays it, and whether a human read the SDK docs and ran it directly, are separate manual checks.

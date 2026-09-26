@@ -1,9 +1,9 @@
-# 프로젝트 작업 위치 변경
+# Project Working Location Change
 
-- 작업 ID: GOV02 (C01~C11 공통)
-- 날짜 / 작성 도구: 2026-09-25 / Codex
-- 사람 결정: 사용자 지시로 프로젝트 전체를 루트의 `contract/` 안에 배치한다.
-- 변경 범위: 기존 명세·상세 AGENTS.md·docs 이동, 이후 Foundry·TypeScript·배포·데모 파일도 `contract/` 아래 생성.
-- 기존 계획과 차이: C01~C11의 목적·순서는 유지하고 경로의 기준만 `contract/`로 변경한다.
-- 검증 방법: 파일 존재와 기존 문서 상대 링크, Git 변경 목록 확인.
-- 미해결 사항: 없음. 루트 AGENTS.md는 작업 위치를 안내한다.
+- Task ID: GOV02 (common to C01–C11)
+- Date / authoring tool: 2026-09-25 / Codex
+- Human decision: per the user's instruction, place the entire project inside `contract/` at the root.
+- Scope of change: move the existing spec, detailed AGENTS.md and docs; afterwards, Foundry, TypeScript, deployment and demo files are also created under `contract/`.
+- Difference from the existing plan: the purpose and order of C01–C11 are kept; only the base path changes to `contract/`.
+- Verification method: check file existence, relative links in existing docs, and the Git change list.
+- Unresolved issues: none. The root AGENTS.md points to the working location.

@@ -1,11 +1,11 @@
-# 구현 계획 관리
+# Implementation Plan Management
 
-기본 계획은 [`Klamp_Phase1_Agent_Spec.md`](../../Klamp_Phase1_Agent_Spec.md)의 C01~C11이다. 동일한 계획을 복제하지 않는다.
+The default plan is C01–C11 in [`Klamp_Phase1_Agent_Spec.md`](../../Klamp_Phase1_Agent_Spec.md). Do not duplicate the same plan.
 
-- 명세 출처: 문서에는 팀 공유 문서 「1단계 설계: 런칭과 대표 풀 기록 (ENSv2)」를 기준으로 작성했다고 명시되어 있다. 원본 대조는 아직 수행하지 않았다.
-- 작성 도구·작성자: 확인 대기. ChatGPT 작성 여부는 확인 후 기록한다.
-- 팀 검토 상태: 검토 확인 대기.
-- 구현 상태: C01~C10 로컬 구현·검증 완료, C11 인계 문서 작성. Sepolia 실배포와 사람 직접 검증은 미실행. 상세 상태는 [검증 표](../phase1-verification.md) 참조.
+- Spec source: the document states it was written based on the team's shared document "Phase 1 Design: Launch and Canonical Pool Record (ENSv2)". A comparison against the original has not been done yet.
+- Authoring tool / author: pending confirmation. Whether it was written by ChatGPT will be recorded once confirmed.
+- Team review status: pending review confirmation.
+- Implementation status: C01–C10 implemented and verified locally, C11 handoff docs written. Real Sepolia deployment and direct human verification: Not run. See the [verification table](../phase1-verification.md) for detailed status.
 
-추가 계획·변경은 `Cxx-짧은-주제.md`로 저장하고 해당 구현과 함께 커밋한다.
-각 문서에 작업 ID, 작성 날짜·도구, 변경 이유, 기존 계획과 달라지는 부분, 구현 범위, 검증 방법, 사람 결정 여부와 미해결 사항을 기록한다.
+Save additional plans and changes as `Cxx-short-topic.md` and commit them together with the corresponding implementation.
+In each document, record the task ID, date and tool, reason for the change, how it differs from the existing plan, implementation scope, verification method, whether a human decided, and unresolved issues.

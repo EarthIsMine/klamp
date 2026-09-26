@@ -1,34 +1,34 @@
-# 프로젝트 작업 규칙
+# Project Working Rules
 
-이 문서의 프로젝트 상대 경로는 `contract/` 기준이다. 구현·테스트·SDK·배포 스크립트와 문서는 모두 이 디렉터리 안에 둔다.
+Project-relative paths in this document are relative to `contract/`. Keep all implementation, tests, SDK, deployment scripts and docs inside this directory.
 
-## 작업 시작과 범위
+## Starting Work and Scope
 
-- 작업 전에 이 파일과 `Klamp_Phase1_Agent_Spec.md`, 수정 대상 경로에 적용되는 하위 `AGENTS.md`를 읽는다. 읽은 지침의 경로와 이번 작업에 적용할 핵심 규칙을 사용자에게 짧게 알린다.
-- 현재 브랜치, 미커밋 변경, 기존 구현과 검증 환경을 확인한다. 기존 지침과 사용자의 변경사항을 보존한다.
-- 구현은 명세의 C01~C11 순서와 의존 관계를 따른다. 이미 완료된 항목은 근거를 기록하고 건너뛴다.
-- 사용자 요청 범위 안의 구현·수정·로컬 검증은 계속 진행한다. 사람 검증 대기는 독립적으로 진행 가능한 AI 작업을 중단할 이유가 아니다.
-- 원격 push, 실제 네트워크 broadcast 등은 사용자가 부여한 권한 범위를 따른다. 이미 받은 허가를 반복해서 요청하지 않는다.
+- Before starting, read this file, `Klamp_Phase1_Agent_Spec.md`, and any nested `AGENTS.md` that applies to the paths you will modify. Briefly tell the user the paths of the instructions you read and the key rules that apply to this task.
+- Check the current branch, uncommitted changes, the existing implementation and the verification environment. Preserve existing instructions and user changes.
+- Implement in the spec's C01–C11 order and follow its dependencies. For items already done, record the evidence and skip them.
+- Keep going with implementation, fixes and local verification within the scope of the user's request. Pending human verification is not a reason to stop AI work that can proceed independently.
+- For remote push, real network broadcast and similar actions, follow the scope of permission the user granted. Do not repeatedly ask for permission already given.
 
-## 계획과 커밋
+## Plans and Commits
 
-- 기존 명세를 기본 계획으로 사용한다. 추가 계획이나 계획 변경은 `docs/plans/`에 작업 ID, 이유, 변경 범위, 검증 방법과 결정 상태를 기록한다. AI 제안과 확인된 사람 결정을 구분한다.
-- 계획 변경 문서는 해당 구현 코드와 함께 커밋한다. 불필요한 재구조화·일괄 포맷·의존성 일괄 업그레이드를 하지 않는다.
-- 각 구현 커밋은 하나의 목적과 관련 테스트, 해당 `docs/WORKLOG.md` 기록을 포함한다. 관련 검증 실패를 숨긴 채 완료로 표시하지 않는다.
-- 커밋할 때 변경 파일을 확인하고 작업 범위의 파일만 포함한다. 커밋 작성자 이름만으로 사람과 AI의 기여를 구분하지 않는다.
+- Use the existing spec as the default plan. Record additional plans or plan changes in `docs/plans/` with the task ID, reason, scope of change, verification method and decision status. Distinguish AI proposals from confirmed human decisions.
+- Commit plan-change documents together with the corresponding implementation code. Do not do unnecessary restructuring, bulk formatting or bulk dependency upgrades.
+- Each implementation commit contains one purpose, its related tests and the corresponding `docs/WORKLOG.md` entry. Do not mark work complete while hiding related verification failures.
+- When committing, check the changed files and include only files within the task scope. Do not distinguish human and AI contributions by commit author name alone.
 
-## 기록과 검증
+## Records and Verification
 
-- `docs/WORKLOG.md`에 작업 ID(C01 등), 날짜, 사용 AI 도구, AI 수행 내용, 확인된 사람 결정/수정, 참고 공식 문서 URL과 실제 사용 버전 또는 SHA, 실행 명령·환경·실제 결과, 남은 문제를 기록한다.
-- AI 실행 검증과 사람 직접 검증을 별도 항목으로 둔다. 사람의 확인이 없으면 반드시 `사람 검증 대기`로 기록한다.
-- 사람이 직접 검증했다는 결과를 전달받으면 검증자(공유 가능한 식별명), 날짜, 명령/절차, 결과와 증거 위치를 기록한다. 문서 열람 역시 확인된 경우에만 기록한다.
-- 사람의 결정·문서 열람·실행·외부 피드백을 추정하거나 만들어내지 않는다. 실행하지 않은 테스트를 통과했다고 쓰지 않는다.
-- 실패·미실행·차단됨을 통과와 구분하고 원인과 재개 방법을 남긴다. 로컬 검증, Sepolia 검증, 앱 UI 수동 확인을 서로 대체하지 않는다.
-- 실제 전달받은 팀원·멘토 피드백만 `docs/FEEDBACK.md`에 기록한다. AI 자체 리뷰는 WORKLOG에 기록한다.
-- 비밀키·토큰·개인정보는 기록하거나 커밋하지 않는다. 명령과 로그에 비밀값이 있으면 값을 제거한 재현 명령과 필요한 결과만 남긴다.
+- In `docs/WORKLOG.md`, record the task ID (C01, etc.), date, AI tool used, what the AI did, confirmed human decisions/edits, referenced official doc URLs and the actual version or SHA used, commands run, environment and actual results, and remaining issues.
+- Keep AI-run verification and direct human verification as separate items. Without human confirmation, always record `Pending human verification`.
+- When you receive a result that a human verified directly, record the verifier (shareable identifier), date, command/procedure, result and evidence location. Record document reading only when it has been confirmed.
+- Do not guess or fabricate human decisions, document reading, execution or external feedback. Do not write that a test passed if it was not run.
+- Distinguish Failed, Not run and Blocked from pass, and record the cause and how to resume. Local verification, Sepolia verification and manual app UI checks do not substitute for one another.
+- Record only team member or mentor feedback actually received in `docs/FEEDBACK.md`. Record AI self-reviews in WORKLOG.
+- Do not record or commit private keys, tokens or personal data. If commands or logs contain secrets, keep only a reproduction command with the values removed and the necessary results.
 
-## 작업 종료
+## Finishing Work
 
-- 변경 내용, 실행 검증 결과, 미완료 사항과 사람 검증 대기를 짧게 보고한다.
-- 사람이 읽을 관련 SDK 공식 문서와 고정 버전, 직접 재현할 명령, 예상 확인 결과를 제시한다. 문서만 수정했다면 SDK 검증은 해당 없음으로 표시한다.
-- 전체 대화 복사 대신 계획·작업 기록·실제 증거를 저장한다. 이미 남긴 기록을 정정할 때는 정정 이유를 남긴다.
+- Briefly report the changes, verification results, incomplete items and pending human verification.
+- Provide the relevant official SDK docs and pinned versions for a human to read, commands to reproduce directly, and expected results. If only docs were changed, mark SDK verification as not applicable.
+- Save plans, work records and actual evidence instead of copying the whole conversation. When correcting an existing record, state the reason for the correction.

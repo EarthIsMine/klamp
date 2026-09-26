@@ -1,622 +1,630 @@
-# 작업 기록
+# Work log
 
-AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예상 결과는 실행 증거가 아니다.
-구현 상태와 사람 검증 상태를 별도로 관리하며, 각 단계 상태는 아래 작업별 기록을 따른다.
+AI work is kept separate from human decisions and direct verification. Blank templates and expected results are not evidence of execution.
+Implementation status and human verification status are tracked separately; each stage's status follows the per-task entries below.
 
-## 기록 양식
+## Entry template
 
 ```markdown
-## Cxx — 작업 제목
+## Cxx — Task title
 
-- 날짜 / 환경:
-- 상태: 진행 중 / AI 구현·검증 완료 / 차단됨
-- 사용 AI 도구:
-- 읽은 지침:
-- AI 수행 / 변경 파일:
-- 사람의 결정/수정: 확인된 내용만 기재, 없으면 확인된 사항 없음
-- 참고 공식 문서 및 버전/SHA: 실제 열람한 URL과 사용 버전
-- 계획 변경: 없음 또는 docs/plans/ 문서 링크
-- AI 실행 검증: 실제 명령 / 결과 / 필요한 증거 위치
-- 사람 직접 검증: 사람 검증 대기
-- 사람 재현 안내: 읽을 문서 / 명령 또는 절차 / 예상 결과
-- 남은 문제 / 재개 방법:
+- Date / environment:
+- Status: In progress / AI implementation and verification complete / Blocked
+- AI tools used:
+- Instructions read:
+- AI work / changed files:
+- Human decisions/changes: list only confirmed items; if none, "nothing confirmed"
+- Official references and versions/SHA: URLs actually opened and versions used
+- Plan changes: none, or a link to a docs/plans/ document
+- AI-run verification: actual commands / results / location of the required evidence
+- Human verification: Pending human verification
+- Human reproduction guide: documents to read / commands or procedure / expected results
+- Open issues / how to resume:
 ```
 
-## GOV01 — 작업 규칙과 기록 양식 마련
+## GOV01 — Set up working rules and the log template
 
-- 날짜 / 환경: 2026-09-25 / `/home/user/klamp`, bash, main 브랜치
-- 사용 AI 도구: Codex
-- 읽은 지침: 기존 상위·루트 AGENTS.md 없음. `Klamp_Phase1_Agent_Spec.md`를 읽고 이번 작업에서 루트 `AGENTS.md`를 작성했다.
-- AI 수행 / 변경 파일: `AGENTS.md`, 이 기록, `FEEDBACK.md`, `plans/README.md` 작성. 기존 명세와 구현 계획은 수정하지 않았다.
-- 사람의 결정/수정: 사용자가 작업 규칙·계획·기록을 저장소에 남기는 방안을 제시하고 규칙 정리를 요청했다. 명세 작성자, 팀 검토 완료, SDK 문서 열람, 직접 테스트 실행 여부는 확인되지 않았다.
-- 참고 문서 및 버전: 로컬 `Klamp_Phase1_Agent_Spec.md`(문서 작성일 2026-09-25, 미커밋). 외부 공식 문서는 이번 문서 정리에서 열람하지 않았다. SDK 버전 고정은 C01에서 수행할 예정이다.
-- AI 실행 확인:
-  - `rg --files -g 'AGENTS.md' -g '*Spec*' -g '*spec*' -g 'WORKLOG.md' -g 'FEEDBACK.md' -g '!node_modules' -g '!vendor'`: 기존 명세 한 개 확인.
-  - `git status --short`: 작업 시작 시 `?? Klamp_Phase1_Agent_Spec.md` 확인.
+- Date / environment: 2026-09-25 / `/home/user/klamp`, bash, main branch
+- AI tools used: Codex
+- Instructions read: No existing parent or root AGENTS.md. Read `Klamp_Phase1_Agent_Spec.md` and wrote the root `AGENTS.md` in this task.
+- AI work / changed files: Wrote `AGENTS.md`, this log, `FEEDBACK.md`, and `plans/README.md`. The existing spec and implementation plan were not modified.
+- Human decisions/changes: The user proposed keeping the working rules, plans and logs in the repository and asked for the rules to be organized. The spec author, completion of team review, whether the SDK docs were read, and whether tests were run directly were not confirmed.
+- References and versions: Local `Klamp_Phase1_Agent_Spec.md` (document dated 2026-09-25, uncommitted). No external official docs were opened for this documentation pass. SDK version pinning is planned for C01.
+- AI-run checks:
+  - `rg --files -g 'AGENTS.md' -g '*Spec*' -g '*spec*' -g 'WORKLOG.md' -g 'FEEDBACK.md' -g '!node_modules' -g '!vendor'`: found one existing spec.
+  - `git status --short`: `?? Klamp_Phase1_Agent_Spec.md` at the start of the task.
   - `git branch --show-current`: `main`.
-  - `git log -1 --oneline`: 종료 코드 128, 아직 커밋이 없다는 오류 확인. 테스트 실패가 아닌 초기 저장소 상태 확인 결과다.
-- AI 실행 테스트: 미실행. 문서만 작성했으며 구현 코드·테스트 환경이 없다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현 안내: 네 문서의 규칙과 양식을 읽고 `git status --short`로 추가 파일을 확인한다. SDK 문서 검증은 이번 작업에 해당 없음.
-- 남은 문제: 명세 작성 출처와 팀 검토 상태 확인 필요. IDE 탭의 `canonical-pool-registry-v1-spec.md`는 현재 저장소에서 발견되지 않았다. C01 구현·커밋은 이번 작업 범위에 포함하지 않았다.
-
-
-## GOV02 — contract 디렉터리로 프로젝트 범위 이동
-
-- 날짜 / 환경: 2026-09-25 / 저장소 루트, main
-- 사용 AI 도구: Codex
-- 읽은 지침: 기존 루트 AGENTS.md와 구현 명세. 이동 후 루트 안내와 contract/AGENTS.md 적용.
-- 사람의 결정/수정: 사용자가 전체 프로젝트 내용을 루트 contract 디렉터리로 옮기고 그 안에서 구현하도록 지시했다.
-- AI 수행: 명세·상세 지침·docs를 contract/로 이동. 루트 AGENTS.md는 프로젝트 위치 안내만 유지. 명세 본문은 변경하지 않았다.
-- 참고 문서: 기존 로컬 명세. 외부 SDK 문서 해당 없음.
-- 계획 변경: docs/plans/project-location.md.
-- AI 실행 검증: 이동 후 파일 존재·기본 계획 상대 링크 확인 통과. `git diff --cached --check`는 기존 명세의 Markdown 줄바꿈용 후행 공백 2곳만 보고(종료 2). 원문 보존을 위해 유지했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현 안내: 저장소 루트에서 git status --short, contract/docs/plans/README.md의 명세 링크 확인.
-- 남은 문제: C01부터 구현 예정. 이전 GOV01의 경로는 당시 실행 위치를 나타내므로 보존한다.
-
-## C01 — 의존성과 ABI 기준 고정
-
-- 날짜 / 환경: 2026-09-26 / Linux, Node 24.14.1, Foundry 1.7.1, Solidity 0.8.26/Cancun
-- 상태 / 사용 AI 도구: AI 구현·검증 완료 / Codex
-- 읽은 지침: 루트 AGENTS.md, contract/AGENTS.md, 구현 명세.
-- AI 수행: ENSv2·런처 및 하위 gitlink 고정, npm lock, 최소 Foundry/TypeScript 설정, 재설치 스크립트, 실제 ENS resolver 프록시 ABI 테스트 추가.
-- 사람의 결정/수정: 명세 순서대로 작은 커밋으로 구현하고 contract/에서 작업하도록 요청. 추가 사람 검증 확인 없음.
-- 참고 공식 문서 및 버전: [고정 SHA 및 소스 확인 내역](phase1-dependencies.md).
-- AI 실행 검증: `forge test` 1 통과/0 실패; `npm run typecheck` 통과. 기존 프로젝트 테스트는 없었다. 상위 의존성 UUPSProxyLogic의 receive 부재 경고는 그대로 남아 있다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현 안내: `./scripts/setup-dependencies.sh`, `forge test`, `npm run typecheck`. 예상: resolver 실제 text/data 쓰기·읽기 성공.
-- 남은 문제: Sepolia 후보 주소 미검증. SDK 실제 ENS 호출은 C07. 원문 SHA는 확정할 수 없어 날짜가 일치하는 호환 소스를 선택했다.
-
-## C02 — 원문 registrar와 두 등록 경로 재현
-
-- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경 / Codex
-- AI 수행: 부록 registrar 유지, factory=0 명시 오류 추가, 실제 CREATE2 실행 컨트랙트·실제 LiquidityLauncher/UERC20Factory·실제 PermissionedResolver 프록시 fixture 추가.
-- 사람의 결정/수정: 추가 확인 사항 없음.
-- 참고 문서 및 버전: [C01 고정 소스](phase1-dependencies.md), 명세 부록 A1.
-- AI 실행 검증: `forge test` 7 통과/0 실패. 정상 text/data, 비배포자·덮어쓰기·토큰 미포함·잘못된 크리에이터 거절, 런처 실제 발행 검증.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `forge test --match-contract CanonicalPoolRegistrarTest -vv`; 6개 통과 예상.
-- 남은 문제: C03의 실제 토큰·풀 상태 검증, C04 편집자 분리는 아직 미구현.
-
-## C03 — 배포 토큰·실제 초기화 풀 검증
-
-- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경 / Codex
-- AI 수행: StateView·PoolManager immutable과 연결 getter 검증, 토큰 코드·currency 정렬·풀 초기화 검사 추가. 실제 v4 PoolManager 테스트와 data 쓰기 실패 rollback 검증 추가.
-- 사람의 결정/수정: 추가 확인 사항 없음.
-- 참고 문서 및 버전: C01 StateView/PoolManager 소스. v4-core 고정 gitlink의 solmate 4b47a19038b798b4a33d9749d25e570443520647 추가 초기화.
-- AI 실행 검증: 최초 `forge test`는 solmate 누락으로 컴파일 실패. 설치·remapping·재설치 스크립트 보완 후 `forge test` 13 통과/0 실패.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `forge test --match-contract PoolValidationTest -vv`, 6 통과 예상. 초기화만 하고 유동성이 없어도 등록 가능.
-- 남은 문제: StateView 코드 자체의 신뢰는 배포 설정의 책임이며 getter 일치만으로 악의적 구현을 인증하지 않는다.
-
-## C04 — 명시적 메타데이터 편집자
-
-- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경 / Codex
-- AI 수행: 기존 4인자 CREATE2 함수 보존, editor를 받는 5인자 오버로드와 공통 증명 함수 추가. CanonicalRecorded ABI·증명 주체 유지.
-- 사람의 결정/수정: 추가 확인 사항 없음.
-- 참고 문서 및 버전: 명세 C04, C01 PermissionedResolver 고정 소스.
-- AI 실행 검증: `forge test` 17 통과/0 실패. editor의 자기 description/url 허용, pool·타 이름·권한 위임 거절, 0 editor·잘못된 증명자 거절, 기존 실행자 편집 동작 확인.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `forge test --match-contract MetadataEditorTest -vv`, 4 통과 예상.
-- 남은 문제: namespace 구성·권한 봉인은 C05에서 구현.
-
-## C05 — namespace 셋업과 권한 봉인
-
-- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경 / Codex
-- AI 수행: 실제 ENS UserRegistry·resolver 프록시 셋업, hooks 분리, 봉인 라이브러리와 Deploy/Seal 스크립트, 호출 기반 권한 테스트 추가.
-- 사람의 결정/수정: 추가 확인 사항 없음.
-- 참고 문서 및 버전: C01 고정 RegistryRolesLib/PermissionedResolver/VerifiableFactory 소스, [권한 제약](phase1-permissions.md).
-- AI 실행 검증: 최초 컴파일 stack-too-deep를 지역변수 수명 분리로 해결. 프록시 동일 salt 충돌을 별도 salt로 해결. 테스트의 동일 호출 깊이 expectRevert 오류를 외부 wrapper로 수정. 최종 `forge test` 20 통과/0 실패, `forge build` 통과.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `forge test --match-contract NamespacePermissionsTest -vv`, 운영자 변경·재위임·업그레이드 거절, hooks 격리, 잘못된 체인 거절 및 재봉인 확인.
-- 남은 문제: 네트워크 프로토콜 코드 신뢰·root 만료·상위 권한은 별도 운영 가정. 네트워크 broadcast 미실행.
-
-## C06 — 실제 ENS 와일드카드 통합
-
-- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경 / Codex
-- AI 수행: 실제 UserRegistry·PermissionedResolver·UniversalResolverV2·v4 상태를 통합한 와일드카드 text/data 대조, 봉인 후 두 등록 경로, 편집 권한 위임 실패 rollback 테스트 추가.
-- 사람의 결정/수정: 추가 확인 사항 없음.
-- 참고 문서 및 버전: C01 고정 UniversalResolverV2/AbstractUniversalResolver/NameCoder 소스.
-- AI 실행 검증: `forge test --match-contract CanonicalPoolEnsIntegrationTest -vv` 3 통과/0 실패. text/data의 chainId·PoolKey hash 일치, 토큰 라벨 미등록, 양 경로 봉인 후 성공, 위임 실패 시 mapping·두 레코드·편집 권한 부재 확인. C03의 data 쓰기 실패 rollback도 유지.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: 위 명령 실행. 이것은 Solidity 통합 검증이며 viem 실행 완료를 뜻하지 않는다.
-- 남은 문제: viem 실제 왕복 호출은 C07에서 실행.
-
-## C07 — viem 기반 표준 조회와 명확한 상태
-
-- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경, Anvil chain 31337 / Codex
-- AI 수행: bigint·32바이트 PoolId 파싱, strict getEnsText, namespace 연결·EIP-1967 구현 주소·StateView 연결 검사, 상태별 결과, 전체 로컬 배포 및 viem smoke 재현 스크립트 추가.
-- 사람의 결정/수정: 추가 확인 사항 없음.
-- 참고 문서 및 버전: [viem getEnsText](https://viem.sh/docs/ens/actions/getEnsText), viem 2.56.9 소스 actions/ens/getEnsText.ts. 문서 웹 도구의 content-type 오류 후 curl로 공식 문서 열람.
-- AI 실행 검증: SDK 조회 테스트 7 통과, `npm run typecheck` 통과. `forge script script/LocalPhase1.s.sol:LocalPhase1 --rpc-url http://127.0.0.1:18545 --broadcast --unlocked`로 로컬 배포 성공 후 `npx tsx scripts/local-smoke.ts` 통과. 새 체인 재현 중 병렬 전송 nonce 대기로 중단 후 `--slow` 순차 전송으로 변경하여 `./scripts/local-e2e.sh` 통과.
-- 결과: 실제 viem getEnsText found, 빈 와일드카드 레코드 missing, 구현 주소 불일치 unavailable/namespace. 로컬 풀 ID: 0xee6e9c6deca57a017d87d370cc25678eb55fa99ab546fcffb94024b3aaf8f350.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `./scripts/local-e2e.sh`는 독립 Anvil을 시작·종료하고 위 세 결과를 검증한다. RPC 실패와 알 수 없는 revert는 missing으로 처리하지 않는다.
-- 남은 문제: 공개 네트워크 검증 미실행. 로컬 manifest는 실행마다 생성되며 Git에서 제외한다.
-
-## C08 — 검증된 전략 이벤트 fallback
-
-- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경 / Codex
-- AI 수행: 실제 InstantLaunchStrategy TokenLaunched ABI, 명시적 신뢰 소스·코드 해시·확인 블록·범위 제한, 토큰/키/풀 초기화/블록 해시 검사와 ambiguous 처리 추가.
-- 사람의 결정/수정: 추가 확인 사항 없음.
-- 참고 문서 및 버전: [고정 소스와 설정 설명](phase1-fallback.md). 원문 이벤트의 emitter는 런처가 아닌 전략임을 반영.
-- AI 실행 검증: `npm test` 조회 7개+fallback 6개=13 통과/0 실패, `npm run typecheck` 통과. 정상 로그, 충돌 풀, 가짜 emitter·타 토큰·removed·불일치 hash 거절, 코드 불일치·reorg·RPC 오류, disabled 경로 확인.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `npm test`. 외부 배포 검증 전 sources는 빈 목록을 사용한다.
-- 남은 문제: 실제 Sepolia strategy 주소·배포 블록·runtime code hash 검증 미실행. 이벤트 테스트는 mock RPC 입력으로 수행했고 공개 체인 성공으로 기록하지 않는다.
-
-## C09 — 경로 비교와 최소 조회 데모
-
-- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경, 로컬 HTTP/Anvil / Codex
-- AI 수행: 체인·PoolManager·PoolId 비교, 모든 분할 branch의 대상 hop 검사, 공통 자산 hop 제외, 상태별 차단, 토큰/ENS 이름/출처/대표·후보 ID를 보여주는 최소 HTML 데모 추가. 거래 전송 기능은 없으며 선언된 경로 비교 범위를 화면에 명시.
-- 사람의 결정/수정: 추가 확인 사항 없음.
-- 참고 문서 및 버전: 명세 C09와 C07/C08 SDK.
-- AI 실행 검증: `npm test` 17 통과/0 실패, `npm run typecheck` 통과. `npm run demo` 후 Node fetch/assert로 `/api/check`의 match·mismatch·missing 및 HTML 응답 확인 통과. 브라우저 육안 검사는 미실행.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: Anvil과 로컬 배포를 준비한 상태에서 `npm run demo`, http://127.0.0.1:4173 접속. 기본 경로 일치, poolId 변경 시 불일치, 미등록 토큰은 기록 없음 예상. RPC 중단 시 조회 실패 표시.
-- 남은 문제: 실제 quote builder/거래 calldata와 결합하지 않았으므로 거래 실행 풀의 보장으로 사용하지 않는다. 일반 거래 모드는 구현되어 있지 않다.
-
-## C10a — 재개 가능한 ENS 등록 절차
-
-- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경 / Codex
-- AI 수행: ETHRegistrar의 실제 commitment 시간·등록 가격·결제 balance/allowance를 사용하는 등록 상태 머신과 스크립트 추가. 타인 소유 이름·다른 기존 namespace를 덮어쓰지 않음.
-- 사람의 결정/수정: 작은 책임의 커밋 요구를 반영해 [C10 분할 계획](plans/C10-deployment-steps.md) 작성.
-- 참고 문서 및 버전: C01 고정 ETHRegistrar/IETHRegistrar/AbstractETHRegistrar 소스.
-- AI 실행 검증: `forge test --match-contract RegistrationFlowTest -vv` 4 통과/0 실패, `forge build` 통과. 실제 registrar와 registry 사용, 결제 토큰·가격 oracle만 테스트 fixture. commit/wait/register/setParent/이미 등록/만료 commitment/타인 소유/가격 상한/잔액 부족 검증.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: 위 Foundry 명령. 공개 체인에서는 동일 secret과 설정으로 RegisterRoot 스크립트를 readyAt 이후 재실행한다.
-- 남은 문제: Sepolia 실실행 미실행. 재배포 중복 방지·manifest/preflight/smoke는 다음 C10 단위.
-
-## C10b — namespace 배포 재개와 봉인 probe 강화
-
-- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경 / Codex
-- AI 수행: 고정 VerifiableFactory 생성 코드로 예상 프록시 주소를 계산해 이미 존재하면 구현을 검증하고 재사용. 기존 registrar를 REGISTRAR로 지정해 상태 확인 후 누락된 설정만 적용. 봉인 probe는 mapping의 PoolId·text·data를 서로 대조.
-- 사람의 결정/수정: 추가 확인 사항 없음.
-- 참고 문서 및 버전: C01 VerifiableFactory/CloneProxyBytecode 소스, C10 분할 계획.
-- AI 실행 검증: `forge test --match-contract NamespacePermissionsTest -vv` 4 통과/0 실패. 봉인 후 재배포 호출에서 주소 동일·발생 로그 0 확인. `forge build` 통과.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: 위 테스트. 실제 재개는 원래 DEPLOYMENT_SALT와 broadcast receipt의 REGISTRAR 주소를 유지한다. registrar 권한이 이미 부여되었는데 주소를 생략하면 중복 배포 대신 중단한다.
-- 남은 문제: registrar 배포 직후 권한 부여 전 중단된 경우에도 receipt에서 주소를 복구해 지정해야 불필요한 새 registrar 배포를 피한다. 운영자와 설정은 최초 배포와 같아야 한다.
-
-## C10c — 배포 preflight·ERC20 probe·검증 manifest
-
-- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경, 새 Anvil 31337 / Codex
-- AI 수행: 검증 전 Sepolia 후보 설정, 코드 해시·체인·역할·연결·등록비·잔액 사전 점검, 테스트넷 전용 실제 ERC20 probe와 재개, eth_call smoke 및 공개 검증 보고서 생성 추가. 로컬 E2E도 실제 ERC20 probe 사용으로 변경.
-- 사람의 결정/수정: 추가 확인 사항 없음.
-- 참고 문서 및 버전: C01 고정 ENS Sepolia 배포 JSON과 계약 소스, [배포 재현 문서](phase1-deployment.md), deployments/versions.json.
-- AI 실행 검증: preflight TypeScript unknown 반환 비교 오류를 bigint 타입으로 수정. 최종 `forge test` 29 통과/0 실패, `forge build` 통과, `npm test` 17 통과/0 실패, `npm run typecheck` 통과. `./scripts/local-e2e.sh` 새 체인 배포·viem·권한 smoke 통과. Node spawn/assert로 미설정 후보가 tokenFactory 누락 오류로 RPC 접근 전에 거절됨을 확인.
-- 로컬 결과: 실제 ERC20 probe 풀 ID 0xe703bcf882198060d40e34384b820d425dac4359d6869fef2e5619e517c1a709. 생성된 deployments/local.verification.json에 공개 주소·버전·배포 블록·tx 해시·만료·코드 해시·봉인 상태 기록. 개인키/registration secret은 보고서에 포함하지 않는다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `npm run test:e2e`, 예상: found/missing/namespace 구분과 ENS text/data·editor·overwrite·operator denial·sealed roles 모두 통과. Sepolia는 문서의 preflight와 단계별 dry-run부터 실행.
-- 남은 문제: Sepolia 주소·프로토콜 버전 실조회와 서명/broadcast 미실행, ENS 앱 UI 미확인. RPC/검증 코드 해시/자금·서명 계정이 준비되어야 공개 체인 검증 가능. 로컬 fixture oracle을 실제 Sepolia 가격 검증으로 간주하지 않는다.
-
-## C10 보완 — 기존 로컬 RPC 보호
-
-- 날짜 / 도구: 2026-09-26 / Codex
-- AI 수행: E2E의 선택 포트에 기존 Ethereum RPC가 있으면 새 테스트 체인으로 오인하여 배포하지 않도록 시작 전에 거절.
-- 사람의 결정/수정: 추가 확인 사항 없음.
-- 참고: C10 로컬 재현 스크립트 자체 리뷰.
-- AI 실행 검증: 기존 테스트 Anvil(18545)이 켜진 상태에서 Node spawn/assert로 `KLAMP_LOCAL_PORT=18545 ./scripts/local-e2e.sh`가 종료 1과 거절 메시지를 반환함을 확인. 배포 호출 전 종료.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: 이미 사용 중인 RPC 포트를 KLAMP_LOCAL_PORT로 지정하면 실행을 거절해야 한다.
-
-## C11 — 보장 범위와 검증 인계
-
-- 날짜 / 환경 / 도구: 2026-09-26 / C01 고정 환경 / Codex
-- AI 수행: README, 요구사항별 검증 표, 사람 재현·SDK 문서 안내, 실제 로컬 검증 보고서 사본 추가. 계획 인덱스의 미착수 상태를 실제 구현 상태로 갱신. 원문 명세는 보존.
-- 사람의 결정/수정: 추가 확인 사항 없음. 명세 작성자·팀 검토 여부도 확인 대기로 유지.
-- 참고 문서 및 버전: C01 고정 문서/소스, viem getEnsText 2.56.9, C10 배포 문서.
-- AI 실행 검증: 최종 로컬 포트 보호 변경 후 `./scripts/local-e2e.sh` 재실행 통과. 생성한 실제 보고서를 docs/evidence/local-phase1.json에 복사. 전체 코드 검증 기준은 C10c의 Foundry 29개·SDK 17개·타입 검사 통과 결과이며 문서 변경 때문에 동일 코드 테스트를 불필요하게 반복하지 않았다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: README의 설치·테스트 명령과 docs/phase1-verification.md의 수동 확인 절차. 예상 결과와 공개 네트워크 미실행 사항을 분리해 기재.
-- 남은 문제: Sepolia 실배포·실제 strategy 로그·ENS 앱 UI·사람 직접 검증·팀/멘토 피드백은 미실행/미수신. 로컬 통과를 이 항목의 완료로 대체하지 않는다.
-
-## WEB01 — 프로토콜 터미널 이식과 SDK 상태 모델 동기화
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15, pnpm 12.6.0 / Codex
-- AI 수행: 별도 프론트 작업본을 저장소의 `web/`으로 이식하고, 대표 풀 조회를 `found | missing | invalid | unavailable | ambiguous`, 경로 비교를 `match | mismatch | blocked`로 맞췄다. UI·Zustand 상태와 온체인 데이터 어댑터 경계를 분리하고 2단계 수수료 상한 장면을 mock으로 명시했다. 루트 작업 지침과 README에 두 워크스페이스의 책임과 도구를 기록했다.
-- 사람의 결정/수정: 프론트를 컨트랙트 저장소에 합치되 컨트랙트 작업은 건너뛰고, 프론트 명세와 실제 상태 모델부터 동기화하도록 요청함.
-- 참고 문서 및 버전: `sdk/canonicalPool.ts`, `sdk/compareRoutes.ts`, C09·C11 기록, pnpm 12.6.0.
-- AI 실행 검증: 이식 전후 각각 `pnpm lint`, `pnpm build` 통과. `pnpm install --frozen-lockfile`도 이식된 워크스페이스에서 통과했다. 컨트랙트 소스와 npm 잠금 파일은 변경하지 않았다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm install --frozen-lockfile && pnpm lint && pnpm build`, 이후 `pnpm dev`에서 Run demo 실행.
-- 남은 문제: 현재 `ProtocolClient`는 mock이다. viem 어댑터와 실제 배포 manifest 연결, Sepolia UI 육안 검증, 2단계 수수료 상한 컨트랙트 구현은 미실행이다.
-
-## WEB02 — klamp.kro.kr GitHub Pages 배포 준비
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26, pnpm 12.6.0, GitHub Pages Actions / Codex
-- AI 수행: Next.js static export와 trailing slash를 활성화하고, `main`의 웹 변경을 lint·build한 뒤 `web/out`을 GitHub Pages에 배포하는 workflow를 추가했다. 커스텀 도메인 `klamp.kro.kr`을 루트 경로로 사용하는 운영 절차를 README에 기록했다.
-- 사람의 결정/수정: 배포 도메인을 `klamp.kro.kr`로 결정하고 코드에서 배포 준비를 요청함.
-- 참고 문서 및 버전: Next.js static export/basePath 공식 문서, GitHub Pages custom workflow/custom domain 공식 문서, `actions/configure-pages@v5`, `actions/upload-pages-artifact@v4`, `actions/deploy-pages@v5`, `pnpm/setup@v3`.
-- AI 실행 검증: `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm build` 통과. `web/out/index.html`과 `web/out/_next/static` 생성, HTML의 `/_next/` 루트 asset 경로, workflow YAML 파싱을 확인했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm install --frozen-lockfile && pnpm lint && pnpm build`; `out/index.html`이 생성되어야 한다. GitHub에서는 Pages source를 GitHub Actions로 지정하고 custom domain과 DNS/HTTPS 상태를 확인한다.
-- 남은 문제: 조직 도메인 TXT 검증, 저장소 Pages custom domain 등록, DNS CNAME, 실제 Actions 실행과 공개 URL 육안 검증은 GitHub/DNS 외부 설정이 필요해 미실행이다.
-
-## WEB03 — 클램프 브랜드 아이콘 적용
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26, pnpm 12.6.0, Chrome 로컬 반응형 검증 / Codex
-- AI 수행: `public/klamp.svg`의 과한 외곽 여백을 viewBox에서 줄이고 기존 임시 사각 마크를 대표 클램프 자산으로 교체했다. 같은 벡터를 헤더, 히어로, 푸터와 favicon metadata에 적용하고 모바일에서는 큰 히어로 마크를 숨겨 정보 밀도를 유지했다.
-- 사람의 결정/수정: public의 대표 아이콘을 검토하고 적합하면 수정해 적절한 위치에 배치하도록 요청함.
-- 참고 문서 및 버전: 저장소의 `web/public/klamp.svg`, Next.js 15 Metadata/Image API.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. 로컬 Chrome에서 데스크톱과 390×844 모바일 배치를 확인하고 페이지 내 세 개의 `/klamp.svg` 이미지가 256×256 자연 크기로 정상 로드됨을 확인했다. Chrome 자동 번역 확장이 `lang`과 DOM을 바꿔 발생시킨 hydration 경고는 앱 소스 오류가 아니다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`, 헤더·데스크톱 히어로·푸터 및 브라우저 탭 아이콘 확인. 900px 이하에서는 히어로 대형 아이콘이 숨고 헤더 아이콘은 유지되어야 한다.
-- 남은 문제: 실제 GitHub Pages 배포 후 favicon 캐시 갱신과 다양한 브라우저의 육안 검증은 미실행이다.
-
-## WEB04 — 마케팅 랜딩 패턴 제거와 프로토콜 정보 구조 정리
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26, pnpm 12.6.0, Chrome 로컬 반응형 검증 / Codex
-- AI 수행: 반복되는 올캡스 눈썹 문구, 오렌지 강조 슬로건, 3열 장점 스트립, 대형 둥근 카드와 소프트 섀도를 제거했다. 히어로를 프로토콜 요약과 phase 범위 표로 바꾸고, 보장 범위를 기술 문서형 행으로 재구성했다. 터미널의 눈썹 상태 문구는 단계 코드로, 컬러 카드는 평면 데이터 패널로 변경했다. 검증 과정에서 63 hex였던 mock PoolId를 32바이트로 수정해 해피패스의 `match · ens`를 복구했다.
-- 사람의 결정/수정: frontend 스킬을 사용해 AI slop으로 보이는 디자인, 특히 눈썹형 타이틀을 찾아 제거하도록 요청함. 해당 이름의 스킬은 현재 환경에 없어 코드 감사와 Browser 시각 검증으로 대체함.
-- 참고 문서 및 버전: 저장소 UI와 C09 SDK 상태 정책, Next.js 15.5.26.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. 로컬 Chrome 데스크톱 전체 화면과 390×844 모바일을 확인하고, Run demo 완료 후 `route match · ens`, 30% 요청, 1% mock 적용 상태를 확인했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; 히어로, Protocol boundary, Protocol trace를 데스크톱/모바일에서 확인하고 Run demo 실행 후 route가 `match · ens`인지 확인한다.
-- 남은 문제: 실제 배포 화면의 사람 육안 검증과 후속 문구·상호작용 개선은 미실행이다.
-
-## WEB05 — 100dvh 랜딩과 데모 라우트 분리
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 로컬 반응형 검증 / Codex
-- AI 수행: 랜딩 헤더에서 `Sepolia ready`를 제거하고 헤더를 full-height 히어로 위에 배치했다. 히어로를 `100dvh`로 고정하고 CTA와 헤더 Demo 링크를 별도 `/demo/` 라우트로 연결했다. 홈에서 터미널을 제거하고 데모 전용 소개, 범위 표기, 터미널, overview 복귀 링크와 전용 metadata를 구성했다.
-- 사람의 결정/수정: `Sepolia ready` 제거, 히어로 100dvh, CTA의 별도 데모 페이지 이동을 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26 App Router와 static export.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과, `out/demo/index.html` 생성 확인. Chrome에서 데스크톱 히어로 높이 754px/viewport 754px 일치, CTA의 `/demo/` 이동, 데모 제목과 Run demo 표시, 390×844 모바일 레이아웃을 확인했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/` 첫 화면이 한 viewport를 채우고 CTA가 `/demo/`로 이동하는지, `/demo/`에서 터미널 실행과 overview 복귀가 가능한지 확인한다.
-- 남은 문제: 실제 GitHub Pages 배포 후 두 정적 경로와 새 metadata의 브라우저 캐시 갱신은 미검증이다.
-
-## WEB06 — 랜딩과 데모의 프로토콜 중심 시각 체계 개선
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, pnpm 12.6.0, Chrome 로컬 검증 / Codex, Anthropic `frontend-design` skill
-- AI 수행: Warm White, Charcoal, Clamp Orange 팔레트를 유지하면서 Inter를 IBM Plex Sans로 교체하고 mono 서체를 주소와 실행 값으로 제한했다. 랜딩 히어로를 ENSv2 record와 proposed route의 직접 비교로 바꾸고 클램프 마크를 두 값을 결합하는 의미 있는 장치로 배치했다. 계약과 클라이언트의 책임 경계를 두 열로 재구성하고 Phase 2를 별도 simulation으로 분리했다. 데모에서는 장식적인 터미널 카드와 대문자·중점·화살표 표기를 제거하고 단계 진행, canonical route 비교, fee-cap simulation, 실행 readout을 하나의 계측 화면으로 재구성했다.
-- 사람의 결정/수정: Clamp Orange와 Warm White 조합을 유지하고, 앞서 합의한 AI 생성형 디자인 흔적 제거 지침을 랜딩과 데모에 함께 적용하도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `@fontsource-variable/ibm-plex-sans` 5.3.0, `@fontsource/ibm-plex-mono` 5.3.0.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. static export의 `/`와 `/demo` 생성을 확인했다. Chrome에서 랜딩 전체 흐름, 데모 초기 상태, `Run trace` 실행 후 ENS route match와 30% requested / 1% applied 결과를 확인했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/`에서 비교 도식과 책임 경계를 확인하고 `/demo/`에서 `Run trace`를 실행해 route match와 Phase 2 simulation 표기가 분리되는지 확인한다.
-- 남은 문제: 실제 GitHub Pages 배포 화면과 사람의 모바일 실기기 검증은 미실행이다.
-
-## WEB07 — 히어로 프로토콜 콘솔과 면 강조 전환
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 로컬 검증 / Codex, Anthropic `frontend-design` skill
-- AI 수행: 랜딩 히어로 우측 비교 도식을 실제 `klamp verify` 명령, ENSv2 조회, chain/manager/PoolId 비교, route match 결과가 보이는 라이트 프로토콜 콘솔로 교체했다. 운영체제 창 장식, 다크 터미널, 트래픽 라이트는 사용하지 않았다. CTA의 세로 오렌지 보더 조각과 데모 Phase 2 영역의 두꺼운 좌측 보더를 제거하고, CTA 전체 면과 검증 결과 배경색으로 강조 방식을 변경했다.
-- 사람의 결정/수정: 히어로 우측을 터미널처럼 구성하고 손톱형 보더 강조를 제거하며 필요한 강조는 다른 방식으로 바꾸도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, `frontend-design` skill.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 랜딩 전체 화면의 라이트 터미널, CTA 면 강조, 데모의 Phase 2 영역에서 좌측 강조 보더 제거를 확인했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/`의 우측 콘솔 데이터와 결과 행을 확인하고 `/demo/`의 Phase 2 simulation 영역에 두꺼운 좌측 보더가 없는지 확인한다.
-- 남은 문제: 실제 GitHub Pages 배포와 모바일 실기기 검증은 미실행이다.
-
-## WEB08 — 히어로 검증 콘솔의 TUI 문법 강화
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 로컬 검증 / Codex, Anthropic `frontend-design` skill
-- AI 수행: 히어로 우측 콘솔을 고정 열, 순차 섹션, 상태 토큰, 하단 상태 바로 구성된 라이트 TUI로 재설계했다. canonical record resolution과 proposed route comparison을 실제 순서인 01/02로 구분하고 chain, PoolManager, PoolId 판정과 종료 상태를 한 화면에 표시했다. 전체 다크 테마, CRT 효과, 스캔라인, 깜빡이는 커서는 사용하지 않았다.
-- 사람의 결정/수정: 히어로 우측 영역을 일반 터미널보다 TUI에 가까운 표현으로 강화하도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, `frontend-design` skill.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 라이트 TUI의 resolution/compare 섹션, `ok` 상태, `MATCH` 상태 바, 전체 랜딩 흐름을 확인했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/` 히어로 우측에서 01 resolve, 02 compare, MATCH 순으로 읽히는지 확인한다.
-- 남은 문제: 실제 GitHub Pages 배포와 모바일 실기기 검증은 미실행이다.
-
-## WEB09 — 히어로 TUI 전용 Oh My Zsh 계열 팔레트
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 로컬 검증 / Codex, Anthropic `frontend-design` skill
-- AI 수행: 히어로 TUI 내부에만 Solarized Dark 기반의 Oh My Zsh `agnoster`/기본 prompt 색상 의미 체계를 적용했다. 배경과 패널은 Solarized base 계열, resolution 단계는 yellow, network는 blue, 경로·상태 정보는 cyan, 성공과 MATCH는 green으로 구분했다. 작은 데이터 값의 가독성을 위해 밝은 foreground와 base0를 사용했고, 랜딩과 데모의 기존 Warm White/Clamp Orange 토큰은 변경하지 않았다.
-- 사람의 결정/수정: 히어로 TUI 영역에만 Oh My Zsh 컬러 팔레트를 적용하도록 요청함.
-- 참고 문서 및 버전: Oh My Zsh `agnoster.zsh-theme` master, `robbyrussell.zsh-theme` master, Next.js 15.5.26.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 TUI 외부의 기존 팔레트가 유지되고 TUI 내부에만 Solarized/ANSI 상태색이 적용되는지 확인했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/`에서 TUI만 dark Solarized 계열인지, 성공 상태가 green이고 외부 CTA는 Clamp Orange를 유지하는지 확인한다.
-- 남은 문제: 실제 GitHub Pages 배포와 모바일 실기기 검증은 미실행이다.
-
-## WEB10 — 히어로 TUI의 macOS 터미널 창 프레임
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 로컬 검증 / Codex, Anthropic `frontend-design` skill
-- AI 수행: 히어로 TUI에 macOS Terminal 형태의 외곽 프레임을 추가했다. 30px 높이의 밝은 타이틀바, 10px red/yellow/green window control, 중앙 세션 제목, 얇은 회색 외곽선, 10px 코너 반경과 절제된 두 단계 창 그림자를 적용했다. 컨트롤은 비기능 장식으로 두어 가짜 버튼 접근성을 만들지 않았고 내부 Oh My Zsh/Solarized TUI는 유지했다.
-- 사람의 결정/수정: 히어로 TUI 보더를 실제 Mac 창처럼 구성하도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, `frontend-design` skill.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 macOS title bar, traffic-light controls, border radius, shadow와 기존 TUI 내용의 결합을 확인했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/` 히어로 우측 창의 타이틀바, 세 control, 둥근 외곽선과 내부 TUI가 자연스럽게 연결되는지 확인한다.
-- 남은 문제: 실제 GitHub Pages 배포와 모바일 실기기 검증은 미실행이다.
-
-## WEB11 — 100dvh 단계형 프로토콜 데모
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 754px viewport 검증 / Codex, Anthropic `frontend-design` skill
-- AI 수행: 데모 페이지의 대형 인트로와 하단 푸터를 제거하고 헤더와 프로토콜 도구가 정확히 한 viewport를 사용하는 100dvh 화면으로 재구성했다. 상태 저장소의 일괄 자동 재생을 `Declare canonical pool` → `Verify proposed route` → `Request 30% fee` → `Apply 1% cap` 네 개의 사용자 입력으로 분리했다. 각 입력은 한 가지 상태 변화와 비동기 작업만 수행하며, 완료 후 `Start over`로 초기화한다. 비교 결과와 fee simulation을 데스크톱에서 좌우로 배치하고 낮은 화면과 모바일에서는 세로 스크롤로 전환했다.
-- 사람의 결정/수정: 시연 편의를 위해 데모를 100dvh로 만들고 과도한 타이틀을 제거하며 상호작용을 단계별로 구성하도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, Zustand 5.0.8, Emotion 11.14.1, `frontend-design` skill.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome 1440×754에서 초기/완료 화면이 한 viewport에 들어오는지 확인했다. 네 단계 버튼을 순서대로 실행해 canonical record, ENSv2 route match, 30% request, 1% applied 결과를 확인하고 `Start over`가 첫 단계로 복귀하는지 확인했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 네 버튼을 순서대로 누르고 각 단계가 한 번에 하나씩 진행되는지, 완료 상태에서도 전체 화면이 한 viewport에 들어오는지 확인한다.
-- 남은 문제: 실제 GitHub Pages 배포와 모바일 실기기 검증은 미실행이다.
-
-## WEB12 — 단계별 장면과 상호작용 애니메이션
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1440×756 검증 / Codex, Anthropic `frontend-design` skill
-- AI 수행: 한 화면에 동시에 노출되던 route, fee, 실행 readout을 제거하고 현재 단계에 필요한 정보만 보여주는 단일 장면 구조로 데모를 재구성했다. 주요 제목과 결과 수치를 확대하고 Declare receipt, Verify 비교, 30% request, 1% cap 결과가 순서대로 교체되도록 했다. 버튼 입력 후에만 장면 진입, 진행선, route 결합, fee 값 변화 애니메이션이 실행되며 `prefers-reduced-motion` 환경에서는 모든 전환을 제거한다. Phase 2 결과는 계속 simulation으로 명시했다.
-- 사람의 결정/수정: 데모의 작은 글자와 과도한 정보량을 줄이고 버튼 상호작용에 반응하는 동적 애니메이션을 추가하도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `frontend-design` skill.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome 1440×756에서 Declare, Verify, Request 30%, Apply 1% 네 장면을 순서대로 확인했으며 완료 화면과 초기 화면 모두 viewport 높이와 문서 높이가 756px로 일치했다. `Start over` 이후 첫 단계 버튼이 복구되는 것도 확인했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 네 버튼을 순서대로 누르며 한 번에 한 장면만 보이는지, 전환 애니메이션이 클릭 직후 실행되는지, 완료 후 `Start over`가 초기 장면으로 복귀하는지 확인한다.
-- 남은 문제: 실제 GitHub Pages 배포 화면과 모바일 실기기에서의 동작 검증은 미실행이다.
-
-## WEB13 — 개발 페이즈 대신 현재 동작을 설명하는 문구 체계
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1440×756 검증 / Codex, Anthropic `frontend-design` skill
-- AI 수행: 랜딩, 데모 헤더, 단계 설명, 상태 요약, metadata에서 `Phase 1`과 `Phase 2` 구분을 제거했다. 랜딩은 route verification 이후의 `Fee cap preview`, 데모는 `Canonical route`, `Pool verification`, `Fee cap preview`처럼 사용자가 현재 보고 있는 동작을 직접 설명하도록 변경했다. 아직 컨트랙트에 포함되지 않은 fee cap은 개발 페이즈 대신 simulation과 preview라는 실행 범위로 명시했다.
-- 사람의 결정/수정: 웹페이지 전반에서 1·2 페이즈 구분을 하지 말고 현재 수행 중인 단계를 설명하도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, `frontend-design` skill.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. `web/src`와 정적 export에서 phase 문구가 남지 않은지 검색했다. Chrome 1440×756에서 랜딩의 fee cap 설명과 데모의 context/status 문구를 확인했으며 데모 문서 높이가 viewport 높이와 동일한 756px인지 확인했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/`의 Fee cap preview와 `/demo/`의 Canonical route, Pool verification, Fee cap preview 문구를 확인하고 개발 페이즈 번호가 노출되지 않는지 확인한다.
-- 남은 문제: 실제 GitHub Pages 배포 화면과 모바일 실기기 검증은 미실행이다.
-
-## WEB14 — 공격 payload와 clamp 충돌 애니메이션
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1440×756 검증 / Codex, Anthropic `frontend-design` skill
-- AI 수행: 30% 요청 장면을 단순 수치 확대에서 `Malicious hook`이 `feeOverride(3000)` payload를 pool 방향으로 전송하는 공격 시퀀스로 변경했다. 요청선과 세 개의 이동 packet, 30% payload 충돌과 짧은 화면 반동을 사용자 입력 직후 한 번만 실행한다. cap 적용 장면에서는 incoming 30%가 중앙 클램프에 충돌하고 반동한 뒤 1% 결과가 나타나도록 동작을 연결했다. 공격은 Brick Red, 방어는 Clamp Orange로 역할을 구분했으며 reduced-motion 환경에서는 기존과 같이 모든 애니메이션을 제거한다.
-- 사람의 결정/수정: 수치 변화만으로는 공격자의 공격이 충분히 역동적으로 느껴지지 않으므로 공격과 방어 애니메이션을 강화하도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `frontend-design` skill.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome 1440×756에서 Request 30% 입력 직후 payload 이동·충돌 프레임과 Apply 1% 입력 직후 clamp 충돌·반동 프레임, 최종 1% 결과를 확인했다. 완료 화면의 문서 높이와 viewport 높이가 756px로 일치했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/`의 세 번째 버튼을 눌러 공격 packet과 30% 충돌을 확인하고, 네 번째 버튼에서 30%가 clamp에 부딪힌 뒤 1%가 나타나는지 확인한다. OS의 동작 줄이기를 켰을 때는 전환이 즉시 완료되어야 한다.
-- 남은 문제: 실제 GitHub Pages 배포 화면과 모바일 실기기의 애니메이션 검증은 미실행이다.
-
-## WEB15 — cap 적용 장면의 이중 전환 제거
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1440×756 검증 / Codex, Anthropic `frontend-design` skill
-- AI 수행: 4번 입력에서 `enforce-busy`가 `complete-ready`로 바뀔 때 React가 Scene 전체를 다시 마운트하던 원인을 제거했다. `enforce`와 `complete` 상태에는 동일한 `fee-enforcement` key를 사용해 공격 충돌 애니메이션은 최초 진입 시 한 번만 실행하고, mock 결과 도착 후에는 같은 장면 안에서 1% 결과와 완료 문구만 갱신되도록 했다.
-- 사람의 결정/수정: 4번 동작 중간에 화면이 한 번 교체되어 보이는 현상을 확인한 뒤 동일 장면 내 결과 갱신 방식으로 수정하도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, React 19, Emotion 11.14.1, `frontend-design` skill.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome 1440×756에서 클릭 직후 `Applying the 1% cap`, 완료 후 `The request was capped`와 `1.00%`가 순서대로 나타나는지 확인했다. 완료 화면의 문서 높이와 viewport 높이는 모두 756px였다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/`의 네 번째 버튼을 누르고 clamp 충돌 애니메이션이 한 번만 실행되며 동일한 화면에서 1% 결과가 나타나는지 확인한다.
-- 남은 문제: 실제 GitHub Pages 배포 화면과 모바일 실기기의 애니메이션 검증은 미실행이다.
-
-## WEB16 — klamp.eth 기반 5단계 mock 검증 흐름
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×700 검증 / Codex, `frontend-design` skill
-- AI 수행: 데모를 `Launch + ENS record` → `Verify route` → `Verify hook` → `Request 30%` → `Enforce 1%`의 다섯 단계로 재구성했다. 런처가 토큰과 풀을 만든 뒤 `tokens.klamp.eth`에 canonical pool을 기록하는 과정, route 재계산, `hooks.klamp.eth`에서 확인한 hook code hash와 1% 상한, verified proxy 내부 악성 로직의 3,000 bps 요청, 최종 1% 적용과 quoted/received output 일치를 각 장면에 반영했다. 기존 공격 payload와 clamp 충돌 애니메이션은 유지했고, 화면 상단과 계측기 안에 local mock 및 wallet/RPC 미연결 상태를 명시했다.
-- 사람의 결정/수정: 실제 컨트랙트 연결은 보류하고, 기존 상호작용과 애니메이션 수준을 유지하면서 컨트랙트 연결 및 mock 여부 표시 직전까지의 프론트 데모 구성을 우선 진행하도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `frontend-design` skill.
-- AI 실행 검증: `pnpm lint`, `pnpm build`를 통과했다. Chrome에서 다섯 단계의 상태와 버튼을 순서대로 실행해 ENS record, canonical route, hook cap, 30% request, 1% applied 및 quoted/received output 일치를 확인했다. `Start over` 복귀와 1470×700 화면에서 document/viewport 높이가 모두 700px인 것도 확인했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 다섯 버튼을 순서대로 누르며 각 ENS namespace와 검증 결과, 공격/방어 애니메이션, 최종 output 일치, `Mock data`와 `No wallet or RPC` 표기를 확인한다.
-- 남은 문제: 실제 wallet/RPC/ENS 및 배포 컨트랙트 연결, Sepolia live data 전환, 모바일 실기기 검증은 미실행이다.
-
-## WEB17 — Launch 장면의 이중 재생 제거
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 검증 / Codex, `frontend-design` skill
-- AI 수행: 첫 번째 Launch 입력에서 `idle`, `launch-busy`, `launch-ready`마다 Scene key가 달라져 같은 화면이 다시 마운트되던 원인을 제거했다. 세 상태가 하나의 `launch-flow` 장면을 유지하도록 하고, 연결선 애니메이션은 입력 시 한 번만 시작하도록 상태에 연결했다. 비동기 실행 중에는 별도의 진행 제목과 Deploying/Initializing/Writing 상태를 표시하고 완료 시 같은 위치에서 실제 mock 값만 갱신한다.
-- 사람의 결정/수정: 1번 동작 중간의 화면 깜빡임을 제거하되 기존 상호작용과 애니메이션 수준은 유지하도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, React 19, Emotion 11.14.1, `frontend-design` skill.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 초기 상태, 입력 120ms 후 진행 상태, 520ms 후 완료 상태를 확인했으며 Launch actor와 receipt 구조가 유지된 채 문구와 값만 갱신되는 것을 확인했다. 완료 화면의 document/viewport 높이는 모두 756px였다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 첫 번째 버튼을 누르고 장면 전체가 사라졌다 다시 나타나지 않는지, 연결선은 한 번만 실행되고 진행 문구가 같은 자리에서 완료 값으로 바뀌는지 확인한다.
-- 남은 문제: 실제 GitHub Pages 배포 환경과 모바일 실기기의 전환 검증은 미실행이다.
-
-## WEB18 — 단계별 mock 응답 대기 시간 조정
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 검증 / Codex, `frontend-design` skill
-- AI 수행: 상태 문구와 장면 변화를 읽을 수 있도록 mock 데이터 계층의 응답 지연을 한 곳에 모으고 Launch 950ms, route 검증 850ms, hook 검증 850ms, fee cap 적용 1,050ms로 늘렸다. 공격 payload와 clamp 충돌을 포함한 CSS 애니메이션 속도는 변경하지 않았다.
-- 사람의 결정/수정: 전체 단계 사이의 대기 시간을 기존보다 늘리도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, TypeScript 5, `frontend-design` skill.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 클릭부터 다음 동작 버튼 표시까지 Launch 1,064ms, route 970ms, hook 962ms, cap 1,166ms를 측정했다. 완료 화면의 document/viewport 높이는 모두 756px였다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/`의 각 버튼을 순서대로 누르고 Launch·route·hook은 약 1초, 최종 cap 적용은 약 1.1초 동안 진행 상태가 유지되는지 확인한다.
-- 남은 문제: 실제 네트워크 연결 후의 응답 시간은 mock 지연과 무관하므로 별도의 pending/loading 정책이 필요하다.
-
-## WEB19 — 데모 헤더 정리와 Launch 표 여백
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 검증 / Codex, `frontend-design` skill
-- AI 수행: 데모 헤더에서 `Protocol trace`, `klamp.eth namespaces`, `Mock data`, `No wallet or RPC` context 묶음을 제거하고 Klamp 브랜드와 `Project overview`만 양 끝에 남겼다. 첫 번째 Launch 장면의 receipt 표에는 좌우 18px 내부 여백을 추가해 행 텍스트가 경계선에 붙지 않도록 했다.
-- 사람의 결정/수정: Step 1 표의 좌우 padding을 추가하고 헤더의 `klamp.eth namespaces`, `Mock data`, `No wallet or RPC` 문구를 모두 제거하도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, `frontend-design` skill.
-- AI 실행 검증: `pnpm lint` 통과. 실행 중이던 동일 저장소 개발 서버와 `.next` 산출물 충돌로 첫 `pnpm build`의 page data 수집이 실패했으나 해당 개발 서버를 종료한 뒤 재실행하여 static export까지 통과했다. Chrome에서 헤더 문구 제거, Launch 표 좌우 여백과 긴 ENS 이름 말줄임을 확인했으며 document/viewport 높이는 모두 756px였다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/` 헤더에 Klamp와 `Project overview`만 남았는지, Step 1의 세 행이 좌우 경계에서 떨어져 정렬되는지 확인한다.
-- 남은 문제: 실제 GitHub Pages 배포 환경과 모바일 실기기 검증은 미실행이다.
-
-## WEB20 — Route·Hook 장면의 이중 전환 제거
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 검증 / Codex, `frontend-design` skill
-- AI 수행: Step 2와 Step 3의 `busy → ready` 전환마다 Scene key가 바뀌어 화면 전체가 다시 마운트되던 구조를 각각 `route-verification`, `hook-verification` 고정 장면으로 변경했다. route는 결과 도착 시 clamp 결합만, hook은 검증 완료 시 1% cap 수치만 애니메이션되도록 분리했다. 진행 중에는 완료 문구 대신 `Verifying the proposed route`, `Resolving the hook cap`을 표시한다. mock 응답 지연은 Launch 1,250ms, route 1,150ms, hook 1,150ms, cap 1,350ms로 늘렸다.
-- 사람의 결정/수정: 전체 대기 시간을 더 늘리고 Step 2와 Step 3 중간의 화면 깜빡임을 제거하도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, React 19, Emotion 11.14.1, `frontend-design` skill.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 Step 2와 Step 3의 진행 제목이 각각 표시되고 같은 구조 안에서 완료 데이터로 갱신되는 것을 확인했다. 클릭부터 다음 동작 가능 시점까지 route와 hook은 각각 1,296ms, cap은 1,497ms였고 document/viewport 높이는 모두 756px였다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 Step 2와 3을 실행해 장면 전체가 다시 나타나지 않고, 진행 문구 뒤 route clamp와 1% cap 값만 한 번 애니메이션되는지 확인한다.
-- 남은 문제: 실제 GitHub Pages 배포 환경과 모바일 실기기의 전환 검증은 미실행이다.
-
-## WEB21 — Route 검증 완료 후 연결선 표시
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 로컬 검증 / Codex, `frontend-design` skill
-- AI 수행: Step 2의 중앙 clamp 양옆 주황선이 route 검증 전부터 보이던 원인을 수정했다. unmatched 상태의 선을 `scaleX(0)`으로 숨기고, `Canonical route verified` 결과가 도착해 matched가 true가 될 때 중앙에서 양옆으로 확장되는 420ms 애니메이션을 한 번 실행한 뒤 완성 상태를 유지한다.
-- 사람의 결정/수정: Step 2의 주황 연결선 애니메이션은 `Canonical route verified` 이후에 진행되어야 한다고 지적함.
-- 참고 문서 및 버전: Next.js 15.5.26, React 19, Emotion 11.14.1, `frontend-design` skill.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 진행 중 제목이 `Verifying the proposed route`일 때 pseudo-element transform이 `matrix(0, 0, 0, 1, 0, 0)`, 완료 제목이 `Canonical route verified`일 때 `matrix(1, 0, 0, 1, 0, 0)`인지 확인했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/` Step 2를 실행해 검증 중에는 중앙 주황선이 없고, 완료 문구와 함께 선이 양옆으로 펼쳐지는지 확인한다.
-- 남은 문제: 실제 GitHub Pages 배포 환경과 모바일 실기기의 애니메이션 검증은 미실행이다.
-
-## WEB22 — 데모 인과 순서와 결과 노출 동기화
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 로컬 검증 / Codex, `frontend-design`, `browser` skills
-- AI 수행: Step 1에 `deploying → initializing → recording → complete` 시각 상태를 추가해 토큰 배포, 풀 초기화, ENS 기록이 동시에 진행되는 것처럼 보이지 않도록 했다. Step 4의 30% 공격 시퀀스가 재생되는 900ms 동안 다음 동작과 Reset을 잠그고 진행 문구를 분리했다. Step 5의 applied fee와 settlement proof는 mock 실행 결과가 도착하기 전에는 값과 영역을 숨기고, 결과가 상태에 기록된 뒤 1.00%와 실제 quoted/received output을 표시하도록 변경했다. 비동기 작업 중 Reset을 비활성화해 진행 중 요청과 초기화가 경합하지 않게 했다.
-- 사람의 결정/수정: 앞선 전체 애니메이션 점검 결과에 따라 시나리오의 인과관계가 더 명확해지도록 후속 수정을 계속 진행하도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, React 19, Emotion 11.14.1, Zustand 5.0.8, `frontend-design` skill, Browser skill.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 Step 1이 `Deploying/Waiting/Waiting` → `Complete/Initializing/Waiting` → `Complete/Complete/Writing` → 실제 기록값 순서로 바뀌는 것을 확인했다. Step 4 입력 직후 `Sending request…` 버튼이 비활성이고 950ms 뒤 `Apply 1% cap`이 활성화되는 것을 확인했다. Step 5 입력 후 1,000ms 시점까지 applied/result 영역의 opacity가 0이고 값이 비어 있으며, mock 결과 후 `1.00%`, `41,842.17`이 표시되는 것을 확인했다. 콘솔 오류가 없고 document/viewport 높이는 모두 756px였다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 Step 1의 세 작업이 순서대로 바뀌는지, Step 4 공격 모션 중 다음 버튼을 누를 수 없는지, Step 5 결과가 cap 실행 완료 후에만 나타나는지 확인한다.
-- 남은 문제: 실제 컨트랙트/RPC 응답과 연결된 pending·실패·재시도 상태, GitHub Pages 배포 환경, 모바일 실기기 검증은 미실행이다.
-
-## WEB23 — 데모 브라우저 번역 차단 해제
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, pnpm 12.6.0 / Codex
-- AI 수행: 데모 계측기 전체에 적용된 `translate="no"` 속성을 제거해 브라우저 번역 기능이 화면 문구를 번역할 수 있도록 했다. 화면 구조, 상태 전이, 기술 데이터 값은 변경하지 않았다.
-- 사람의 결정/수정: 데모 페이지의 한국어 브라우저 번역을 막는 설정을 제거하도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, React 19.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. static export에서 `/demo` 생성도 확인했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 브라우저의 한국어 번역을 실행해 UI 문구가 번역 대상에 포함되는지 확인한다.
-- 남은 문제: 브라우저 확장 번역이 React hydration 전에 DOM 속성을 변경하면 개발 환경에서 hydration 경고가 다시 발생할 수 있다. 제품 차원의 안정적인 다국어 지원은 별도 i18n 구현이 필요하다.
-
-## WEB24 — 보호 풀 생성 전제와 라우팅 주체 시각화
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×700 로컬 검증 / Codex, `frontend-design`, `browser` skills
-- AI 수행: Step 1에 dynamic-fee pool이 생성 시점부터 `CappedHookProxy · 1% max`를 hook으로 가진다는 행과 설명을 추가했다. Step 2에는 후보 경로를 합치는 Aggregator와 선택 경로를 전달하는 Router를 서로 다른 전용 SVG로 제작해 배치하고, 두 구간의 오렌지 패킷이 순차 이동한 뒤 canonical pool 비교로 이어지도록 애니메이션을 구성했다. Step 3은 ENS가 wrapper와 상한을 증명하고, Step 4는 공식 풀 내부의 compromised fee strategy가 과도한 값을 요청하며, Step 5는 ENS가 아니라 온체인 wrapper가 상한을 강제한다는 문구로 책임을 바로잡았다. v4의 dynamic fee PoolKey는 `0x800000`으로 수정하고 mock hook 주소에 `BEFORE_SWAP_FLAG(0x80)`가 포함되도록 정정한 뒤 PoolId를 다시 계산했으며, 30% raw fee 요청은 `300_000` pips로 표기했다.
-- 사람의 결정/수정: canonical route 검증과 공식 풀 내부 상한 강제를 두 방어선으로 구분하고, 기존 화면에 보이지 않던 Aggregator와 Router 각각의 이미지와 애니메이션을 추가하도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, React 19, Emotion 11.14.1, Zustand 5.0.8, viem 2.56.9, Uniswap v4-core `PoolKey`, `IHooks`, `LPFeeLibrary`, `frontend-design` skill, Browser skill.
-- AI 실행 검증: viem 2.56.9의 ABI encoding과 keccak256으로 dynamic fee와 beforeSwap permission을 반영한 PoolKey의 PoolId `0x469206…d0cfbc`를 계산했다. Chrome에서 Step 1의 capped proxy 행, Step 2의 Aggregator·Router·Selected branch 순서와 두 패킷 이동, 최종 route match를 확인했다. 이어서 Step 3~5를 실행해 `Compromised strategy`, `requestFee(300_000)`, `Onchain maximum 1.00%`, 최종 applied/output 값을 확인했으며 콘솔 오류는 없었다. 1470×700에서 document/viewport 높이가 모두 700px이고 가로 overflow가 없었다. 최종 PoolKey와 PoolId 반영 후 `pnpm lint`, `pnpm build`를 다시 실행해 통과했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 Step 1 완료 후 Pool hook 행을 확인하고 Step 2 입력 시 Aggregator와 Router가 별도 이미지로 나타나며 패킷이 왼쪽에서 오른쪽으로 순차 이동하는지 확인한다.
-- 남은 문제: `CappedHookProxy`와 fee strategy는 아직 mock 시나리오이며 실제 온체인 wrapper 구현, 불변 cap 검증, 공격·우회 테스트와 실기기 애니메이션 검증은 미실행이다.
-
-## WEB25 — 여섯 단계 보호 경로와 PoolManager 반환 완성
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 데스크톱·390×844 반응형 검증 / Codex, `frontend-design`, `browser` skills
-- AI 수행: 기존 흐름을 여섯 단계로 분리해 각 화면이 한 가지 판단만 보여주도록 정리했다. Aggregator가 후보 branch를 만들고 Router가 PoolKey를 v4 PoolManager로 넘기는 장면을 독립 단계로 만들었으며, canonical 조회와 분리된 `ProposedRoute` 타입 및 mock client 경계를 추가했다. route 검증에는 ENS resolver·chain·PoolManager·PoolId 비교를, hook 검증에는 ENS identity·PoolKey hook address·runtime code hash·`Immutable · 1%` 상한 증거를 표시했다. 공격은 외부의 strategy admin key compromise가 `setFee(300_000)` 출력을 만든 것으로 구체화했고, 최종 장면은 CappedHookProxy가 1%로 clamp한 값을 PoolManager에 반환하는 방향까지 표시했다. 새 PoolManager SVG를 프로젝트 팔레트로 추가했으며 모바일 grid item의 최소 너비 때문에 생긴 페이지 가로 overflow를 제거했다.
-- 사람의 결정/수정: 필요한 요소를 우선 모두 포함하고, 화면 복잡도가 높아지면 단계 분할로 일정 수준을 유지하도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, React 19, Emotion 11.14.1, Zustand 5.0.8, Uniswap v4 PoolManager/PoolKey 개념, `frontend-design` skill, Browser skill.
-- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 여섯 단계 전체를 순서대로 실행해 Aggregator → Router → PoolManager 전달, canonical 네 항목 일치, immutable hook cap 네 항목 증거, strategy admin 공격, wrapper → PoolManager 1% 반환과 settlement 결과를 확인했다. 데스크톱에서 콘솔 오류와 가로·세로 overflow가 없었고, 390×844에서 단계 진행부의 의도된 내부 가로 스크롤 외에 문서 전체 가로 overflow가 없음을 확인했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 여섯 버튼을 순서대로 실행해 각 단계가 하나의 사건만 설명하는지, Step 2의 전달 대상과 Step 6의 반환 대상이 모두 PoolManager인지 확인한다.
-- 남은 문제: 모든 프로토콜 응답과 공격·상한 적용은 명시적으로 mock data layer에 있으며 실제 ENS/RPC/컨트랙트 연결, 실패·불일치 경로, 모바일 실기기 검증은 아직 필요하다.
-
-## WEB26 — 악성 복제 풀 차단·상한 견적·회수 시나리오 완성
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 및 390×844 반응형 검증 / Codex, `frontend-design`, PDF, Browser skills
-- AI 수행: 전체 데모를 8단계로 재구성했다. Step 1은 CappedHookFactory의 proxy 배포·hook identity 발급과 issuer의 canonical pool 기록을 하나의 launch flow로 표현한다. Step 2는 Aggregator가 0.25% issuer pool과 0.05% bait quote replica pool을 아직 신뢰하지 않은 후보로 발견하고, Step 3은 Guarded Router가 ENS canonical PoolId를 기준으로 replica를 제외한다. Step 4는 hook address·runtime code hash·immutable 1% maximum·before/after swap return delta 비활성화를 검증하고 advertised fee 대신 등록 상한으로 견적한다. Step 5로 PoolManager 전달을 이동해 모든 검증 이후에만 PoolKey가 전달되도록 인과 순서를 수정했다. Step 6은 strategy admin key compromise의 30% 요청, Step 7은 protected 1% 결과와 unguarded 30% 결과의 병렬 비교, Step 8은 Guardian unregister 후 resolver `0x0`·attestation revoked·route blocked 전환을 보여준다. 각 비동기 단계는 typed mock client의 독립 메서드와 Zustand 상태로 분리했다.
-- 사람의 결정/수정: 빠진 핵심 장면을 모두 추가하고, 필요하면 단계를 늘리되 각 화면 복잡도를 일정 수준으로 유지하며 인터랙션 애니메이션을 충분히 넣도록 요청함.
-- 참고 문서 및 버전: 최종 1단계 설계 PDF, CappedHooks 개발 기획·명세 PDF, Next.js 15.5.26, React 19, Emotion 11.14.1, Zustand 5.0.8, `frontend-design`, PDF, Browser skills.
-- AI 실행 검증: `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` 통과. Chrome에서 8개 동작을 순서대로 실행해 replica `REJECT`, hook `Both disabled`, 1% quote basis, Step 5 이후 PoolManager `Route accepted`, 30% attack, guarded/unguarded 비교, Guardian revoke와 최종 `Blocked`를 확인했다. 애플리케이션 콘솔 오류는 없었으며 브라우저 확장 자체 경고만 있었다. 1470×756에서 document/viewport 크기가 일치했고, 390×844에서 진행부 내부 스크롤 외 문서 전체의 가로 overflow는 없었다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 8단계를 순서대로 실행한다. Step 2에는 PoolManager 전달이 없어야 하고, Step 3 replica `REJECT`, Step 4 `Immutable maximum 1.00%`와 `Both disabled`, Step 5 `Route accepted`, Step 7 두 결과 비교, Step 8 최종 `Revoked`·`Blocked`를 확인한다.
-- 남은 문제: CappedHookFactory·hook ENS registry·GuardedRouter·Guardian·fee enforcement는 여전히 typed mock data layer이며 실제 2단계 컨트랙트와 RPC 연결, 실패·재시도 분기, 모바일 실기기 검증은 아직 필요하다.
-
-## WEB27 — Step 4 상한 계측 패널 간격 정렬
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26, Chrome 1470×756 및 390×844 반응형 검증 / Codex, `frontend-design`, Browser skills
-- AI 수행: Step 4의 hook identity·immutable maximum·quote basis를 각각 독립된 세 열로 두면서 column gap과 좌측 padding이 중복되던 구조를 수정했다. identity 본문과 360px 계측 패널의 2열 구조로 바꾸고, 패널 안의 `Immutable maximum`과 `Quote basis`를 동일한 180px 열·동일 padding·동일 왼쪽 정렬·동일 숫자 크기로 통일했다. 하단 검증 행과의 row gap은 22px로 정리하고 430px 이하에서는 두 수치가 한 열로 쌓이도록 했다.
-- 사람의 결정/수정: Step 4 `Immutable maximum` 주변의 전체 간격이 비정상적으로 보인다고 지적하고 확인·수정을 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, `frontend-design`, Browser skills.
-- AI 실행 검증: Chrome 계산 레이아웃에서 데스크톱 계측 패널이 180px/180px, 두 셀 padding이 모두 `15px 18px 16px`, 왼쪽 정렬로 일치함을 확인했다. 1470×756에서 document/viewport가 일치했고, 390×844에서 두 셀이 단일 열로 쌓이며 문서 가로 overflow가 없음을 확인했다. `pnpm lint`, `pnpm build`도 통과했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/` Step 4까지 진행해 `Immutable maximum`과 `Quote basis`가 하나의 계측 패널 안에서 같은 baseline·padding으로 보이는지 확인한다.
-- 남은 문제: 실제 폰트 렌더링과 모바일 실기기에서의 사람 시각 검증은 아직 필요하다.
-
-## WEB28 — 데모 모션 완화와 양방향 단계 탐색
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26, Chrome 1470×756 및 390×844 반응형 검증 / Codex, `frontend-design`, Browser skills
-- AI 수행: 전체 mock 응답 대기 시간을 약 15% 늘리고 장면 진입·후보 분기·검증 게이트·route packet·cap reveal·공격 충돌·결과 비교·Guardian 회수 애니메이션을 약 15~20% 늦췄다. 기존 순서와 easing은 유지했다. 하단에는 `Previous`를 추가하고 방문한 결과를 보존한 채 한 단계씩 돌아가도록 Zustand 상태를 확장했다. 상단 8단계 진행표는 키보드 접근 가능한 버튼으로 변경했다. 아직 데이터가 없는 미래 단계는 비활성이고 바로 다음 단계는 실행 가능하며, 한 번 완료한 단계는 이후 직접 클릭해 즉시 이동할 수 있다. 과거 장면에서는 이후 결과가 하단 상태에 노출되지 않도록 현재 단계 기준으로 표시 범위를 제한했다.
-- 사람의 결정/수정: 전체 애니메이션을 약간 늦추고, Reset 외에 이전 단계 버튼 및 상단 단계표 클릭 이동을 추가하도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `frontend-design`, Browser skills.
-- AI 실행 검증: `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` 통과. Chrome에서 상단 단계표만 사용해 8단계를 끝까지 실행했고 완료 후 Step 3 직접 이동, `Previous`를 통한 Step 2 복귀, Step 7 직접 이동을 확인했다. 과거 단계에서 미래 상태가 숨겨지고, 방문 완료 후 8개 단계 버튼이 모두 활성화되는 것을 확인했다. 390×844에서 `Reset`, `Previous`, 다음 동작 버튼이 390px 안에 들어가고 문서 가로 overflow가 없었으며 localhost 애플리케이션 콘솔 오류는 없었다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; 상단 Step 1부터 Step 8까지 순서대로 클릭한 뒤 임의의 완료 단계를 클릭해 즉시 이동하고, `Previous`로 한 단계 돌아간 다음 데이터와 하단 상태가 해당 장면에 맞는지 확인한다.
-- 남은 문제: 실제 온체인 트랜잭션 연결 후에는 이미 확정된 체인 상태를 UI의 이전 단계 이동이 되돌리는 것으로 오해하지 않도록 presentation mode와 live mode를 구분해야 한다.
-
-## WEB29 — 미방문 단계 직접 탐색
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26, Chrome 데스크톱·모바일 반응형 검증 / Codex, `frontend-design`, Browser skills
-- AI 수행: 상단 8단계 진행표에서 아직 실행하지 않은 미래 단계도 즉시 열 수 있도록 변경했다. `ProtocolClient`에는 선택적인 presentation snapshot 포트를 추가하고, local mock adapter만 완성된 결정론적 스냅샷을 제공한다. 직접 이동 시 선택한 장면까지 필요한 데이터만 Zustand에 채우고 이후 단계 결과는 비워, Step 4에서 Step 7 결과가 미리 노출되는 식의 상태 누출을 막았다. Step 8 직접 이동은 회수 완료 장면을 표시한다. 하단 CTA의 순차 실행과 지연 애니메이션, `Previous` 동작은 그대로 유지했다.
-- 사람의 결정/수정: 발표 중에는 방문 여부와 관계없이 미래 단계도 상단 진행표에서 자유롭게 이동할 수 있도록 요청함.
-- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `frontend-design`, Browser skills.
-- AI 실행 검증: `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` 통과. Chrome 초기 화면에서 8개 진행 버튼의 disabled 수가 0임을 확인했다. Step 4 직접 이동 시 immutable 1% quote가 보이고 Step 7 결과는 노출되지 않았으며, Step 7 직접 이동 후 `Previous`로 Step 6에 돌아가면 하단의 `Applied at 1%` 결과가 숨겨졌다. 초기화 직후 Step 8 직접 이동에서도 revoked·blocked 완료 장면이 즉시 표시됐다. 390×844에서 document width와 viewport width가 모두 390px였다. localhost 관련 콘솔 오류는 없었고 자동 번역 확장이 `html lang`을 변경해 만든 기존 hydration 경고와 지갑 확장 경고만 확인됐다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; 초기 화면에서 Step 4·Step 7·Step 8을 각각 직접 클릭해 해당 장면과 필요한 선행 데이터가 즉시 나타나는지 확인한다. Step 7에서 `Previous`로 Step 6에 돌아갔을 때 상한 적용 결과가 하단 상태에 남아 보이지 않는지도 확인한다.
-- 남은 문제: presentation snapshot이 없는 실제 온체인 adapter에서는 미확정 미래 상태를 만들어낼 수 없으므로, live mode 도입 시 상단 미래 단계의 직접 탐색 정책을 별도로 표시하거나 제한해야 한다.
-
-## WEB30 — 정상 견적과 공격 수수료의 분리
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26, Chrome 데스크톱·390×844 반응형 검증 / Codex, `frontend-design`, Browser skills
-- AI 수행: Step 4가 검증된 정상 풀의 현재 25 bps 수수료 대신 100 bps 상한으로 견적하던 오류를 정정했다. `CapQuote`를 current-fee 기반으로 바꾸고 화면을 `Current quote 0.25% → Immutable maximum 1.00%` 순서로 재배치했다. Step 5 전달 화면도 0.25% 현재 견적을 표시한다. Step 6은 외부 공격자가 탈취한 strategy-admin key로 검증된 공식 풀에 `setFee(300_000)`을 비인가 호출한다는 주체·대상·행위를 명시했다. Step 7은 이전 0.25% 견적, 공격 요청 30%, 보호 적용 1%를 구분하고, 0.25% 견적과 1% 실행 결과가 같다는 기존 주장을 제거했다. mock output은 같은 fee-before-output 기준으로 0.25%, 1%, 30%를 각각 계산한다.
-- 사람의 결정/수정: 악성 복제 풀은 Step 3에서 제외되므로 Step 4에는 정상 풀의 0.25%가 나와야 하며, Step 6의 30% 요청이 외부 공격임을 더 명확하게 표현하도록 요청함.
-- 참고 문서 및 버전: 루트 `AGENTS.md`, `contract/AGENTS.md`, `contract/Klamp_Phase1_Agent_Spec.md`, Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `frontend-design`, Browser skills.
-- AI 실행 검증: `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` 통과. Chrome에서 Step 4 제목과 계측 패널이 정상 풀 `0.25%`를 먼저, immutable maximum `1.00%`를 별도로 표시하는 것을 확인했다. Step 6에서 `External attacker`, `Stolen strategy-admin key`, 공식 풀 대상, 비인가 `setFee(300_000)`, 30% 출력을 확인했다. Step 7에서 0.25% 이전 견적, 30% 공격 요청, guarded 1%와 unguarded 30% 결과가 구분됐다. 390×844에서 document/viewport width가 모두 390px였다. 자동 번역 확장이 `html lang`을 변경해 발생시키는 기존 hydration 경고 외 localhost 애플리케이션 오류는 없었다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/` Step 4로 직접 이동해 0.25% 현재 견적과 1% 상한 순서를 확인하고, Step 6에서 공격 주체·탈취 키·공식 풀 대상·30% 요청이 한 흐름으로 읽히는지 확인한다. Step 7에서 0.25% 견적과 1% 적용 결과가 동일하다고 표현되지 않는지도 확인한다.
-- 남은 문제: 2단계 CappedHookProxy, strategy 공격, fee enforcement와 output 비교는 여전히 typed mock이다. 실제 컨트랙트 연결 시 quote 시점과 execution 시점의 상태 차이, `amountOutMinimum`에 따른 revert를 실제 RPC 결과로 대체해야 한다.
-
-## WEB31 — 데모 실행 방식 표기 제거
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 / Codex
-- AI 수행: 데모는 시스템을 현장에서 실행하는 DApp이 아니라 준비된 사건 기록을 탐색하는 trace viewer라는 발표 방향에 맞춰 계측기 헤더의 `Local mock` 표기를 제거했다. metadata에서도 `mocked`라는 실행 방식 표현을 제거하고 protocol trace라는 목적만 남겼다. 내부 typed mock adapter와 README의 현재 구현 한계 표시는 실제 온체인 기록으로 교체되기 전까지 유지한다.
-- 사람의 결정/수정: 데모는 항상 기존 기록을 trace하므로 화면에서 live/mock 구분을 말하지 않도록 결정함.
-- 참고 문서 및 버전: 루트 `AGENTS.md`, Next.js 15.5.26, Emotion 11.14.1.
-- AI 실행 검증: `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` 통과. `web/src`의 사용자 노출 문자열에서 `Local mock`과 `mocked`가 제거되고 trace 명칭만 남은 것을 정적 확인했다.
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd web && pnpm dev`; `/demo/` 계측기 상단과 페이지 metadata에 live/mock 실행 방식 표현이 없는지 확인한다.
-- 남은 문제: 현재 trace 데이터는 아직 실제 Sepolia 실행 artifact가 아니므로 README의 mock 고지는 유지된다. Phase 2 구현·배포 후 transaction hash, block number, event/read 결과가 포함된 recorded trace adapter로 교체해야 한다.
-
-## C12 — 최종 설계 문서에 기준 코드 정렬
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Foundry(기존 환경), Node, 로컬 Anvil / Claude Code (Opus 5.5)
-- AI 수행: `final_klamp_with_code.md`의 CanonicalPoolRegistrar 전체 코드로 registrar를 교체했다(5인자 경로 A, PoolKey 고정 경로 B, 일회용 컨트랙트 경유 경로, extsload POOLS_SLOT 초기화 검사, NotIssuer, issuer·creator 이벤트). 셋업은 hooks 선등록·hooksAdmin을 제거하고 봉인 후 운영자 REGISTRAR(+admin)만 남기며 `finalizeHooks`로 2단계에서 회수하게 했다. SDK에 data 레코드 교차 검증, `judge()`, 이벤트 대체의 런칭 풀 모양 제한과 ENS 충돌 경고를 추가했다. 배포·봉인·preflight·smoke 스크립트, `.env.example`, Sepolia 후보 파일, 관련 문서와 web의 결과 타입을 맞췄다. 세부 결정은 [C12 계획](plans/C12-design-doc-alignment.md).
-- 사람의 결정/수정: 새 설계 문서 2개에 기준 코드를 맞추도록 요청함. 계획 문서의 "문서와 다르게 둔 것"은 사람 검토 대기.
-- 참고 문서 및 버전: 기존 고정 버전(`deployments/versions.json`) 그대로. v4-core 59d3ecf StateLibrary.POOLS_SLOT = 6 확인.
-- AI 실행 검증: `forge test` 34 통과(0 실패, CREATE 주소 fuzz 4,096회 포함). `npm test` 24 통과. `npm run typecheck` 통과. `npm run test:e2e` 통과(새 Anvil 배포·등록·봉인·viem found/missing/namespace·editor/issuer 권한·덮어쓰기·봉인 역할 smoke).
-- 사람 직접 검증: 사람 검증 대기.
-- 사람 재현: `cd contract && forge test && npm test && npm run typecheck && npm run test:e2e`.
-- 남은 문제: Robinhood 전략 주소의 code hash·시작 블록, Sepolia LiquidityLauncher·UERC20Factory 존재 여부 미검증. 2~4단계와 데모 런치패드·터미널 미구현. 실행 중인 로컬 데모 체인은 새 registrar로 재배포해야 한다.
-
-## C12 — 조회 상태 3개 전환과 공개 체인 확인
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Node, Foundry, cast, Sepolia 공개 RPC(publicnode), Robinhood Chain 공개 RPC, Blockscout PRO API / Claude Code (Opus 5.5)
-- 사람의 결정/수정: 조회 상태를 설계 문서대로 3개로 바꾸고 루트 AGENTS.md보다 우선하도록 결정함. Robinhood 전략 상수와 compareRoutes는 현 상태 유지. 설계 문서는 `final_klamp_with_code.md`만 커밋. Blockscout API 키 제공(저장소에 기록하지 않음).
-- AI 수행: SDK `CanonicalPoolResult`를 `registered | not_registered | lookup_failed`(+`reason`)로 바꾸고 `registered`에 PoolKey를 넣었다. fallback·compareRoutes·judge·smoke 스크립트·4173 데모 라벨·web 미러 타입과 mock·루트 AGENTS.md·README들을 맞췄다. Sepolia와 Robinhood Chain에서 LiquidityLauncher·UERC20Factory·InstantLaunchStrategy 코드를 읽기 전용으로 확인했다(결과는 [fallback 문서](phase1-fallback.md)와 Sepolia 후보 파일).
-- 확인 결과: LiquidityLauncher v3.0.0 `0x00004c4c…`(hash `0x6720…6ed6`)·v3.2.0 `0x0000FffF…`(hash `0x4a58…7d80`)는 Sepolia·Robinhood 모두 존재하고 해시 동일. Pools.trade가 쓰는 UERC20Factory는 `0x000000e2…ad49b`(양 체인 동일 해시 `0x9f04…6aeb`)이며, 실제 Robinhood 토큰 `0xd565…dead`에서 `getUERC20Address(name, symbol, decimals, launcher, graffiti) == token` 재현. uerc20-factory README의 `0x0cde87c1…`는 Robinhood에 코드가 없음. Robinhood InstantLaunchStrategy `0x23f8…`: code hash `0x29df…cffca`, 배포 블록 28,519,960, launcher = v3.2.0.
-- AI 실행 검증: 아래 WORKLOG 추가분의 명령 결과 참조.
-- 사람 직접 검증: 사람 검증 대기.
-- 남은 문제: 최근 30건 중 1건은 코드가 남은 중간 컨트랙트를 거쳐 어느 경로로도 등록할 수 없다. 공개 RPC가 트레이스·과거 상태를 제공하지 않아 해당 컨트랙트의 배포자는 확인하지 못했다.
-
-## C12 — 데모 차단 사유 표시
-
-- 날짜 / 환경 / 도구: 2026-09-26 / 로컬 Anvil 18545, demo-server 4173 / Claude Code (Opus 5.5)
-- AI 수행: 4173 데모 상태 문구가 차단 원인과 무관하게 "진행 차단"만 보여 주던 것을 `comparison.reason`별 문구(경로에 토큰 hop 없음·미등록·조회 실패)와 mismatch 위치(분할 경로·hop), 조회 실패 `reason`을 표시하도록 바꿨다.
-- 사람의 결정/수정: `tokenIn`을 이전 토큰으로 둔 채 조회해 원인 없이 "진행 차단"이 나온 것을 보고 수정을 요청함.
-- AI 실행 검증: 실행 중인 demo-server의 실제 `/api/check` 응답 4건(invalid-route, match, mismatch, not_registered)에 화면 로직을 적용해 기대 문구를 확인했다. 브라우저 육안 확인은 미실행.
-- 사람 직접 검증: 사람 검증 대기.
-
-## C12 — CanonicalRecorded 이벤트에 PoolKey 추가
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Foundry, 로컬 Anvil / Claude Code (Opus 5.5)
-- 사람의 결정/수정: 어그리게이터 백엔드가 ENS 조회 대신 이벤트 인덱싱으로 통합하는 경우를 위해 PoolKey를 이벤트에 넣기로 결정함. 공개 정보라 노출 문제는 없다는 판단.
-- AI 수행: `CanonicalRecorded(token, poolId, issuer, creator, key)`로 바꾸고(key는 non-indexed data), 설계 문서 `final_klamp_with_code.md`의 이벤트 정의·설명과 C12 계획을 함께 수정했다. 이벤트 테스트 2곳이 key까지 검증한다.
-
-## C13 — Sepolia 팀 배포 확인과 SDK 조회 경로 수정
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Sepolia 공개 RPC(publicnode), Blockscout PRO API, Sourcify / Claude Code (Opus 5.5)
-- 사람의 결정/수정: 팀원이 Sepolia ENSv2 Beta 세트에 셋업·역할 회수·KDEMO Via 선언을 완료했고 체크리스트 결과를 공유함(검증자 식별명 기록 대기). 사용자가 explorer.ens.dev 화면(klamp.eth, tokens.klamp.eth)을 공유했고, 와일드카드 토큰 이름은 Not found임을 확인함. SDK 수정과 Sepolia 데모 연결을 요청함.
-- AI 수행: 공유된 주장을 체인에서 읽기 전용으로 대조했다. Beta UniversalResolver `0x5d25c1d6…`를 찾았고, 배포 registrar 소스를 Sourcify에서 받아 저장소와 비교했다(Beta resolver API 대응 변형, 이벤트 PoolKey 없음). SDK의 data 레코드 읽기를 resolver 직접 호출에서 UniversalResolver `resolve()` 경유로 바꾸고, 응답 resolver가 설정과 다르면 `lookup_failed: namespace`로 처리했다. `deployments/sepolia.phase1.json`을 작성했다.
-- AI 실행 검증: `npm test` 25 통과, typecheck 통과, `npm run test:e2e` 통과(로컬 UniversalResolver도 같은 경로로 동작). 저장소 SDK로 Sepolia KDEMO `registered`(PoolKey `(ETH, KDEMO, 2500, 25, 훅 없음)`, 해시 일치), 미선언 `not_registered`. Sepolia 연결 데모(4174)에서 KDEMO 자기 풀 match, 다른 풀 mismatch, 미선언 not_registered.
-- 사람 직접 검증: explorer.ens.dev 구조 화면은 사용자가 확인. 나머지는 사람 검증 대기.
-- 남은 문제: 저장소 `src/`·셋업·로컬 테스트가 Sepolia 배포본(Beta API)과 다르다. 이벤트 PoolKey 변경은 배포본에 없다. ENSv2 Sepolia 초기화 시 Beta API용 재배포 스크립트가 필요하다.
-
-## C14 — ENSv2 Beta 전환
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Foundry 1.7.1(solc 0.8.25·0.8.26), Node, 로컬 Anvil, Sepolia 공개 RPC, Sourcify / Claude Code (Opus 5.5)
-- 사람의 결정/수정: 저장소를 Sepolia 배포본(Beta)에 맞추고 이벤트 PoolKey 변경을 되돌리도록 결정함. 필요한 부수 작업도 진행하도록 요청함.
-- AI 수행: contracts-v2를 `f2f0a05`로 재고정했다(공식 Sepolia 주소표와 Beta 세트 일치 확인). registrar를 Sourcify 검증 소스로 교체했다. 팀원 셋업 트랜잭션을 디코딩해 역할 값과 `grantSetterRoles` 4건을 확인하고 `Phase1Setup`·스크립트·fixture를 인터페이스 + `vm.deployCode` 구조로 옮겼다. 메타데이터 테스트를 `setTokenText` 기준으로 다시 썼고, smoke 스크립트를 UniversalResolver 경유 읽기로 바꿨다. 설계 문서의 이벤트 PoolKey 수정을 되돌렸다. 계획은 [C14](plans/C14-ensv2-beta.md).
-- AI 실행 검증: `forge test` 34 통과. `npm test` 25 통과, typecheck 통과, `npm run test:e2e` 통과(Beta ENS 로컬 배포·등록·봉인·viem 조회·권한 smoke). 저장소 registrar 0.8.26 빌드와 Sepolia `0x820bE7…` 런타임 코드가 immutable·메타데이터 외 0바이트 차이.
-- 사람 직접 검증: 사람 검증 대기.
-- 남은 문제: 저장소 스크립트로 Sepolia 신규 배포는 미실행. Sepolia ENSv2 초기화 시 이 스크립트로 재배포해야 한다.
-
-## C15 — 팀원 인계 저장소(handoff `klamp/`) 병합
-
-- 날짜 / 환경 / 도구: 2026-09-26 / Foundry 1.7.1, Node, Sepolia 공개 RPC / Claude Code (Opus 5.5)
-- 사람의 결정/수정: 새 공개 저장소를 만들지 않고, 인계받은 `klamp/`(커밋 `2f2558b`)의 데모 재료·테스트를 이 저장소로 작은 커밋 단위로 합치도록 결정함. 인계 폴더와 zip은 추적하지 않고 병합 후 삭제.
-- 출처 원칙: 팀원 소스는 수정하지 않고 가져온다. import 경로 차이는 remapping 별칭(`v4-core/`, `ensv2/`, `ens-contracts/`)으로 흡수한다. 팀원 저장소는 v4-core `46c6834`, 이 저장소는 `59d3ecf`(liquidity-launcher 경유)를 쓴다.
-- 1) 데모 컨트랙트 `src/demo/` 4종(DeltaFeeHook, DemoLaunchpad, DisposableLauncher, PoolSeeder): 원본 그대로 복사, `forge build` 통과(DisposableLauncher의 의도된 `selfdestruct` 경고만), 기존 `forge test` 34 통과.
-- 2) Sepolia 셋업에 실제 실행된 스크립트 `script/KlampSetup.sol`, `Commit.s.sol`, `Finish.s.sol`: 원본 그대로. 서명자는 CLI로 받고 코드에 키 없음. `Commit`은 등록 secret을 `deployments/sepolia.json`에 쓰며, 이 값은 register 트랜잭션으로 이미 공개됨. 저장소의 `Phase1Setup` 계열과 같은 순서·역할 값(C14에서 트랜잭션 디코딩으로 대조). `forge build` 통과, 기존 테스트 34 통과.
-- 3) 데모 런칭 스크립트 `script/DemoLaunch.s.sol`(경로 B, 일회용 컨트랙트 KDEMO), `DemoPathA.s.sol`(경로 A, DemoLaunchpad + DeltaFeeHook로 KHOOK)과 이들이 읽고 쓰는 팀 배포 기록 `deployments/sepolia.json`, `demo-pathA.json`, `demo-token.txt`, `pool-seeder.txt`: 원본 그대로. 기록에는 공개 주소와 이미 공개된 등록 secret만 있음. `forge build` 통과.
-- 4) Sepolia 포크 테스트 `test/SetupFork.t.sol`(셋업 연결·권한 회수, 경로 B 직접·일회용), `test/PathAFork.t.sol`(경로 A 훅 풀 선언·고정 수수료 거래, 공격자 거절, 등록 검사 4종): 원본 그대로. 네트워크가 필요하므로 기본 프로파일에서 제외하고 `FOUNDRY_PROFILE=fork forge test`로 실행(`[rpc_endpoints] sepolia`는 팀원과 같은 공개 RPC). AI 실행: fork 10 통과(이 저장소의 v4-core 59d3ecf·ENS f2f0a05 빌드), 기본 34 통과.
-- 5) JS 데모 도구 `demo/sepolia/`(`klamp-sdk.mjs` 조회·judge·재견적·UR calldata 검증, `klamp-swap.mjs` naive/klamp 두 모드, `read-pool.mjs`, `pools.json`, package·lock): 원본 그대로, 기존 4173 데모와 분리해 하위 폴더에 둠. AI 실행(읽기 전용): `read-pool` KDEMO pool·description 조회, `naive` 미선언 풀 0x84dd… 선택, `klamp` ENS registered → judge `requote_canonical` → 대표 풀 0xcd97… 재견적, 두 모드 모두 calldata verify OK. 체결(`--execute`)은 키가 필요해 미실행.
-- 6) 팀원 Sepolia 실행 로그 `docs/evidence/sepolia-broadcast/`(Commit 5, Finish 11, DemoLaunch 2, DemoPathA 4 트랜잭션, 영수증 전부 성공): `broadcast/`는 무시 대상이라 증거 폴더에 `run-latest.json`만 복사(타임스탬프 파일과 동일 내용). 키 필드 없음.
-- 7) Uniswap 제출용 `FEEDBACK.md`를 저장소 루트에 원본 그대로 추가(초안, Trading API 절은 팀 TODO). `contract/docs/FEEDBACK.md`는 팀원·멘토 피드백 기록용으로 별개.
-- 8) 루트 README에 인계 README의 소개·발행자 증명 표·Sepolia 배포 주소·알려진 한계·AI 사용 명시를 합치고 실행 경로를 이 저장소 구조(`contract/`, `demo/sepolia`, fork 프로파일)로 바꿈. 원문의 "all admin roles are revoked"는 체인 상태(klamp 레지스트리에 hooks용 REGISTRAR 잔존)와 달라 정확한 문장으로 수정. AI 사용은 WORKLOG 기록대로 Codex와 Claude Code를 구분.
-- 9) 인계 폴더의 `reference/`(Pools.trade 실제 런칭 Uptober 분석, 일회용 컨트랙트 경유 흐름; 공개 주소·tx만, 키 없음)를 발표 근거로 `docs/evidence/pools-trade/`에 원본 그대로 추가. `HANDOFF.md`는 별도 저장소를 공개한다는 전제의 작업 지시라 병합하지 않음.
+  - `git log -1 --oneline`: exit code 128, the error saying there are no commits yet. This confirms the initial repository state, not a test failure.
+- AI-run tests: Not run. Only documents were written; there is no implementation code or test environment.
+- Human verification: Pending human verification.
+- Human reproduction guide: Read the rules and templates in the four documents and check the added files with `git status --short`. SDK doc verification does not apply to this task.
+- Open issues: The spec's authorship and team review status still need to be confirmed. `canonical-pool-registry-v1-spec.md` from the IDE tab was not found in the current repository. C01 implementation and commit were outside the scope of this task.
+
+
+## GOV02 — Move the project scope into the contract directory
+
+- Date / environment: 2026-09-25 / repository root, main
+- AI tools used: Codex
+- Instructions read: Existing root AGENTS.md and the implementation spec. After the move, the root guide and contract/AGENTS.md apply.
+- Human decisions/changes: The user instructed moving all project content into a contract directory at the root and implementing inside it.
+- AI work: Moved the spec, detailed instructions and docs into contract/. The root AGENTS.md keeps only the project-location guide. The spec body was not changed.
+- References: Existing local spec. External SDK docs not applicable.
+- Plan changes: docs/plans/project-location.md.
+- AI-run verification: After the move, checks of file existence and the base plan's relative links passed. `git diff --cached --check` reported only 2 trailing spaces used for Markdown line breaks in the existing spec (exit 2). Kept to preserve the original.
+- Human verification: Pending human verification.
+- Human reproduction guide: From the repository root, git status --short, and check the spec link in contract/docs/plans/README.md.
+- Open issues: Implementation to start from C01. The paths in the earlier GOV01 reflect the working location at the time and are preserved.
+
+## C01 — Pin dependencies and the ABI baseline
+
+- Date / environment: 2026-09-26 / Linux, Node 24.14.1, Foundry 1.7.1, Solidity 0.8.26/Cancun
+- Status / AI tools used: AI implementation and verification complete / Codex
+- Instructions read: Root AGENTS.md, contract/AGENTS.md, implementation spec.
+- AI work: Pinned ENSv2, the launcher and their nested gitlinks; npm lock; minimal Foundry/TypeScript config; a reinstall script; added a test against the real ENS resolver proxy ABI.
+- Human decisions/changes: Requested implementing in small commits following the spec order and working in contract/. No additional human verification confirmed.
+- Official references and versions: [Pinned SHAs and source check notes](phase1-dependencies.md).
+- AI-run verification: `forge test` 1 passed/0 failed; `npm run typecheck` passed. There were no existing project tests. The warning about the missing receive in the upstream dependency UUPSProxyLogic remains.
+- Human verification: Pending human verification.
+- Human reproduction guide: `./scripts/setup-dependencies.sh`, `forge test`, `npm run typecheck`. Expected: real resolver text/data writes and reads succeed.
+- Open issues: Sepolia candidate addresses unverified. Real ENS calls from the SDK are in C07. The original SHA could not be determined, so a compatible source with a matching date was chosen.
+
+## C02 — Reproduce the original registrar and both registration paths
+
+- Date / environment / tools: 2026-09-26 / C01 pinned environment / Codex
+- AI work: Kept the appendix registrar, added an explicit error for factory=0, and added fixtures for a real CREATE2 executor contract, the real LiquidityLauncher/UERC20Factory and the real PermissionedResolver proxy.
+- Human decisions/changes: Nothing additional confirmed.
+- References and versions: [C01 pinned sources](phase1-dependencies.md), spec appendix A1.
+- AI-run verification: `forge test` 7 passed/0 failed. Verified normal text/data; rejection of a non-deployer, overwrites, a token not included, and a wrong creator; and real issuance through the launcher.
+- Human verification: Pending human verification.
+- Human reproduction: `forge test --match-contract CanonicalPoolRegistrarTest -vv`; 6 expected to pass.
+- Open issues: C03 verification of real token/pool state and C04 editor separation are not yet implemented.
+
+## C03 — Verify the deployed token and the actually initialized pool
+
+- Date / environment / tools: 2026-09-26 / C01 pinned environment / Codex
+- AI work: Added verification of the StateView/PoolManager immutables and the linking getter, and checks for token code, currency ordering and pool initialization. Added a test against the real v4 PoolManager and verification of rollback when the data write fails.
+- Human decisions/changes: Nothing additional confirmed.
+- References and versions: C01 StateView/PoolManager sources. Additional initialization of solmate 4b47a19038b798b4a33d9749d25e570443520647 from the pinned v4-core gitlink.
+- AI-run verification: The first `forge test` failed to compile because solmate was missing. After fixing the install, remapping and reinstall script, `forge test` 13 passed/0 failed.
+- Human verification: Pending human verification.
+- Human reproduction: `forge test --match-contract PoolValidationTest -vv`, 6 expected to pass. Registration is possible with initialization alone, even without liquidity.
+- Open issues: Trust in the StateView code itself is the responsibility of the deployment configuration; matching getters alone do not authenticate against a malicious implementation.
+
+## C04 — Explicit metadata editor
+
+- Date / environment / tools: 2026-09-26 / C01 pinned environment / Codex
+- AI work: Kept the existing 4-argument CREATE2 function and added a 5-argument overload that takes an editor, plus a shared proof function. Kept the CanonicalRecorded ABI and the proving party.
+- Human decisions/changes: Nothing additional confirmed.
+- References and versions: Spec C04, C01 pinned PermissionedResolver source.
+- AI-run verification: `forge test` 17 passed/0 failed. Confirmed the editor may set its own description/url; rejection of pool, other names and permission delegation; rejection of a 0 editor and a wrong prover; and the existing executor's edit behavior.
+- Human verification: Pending human verification.
+- Human reproduction: `forge test --match-contract MetadataEditorTest -vv`, 4 expected to pass.
+- Open issues: namespace setup and the permission seal are implemented in C05.
+
+## C05 — namespace setup and permission seal
+
+- Date / environment / tools: 2026-09-26 / C01 pinned environment / Codex
+- AI work: Set up the real ENS UserRegistry and resolver proxy, separated hooks, and added a seal library, Deploy/Seal scripts, and call-based permission tests.
+- Human decisions/changes: Nothing additional confirmed.
+- References and versions: C01 pinned RegistryRolesLib/PermissionedResolver/VerifiableFactory sources, [permission constraints](phase1-permissions.md).
+- AI-run verification: Fixed the initial stack-too-deep compile error by splitting local variable lifetimes. Fixed the proxy same-salt collision with a separate salt. Fixed the test's same-call-depth expectRevert error with an external wrapper. Final `forge test` 20 passed/0 failed, `forge build` passed.
+- Human verification: Pending human verification.
+- Human reproduction: `forge test --match-contract NamespacePermissionsTest -vv`; check rejection of operator changes, re-delegation and upgrades, hooks isolation, rejection of the wrong chain, and re-sealing.
+- Open issues: Trust in the network protocol code, root expiry and parent permissions are separate operational assumptions. Network broadcast not run.
+
+## C06 — Real ENS wildcard integration
+
+- Date / environment / tools: 2026-09-26 / C01 pinned environment / Codex
+- AI work: Added tests that cross-check wildcard text/data across the integrated real UserRegistry, PermissionedResolver, UniversalResolverV2 and v4 state; both registration paths after the seal; and rollback when edit-permission delegation fails.
+- Human decisions/changes: Nothing additional confirmed.
+- References and versions: C01 pinned UniversalResolverV2/AbstractUniversalResolver/NameCoder sources.
+- AI-run verification: `forge test --match-contract CanonicalPoolEnsIntegrationTest -vv` 3 passed/0 failed. Confirmed text/data chainId and PoolKey hash match, token label not registered, both paths succeed after the seal, and on delegation failure there is no mapping, neither record, and no edit permission. C03's data-write-failure rollback is also retained.
+- Human verification: Pending human verification.
+- Human reproduction: Run the command above. This is a Solidity integration check and does not mean viem execution is done.
+- Open issues: Real viem round-trip calls run in C07.
+
+## C07 — Standard viem-based lookup and explicit states
+
+- Date / environment / tools: 2026-09-26 / C01 pinned environment, Anvil chain 31337 / Codex
+- AI work: Added bigint and 32-byte PoolId parsing, strict getEnsText, checks of the namespace link, the EIP-1967 implementation address and the StateView link, per-state results, and scripts reproducing a full local deployment and a viem smoke test.
+- Human decisions/changes: Nothing additional confirmed.
+- References and versions: [viem getEnsText](https://viem.sh/docs/ens/actions/getEnsText), viem 2.56.9 source actions/ens/getEnsText.ts. After a content-type error from the docs web tool, the official docs were read via curl.
+- AI-run verification: SDK lookup tests 7 passed, `npm run typecheck` passed. Local deployment with `forge script script/LocalPhase1.s.sol:LocalPhase1 --rpc-url http://127.0.0.1:18545 --broadcast --unlocked` succeeded, then `npx tsx scripts/local-smoke.ts` passed. While reproducing on a fresh chain, the run stalled waiting on nonces from parallel sends; after switching to sequential sends with `--slow`, `./scripts/local-e2e.sh` passed.
+- Results: Real viem getEnsText found, empty wildcard record missing, implementation address mismatch unavailable/namespace. Local pool ID: 0xee6e9c6deca57a017d87d370cc25678eb55fa99ab546fcffb94024b3aaf8f350.
+- Human verification: Pending human verification.
+- Human reproduction: `./scripts/local-e2e.sh` starts and stops a standalone Anvil and verifies the three results above. RPC failures and unknown reverts are not treated as missing.
+- Open issues: Public network verification not run. The local manifest is generated on every run and excluded from Git.
+
+## C08 — Verified strategy event fallback
+
+- Date / environment / tools: 2026-09-26 / C01 pinned environment / Codex
+- AI work: Added the real InstantLaunchStrategy TokenLaunched ABI; explicit trusted sources, code hash, confirmation blocks and range limits; checks of token, key, pool initialization and block hash; and ambiguous handling.
+- Human decisions/changes: Nothing additional confirmed.
+- References and versions: [Pinned sources and configuration notes](phase1-fallback.md). Reflects that the emitter of the original event is the strategy, not the launcher.
+- AI-run verification: `npm test` 7 lookup + 6 fallback = 13 passed/0 failed, `npm run typecheck` passed. Confirmed normal logs and conflicting pools; rejection of a fake emitter, another token, removed logs and a mismatched hash; code mismatch, reorg and RPC errors; and the disabled path.
+- Human verification: Pending human verification.
+- Human reproduction: `npm test`. Before external deployment verification, sources is an empty list.
+- Open issues: Verification of the real Sepolia strategy address, deployment block and runtime code hash not run. The event tests used mock RPC inputs and are not recorded as a public-chain success.
+
+## C09 — Route comparison and a minimal lookup demo
+
+- Date / environment / tools: 2026-09-26 / C01 pinned environment, local HTTP/Anvil / Codex
+- AI work: Added chain/PoolManager/PoolId comparison, target-hop checks across all split branches, exclusion of common-asset hops, per-state blocking, and a minimal HTML demo showing the token, ENS name, source, and canonical and candidate IDs. There is no transaction-sending feature, and the screen states the scope of the declared route comparison.
+- Human decisions/changes: Nothing additional confirmed.
+- References and versions: Spec C09 and the C07/C08 SDK.
+- AI-run verification: `npm test` 17 passed/0 failed, `npm run typecheck` passed. After `npm run demo`, Node fetch/assert checks of `/api/check` for match, mismatch and missing and of the HTML response passed. Visual browser inspection not run.
+- Human verification: Pending human verification.
+- Human reproduction: With Anvil and the local deployment ready, `npm run demo` and open http://127.0.0.1:4173. Expected: the default route matches, changing the poolId gives a mismatch, and an unregistered token gives no record. When the RPC is down, lookup failed is shown.
+- Open issues: Not combined with a real quote builder or transaction calldata, so it is not used as a guarantee of the pool a trade executes on. A general trading mode is not implemented.
+
+## C10a — Resumable ENS registration procedure
+
+- Date / environment / tools: 2026-09-26 / C01 pinned environment / Codex
+- AI work: Added a registration state machine and script that use ETHRegistrar's real commitment timing, registration price and payment balance/allowance. Does not overwrite names owned by others or other existing namespaces.
+- Human decisions/changes: Wrote the [C10 split plan](plans/C10-deployment-steps.md) to reflect the request for small, single-responsibility commits.
+- References and versions: C01 pinned ETHRegistrar/IETHRegistrar/AbstractETHRegistrar sources.
+- AI-run verification: `forge test --match-contract RegistrationFlowTest -vv` 4 passed/0 failed, `forge build` passed. Uses the real registrar and registry; only the payment token and price oracle are test fixtures. Verified commit/wait/register/setParent, already registered, expired commitment, owned by others, price cap and insufficient balance.
+- Human verification: Pending human verification.
+- Human reproduction: The Foundry command above. On a public chain, rerun the RegisterRoot script after readyAt with the same secret and configuration.
+- Open issues: Real Sepolia run not done. Redeployment deduplication and manifest/preflight/smoke are the next C10 units.
+
+## C10b — Resumable namespace deployment and a stronger seal probe
+
+- Date / environment / tools: 2026-09-26 / C01 pinned environment / Codex
+- AI work: Computes the expected proxy address from the pinned VerifiableFactory creation code; if it already exists, verifies the implementation and reuses it. Designates the existing registrar as REGISTRAR, checks the state, and applies only the missing settings. The seal probe cross-checks the mapping's PoolId, text and data against each other.
+- Human decisions/changes: Nothing additional confirmed.
+- References and versions: C01 VerifiableFactory/CloneProxyBytecode sources, C10 split plan.
+- AI-run verification: `forge test --match-contract NamespacePermissionsTest -vv` 4 passed/0 failed. Confirmed that a redeploy call after the seal gives the same address and emits 0 logs. `forge build` passed.
+- Human verification: Pending human verification.
+- Human reproduction: The test above. A real resume keeps the original DEPLOYMENT_SALT and the REGISTRAR address from the broadcast receipt. If the registrar permission has already been granted but the address is omitted, the run aborts instead of deploying a duplicate.
+- Open issues: Even if the run stops right after the registrar deployment and before the permission grant, the address must be recovered from the receipt and specified to avoid deploying an unnecessary new registrar. The operator and settings must match the initial deployment.
+
+## C10c — Deployment preflight, ERC20 probe and verification manifest
+
+- Date / environment / tools: 2026-09-26 / C01 pinned environment, fresh Anvil 31337 / Codex
+- AI work: Added the pre-verification Sepolia candidate config; pre-checks of code hashes, chain, roles, links, registration fee and balance; a testnet-only real ERC20 probe with resume; eth_call smoke; and generation of a public verification report. Local E2E also switched to the real ERC20 probe.
+- Human decisions/changes: Nothing additional confirmed.
+- References and versions: C01 pinned ENS Sepolia deployment JSON and contract sources, [deployment reproduction doc](phase1-deployment.md), deployments/versions.json.
+- AI-run verification: Fixed a preflight TypeScript error comparing an unknown return value by using the bigint type. Final `forge test` 29 passed/0 failed, `forge build` passed, `npm test` 17 passed/0 failed, `npm run typecheck` passed. `./scripts/local-e2e.sh` passed fresh-chain deployment, viem and permission smoke. Confirmed via Node spawn/assert that an unconfigured candidate is rejected with a missing tokenFactory error before any RPC access.
+- Local results: Real ERC20 probe pool ID 0xe703bcf882198060d40e34384b820d425dac4359d6869fef2e5619e517c1a709. The generated deployments/local.verification.json records public addresses, versions, deployment blocks, tx hashes, expiry, code hashes and seal status. Private keys and the registration secret are not included in the report.
+- Human verification: Pending human verification.
+- Human reproduction: `npm run test:e2e`; expected: found/missing/namespace are distinguished and ENS text/data, editor, overwrite, operator denial and sealed roles all pass. For Sepolia, start with the preflight and the step-by-step dry-runs in the doc.
+- Open issues: Real lookups of Sepolia addresses and protocol versions, and signing/broadcast, not run; ENS app UI not checked. Public-chain verification needs an RPC, verified code hashes, funds and a signing account. The local fixture oracle is not treated as real Sepolia price verification.
+
+## C10 follow-up — Protect an existing local RPC
+
+- Date / tools: 2026-09-26 / Codex
+- AI work: If an Ethereum RPC is already running on the port selected for E2E, reject before starting so it is not mistaken for a fresh test chain and deployed to.
+- Human decisions/changes: Nothing additional confirmed.
+- Reference: Self-review of the C10 local reproduction script.
+- AI-run verification: With an existing test Anvil (18545) running, confirmed via Node spawn/assert that `KLAMP_LOCAL_PORT=18545 ./scripts/local-e2e.sh` returns exit 1 and a rejection message. Exits before any deployment call.
+- Human verification: Pending human verification.
+- Human reproduction: Setting KLAMP_LOCAL_PORT to an RPC port already in use must refuse to run.
+
+## C11 — Guarantee scope and verification handoff
+
+- Date / environment / tools: 2026-09-26 / C01 pinned environment / Codex
+- AI work: Added the README, a per-requirement verification table, human reproduction and SDK doc guidance, and a copy of the real local verification report. Updated the plan index's not-started statuses to the actual implementation status. The original spec is preserved.
+- Human decisions/changes: Nothing additional confirmed. The spec author and team review also remain pending confirmation.
+- References and versions: C01 pinned docs/sources, viem getEnsText 2.56.9, C10 deployment doc.
+- AI-run verification: After the final local port protection change, reran `./scripts/local-e2e.sh`, which passed. Copied the generated real report to docs/evidence/local-phase1.json. The full code verification baseline is C10c's passing results (29 Foundry, 17 SDK, typecheck); the same code tests were not needlessly repeated for documentation changes.
+- Human verification: Pending human verification.
+- Human reproduction: The install and test commands in the README and the manual check procedure in docs/phase1-verification.md. Expected results and items not run on public networks are listed separately.
+- Open issues: Real Sepolia deployment, real strategy logs, ENS app UI, human verification and team/mentor feedback are not run/not received. Local passes do not substitute for completing these items.
+
+## WEB01 — Port the protocol terminal and sync the SDK state model
+
+- Date / environment / tools: 2026-09-26 / Next.js 15, pnpm 12.6.0 / Codex
+- AI work: Ported a separate frontend working copy into the repository's `web/` and aligned canonical pool lookup to `found | missing | invalid | unavailable | ambiguous` and route comparison to `match | mismatch | blocked`. Separated UI/Zustand state from the on-chain data adapter boundary and explicitly marked the phase 2 fee cap scene as mock. Recorded the responsibilities and tools of the two workspaces in the root working instructions and README.
+- Human decisions/changes: Requested merging the frontend into the contract repository, skipping contract work, and first syncing the frontend spec with the actual state model.
+- References and versions: `sdk/canonicalPool.ts`, `sdk/compareRoutes.ts`, the C09 and C11 entries, pnpm 12.6.0.
+- AI-run verification: `pnpm lint` and `pnpm build` passed both before and after the port. `pnpm install --frozen-lockfile` also passed in the ported workspace. Contract sources and the npm lockfile were not changed.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm install --frozen-lockfile && pnpm lint && pnpm build`, then run Run demo in `pnpm dev`.
+- Open issues: `ProtocolClient` is currently a mock. The viem adapter and wiring to the real deployment manifest, visual Sepolia UI verification, and the phase 2 fee cap contract implementation are not done.
+
+## WEB02 — Prepare klamp.kro.kr GitHub Pages deployment
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26, pnpm 12.6.0, GitHub Pages Actions / Codex
+- AI work: Enabled Next.js static export and trailing slash, and added a workflow that lints and builds web changes on `main` and deploys `web/out` to GitHub Pages. Recorded in the README the operating procedure for serving the custom domain `klamp.kro.kr` at the root path.
+- Human decisions/changes: Chose `klamp.kro.kr` as the deployment domain and requested preparing the deployment in code.
+- References and versions: Next.js static export/basePath official docs, GitHub Pages custom workflow/custom domain official docs, `actions/configure-pages@v5`, `actions/upload-pages-artifact@v4`, `actions/deploy-pages@v5`, `pnpm/setup@v3`.
+- AI-run verification: `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm build` passed. Confirmed `web/out/index.html` and `web/out/_next/static` were generated, the HTML uses root `/_next/` asset paths, and the workflow YAML parses.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm install --frozen-lockfile && pnpm lint && pnpm build`; `out/index.html` should be generated. On GitHub, set the Pages source to GitHub Actions and check the custom domain and DNS/HTTPS status.
+- Open issues: Organization domain TXT verification, registering the repository's Pages custom domain, the DNS CNAME, a real Actions run and a visual check of the public URL require external GitHub/DNS configuration and were not done.
+
+## WEB03 — Apply the Klamp brand icon
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26, pnpm 12.6.0, local Chrome responsive check / Codex
+- AI work: Trimmed excess outer margin in `public/klamp.svg` via its viewBox and replaced the existing temporary square mark with the main clamp asset. Applied the same vector to the header, hero, footer and favicon metadata, and hid the large hero mark on mobile to keep information density.
+- Human decisions/changes: Requested reviewing the main icon in public and, if suitable, adjusting it and placing it in appropriate spots.
+- References and versions: The repository's `web/public/klamp.svg`, Next.js 15 Metadata/Image API.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. Checked the desktop and 390×844 mobile layouts in local Chrome and confirmed the three `/klamp.svg` images on the page load correctly at a 256×256 natural size. The hydration warning caused by Chrome's auto-translate extension changing `lang` and the DOM is not an app source error.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; check the header, desktop hero, footer and browser tab icon. At 900px and below, the large hero icon should be hidden and the header icon kept.
+- Open issues: Favicon cache refresh after the real GitHub Pages deployment and visual checks across browsers not done.
+
+## WEB04 — Remove marketing landing patterns and restructure protocol information
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26, pnpm 12.6.0, local Chrome responsive check / Codex
+- AI work: Removed the repeated all-caps eyebrow text, the orange-highlighted slogan, the 3-column benefits strip, and the large rounded cards and soft shadows. Changed the hero to a protocol summary and a phase scope table, and restructured the guarantee scope into technical-doc-style rows. Changed the terminal's eyebrow status text to step codes and the colored cards to flat data panels. During verification, fixed the mock PoolId, which was 63 hex characters, to 32 bytes, restoring the happy path's `match · ens`.
+- Human decisions/changes: Requested using the frontend skill to find and remove design that looks like AI slop, especially eyebrow-style titles. No skill with that name exists in the current environment, so a code audit and a Browser visual check were used instead.
+- References and versions: Repository UI and the C09 SDK state policy, Next.js 15.5.26.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. Checked the full desktop screen and 390×844 mobile in local Chrome, and after Run demo completed, confirmed `route match · ens`, the 30% request and the 1% mock applied state.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; check the hero, Protocol boundary and Protocol trace on desktop and mobile, run Run demo, and confirm route is `match · ens`.
+- Open issues: A human visual check of the real deployed screen and follow-up copy and interaction improvements not done.
+
+## WEB05 — 100dvh landing and a separate demo route
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, local Chrome responsive check / Codex
+- AI work: Removed `Sepolia ready` from the landing header and placed the header over the full-height hero. Fixed the hero at `100dvh` and linked the CTA and the header Demo link to a separate `/demo/` route. Removed the terminal from the home page and built a demo-only intro, scope label, terminal, link back to the overview, and dedicated metadata.
+- Human decisions/changes: Requested removing `Sepolia ready`, a 100dvh hero, and having the CTA go to a separate demo page.
+- References and versions: Next.js 15.5.26 App Router and static export.
+- AI-run verification: `pnpm lint`, `pnpm build` passed; confirmed `out/demo/index.html` was generated. In Chrome, confirmed the desktop hero height of 754px matches the 754px viewport, the CTA navigates to `/demo/`, the demo title and Run demo appear, and the 390×844 mobile layout.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; confirm the first screen of `/` fills one viewport and the CTA goes to `/demo/`, and that `/demo/` can run the terminal and return to the overview.
+- Open issues: Browser cache refresh for the two static paths and the new metadata after the real GitHub Pages deployment unverified.
+
+## WEB06 — Improve the protocol-centered visual system of the landing and demo
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, pnpm 12.6.0, local Chrome check / Codex, Anthropic `frontend-design` skill
+- AI work: Kept the Warm White, Charcoal and Clamp Orange palette while replacing Inter with IBM Plex Sans and limiting the mono typeface to addresses and execution values. Changed the landing hero to a direct comparison of the ENSv2 record and the proposed route, and placed the clamp mark as a meaningful device joining the two values. Restructured the contract/client responsibility boundary into two columns and split Phase 2 out as a separate simulation. In the demo, removed the decorative terminal card and the uppercase, middle-dot and arrow notation, and restructured step progress, canonical route comparison, fee-cap simulation and the execution readout into a single instrument screen.
+- Human decisions/changes: Requested keeping the Clamp Orange and Warm White combination and applying the previously agreed guideline for removing AI-generated design traces to both the landing and the demo.
+- References and versions: Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `@fontsource-variable/ibm-plex-sans` 5.3.0, `@fontsource/ibm-plex-mono` 5.3.0.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. Confirmed the static export generates `/` and `/demo`. In Chrome, checked the full landing flow, the demo's initial state, and after running `Run trace`, the ENS route match and the 30% requested / 1% applied result.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; check the comparison diagram and responsibility boundary at `/`, and run `Run trace` at `/demo/` to confirm the route match and the Phase 2 simulation labels are kept separate.
+- Open issues: The real GitHub Pages deployment screen and human verification on a physical mobile device not done.
+
+## WEB07 — Hero protocol console and a switch to surface emphasis
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, local Chrome check / Codex, Anthropic `frontend-design` skill
+- AI work: Replaced the comparison diagram on the right of the landing hero with a light protocol console showing a real `klamp verify` command, the ENSv2 lookup, the chain/manager/PoolId comparison and the route match result. No OS window chrome, dark terminal or traffic lights were used. Removed the vertical orange border fragment on the CTA and the thick left border on the demo's Phase 2 area, and switched the emphasis to the full CTA surface and the background color of the verification result.
+- Human decisions/changes: Requested making the right side of the hero like a terminal, removing the fingernail-style border emphasis, and replacing any needed emphasis with another method.
+- References and versions: Next.js 15.5.26, Emotion 11.14.1, `frontend-design` skill.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. In Chrome, confirmed the light terminal on the full landing screen, the CTA surface emphasis, and the removal of the left emphasis border in the demo's Phase 2 area.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; check the right-side console data and result row at `/`, and confirm there is no thick left border in the Phase 2 simulation area of `/demo/`.
+- Open issues: Real GitHub Pages deployment and physical mobile device verification not done.
+
+## WEB08 — Stronger TUI conventions in the hero verification console
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, local Chrome check / Codex, Anthropic `frontend-design` skill
+- AI work: Redesigned the hero's right console as a light TUI made of fixed columns, sequential sections, status tokens and a bottom status bar. Separated canonical record resolution and proposed route comparison as 01/02 in their actual order, and showed the chain, PoolManager and PoolId verdicts and the final status on one screen. No full dark theme, CRT effect, scanlines or blinking cursor were used.
+- Human decisions/changes: Requested pushing the hero's right area closer to a TUI than an ordinary terminal.
+- References and versions: Next.js 15.5.26, Emotion 11.14.1, `frontend-design` skill.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. In Chrome, confirmed the light TUI's resolution/compare sections, the `ok` status, the `MATCH` status bar and the full landing flow.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; confirm the right side of the `/` hero reads in the order 01 resolve, 02 compare, MATCH.
+- Open issues: Real GitHub Pages deployment and physical mobile device verification not done.
+
+## WEB09 — Oh My Zsh-style palette for the hero TUI only
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, local Chrome check / Codex, Anthropic `frontend-design` skill
+- AI work: Applied the Oh My Zsh `agnoster`/default prompt color semantics, based on Solarized Dark, only inside the hero TUI. The background and panels use the Solarized base range; resolution steps are yellow, network is blue, route and status info is cyan, and success and MATCH are green. Used a bright foreground and base0 for legibility of small data values; the landing and demo's existing Warm White/Clamp Orange tokens were not changed.
+- Human decisions/changes: Requested applying the Oh My Zsh color palette only to the hero TUI area.
+- References and versions: Oh My Zsh `agnoster.zsh-theme` master, `robbyrussell.zsh-theme` master, Next.js 15.5.26.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. In Chrome, confirmed the existing palette is kept outside the TUI and the Solarized/ANSI status colors apply only inside it.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; at `/`, confirm only the TUI uses the dark Solarized range, success states are green, and the outer CTA keeps Clamp Orange.
+- Open issues: Real GitHub Pages deployment and physical mobile device verification not done.
+
+## WEB10 — macOS terminal window frame for the hero TUI
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, local Chrome check / Codex, Anthropic `frontend-design` skill
+- AI work: Added a macOS Terminal-style outer frame to the hero TUI: a 30px-tall light title bar, 10px red/yellow/green window controls, a centered session title, a thin gray outline, a 10px corner radius and a restrained two-level window shadow. The controls are non-functional decoration so as not to create fake button accessibility, and the inner Oh My Zsh/Solarized TUI is kept.
+- Human decisions/changes: Requested making the hero TUI border look like a real Mac window.
+- References and versions: Next.js 15.5.26, Emotion 11.14.1, `frontend-design` skill.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. In Chrome, confirmed the macOS title bar, traffic-light controls, border radius and shadow combine with the existing TUI content.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; confirm the title bar, the three controls, the rounded outline and the inner TUI of the window on the right of the `/` hero connect naturally.
+- Open issues: Real GitHub Pages deployment and physical mobile device verification not done.
+
+## WEB11 — 100dvh step-by-step protocol demo
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, Chrome 754px viewport check / Codex, Anthropic `frontend-design` skill
+- AI work: Removed the demo page's large intro and bottom footer and rebuilt it as a 100dvh screen where the header and protocol tool use exactly one viewport. Split the state store's batch autoplay into four user inputs: `Declare canonical pool` → `Verify proposed route` → `Request 30% fee` → `Apply 1% cap`. Each input performs only one state change and one async task, and `Start over` resets after completion. Placed the comparison result and the fee simulation side by side on desktop, switching to vertical scrolling on short screens and mobile.
+- Human decisions/changes: For ease of presenting, requested making the demo 100dvh, removing excessive titles and structuring the interaction step by step.
+- References and versions: Next.js 15.5.26, Zustand 5.0.8, Emotion 11.14.1, `frontend-design` skill.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. In Chrome 1440×754, confirmed the initial and completed screens fit in one viewport. Ran the four step buttons in order to confirm the canonical record, ENSv2 route match, 30% request and 1% applied results, and that `Start over` returns to the first step.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; at `/demo/`, press the four buttons in order and confirm each step advances one at a time and the whole screen fits in one viewport even in the completed state.
+- Open issues: Real GitHub Pages deployment and physical mobile device verification not done.
+
+## WEB12 — Per-step scenes and interaction animation
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1440×756 check / Codex, Anthropic `frontend-design` skill
+- AI work: Removed the route, fee and execution readout that were shown on one screen at the same time, and restructured the demo into single scenes that show only the information the current step needs. Enlarged the main headings and result figures, and made the Declare receipt, Verify comparison, 30% request and 1% cap results replace one another in order. Scene entry, the progress line, route joining and fee value change animations run only after button input, and all transitions are removed under `prefers-reduced-motion`. Phase 2 results are still labeled as simulation.
+- Human decisions/changes: Requested reducing the demo's small text and excessive information and adding dynamic animation that responds to button interaction.
+- References and versions: Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `frontend-design` skill.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. In Chrome 1440×756, checked the four scenes Declare, Verify, Request 30% and Apply 1% in order; on both the completed and initial screens, the viewport height and document height matched at 756px. Also confirmed the first step button is restored after `Start over`.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; at `/demo/`, press the four buttons in order and confirm only one scene is visible at a time, the transition animation runs right after the click, and after completion `Start over` returns to the initial scene.
+- Open issues: Behavior verification on the real GitHub Pages deployment screen and physical mobile devices not done.
+
+## WEB13 — Copy that describes current behavior instead of development phases
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1440×756 check / Codex, Anthropic `frontend-design` skill
+- AI work: Removed the `Phase 1` / `Phase 2` distinction from the landing, demo header, step descriptions, status summary and metadata. The landing now uses `Fee cap preview` after route verification, and the demo uses `Canonical route`, `Pool verification` and `Fee cap preview`, directly describing the behavior the user is looking at. The fee cap, which is not yet in the contract, is labeled with its execution scope, simulation and preview, instead of a development phase.
+- Human decisions/changes: Requested dropping the phase 1/2 distinction across the web pages and describing the step currently being performed instead.
+- References and versions: Next.js 15.5.26, Emotion 11.14.1, `frontend-design` skill.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. Searched `web/src` and the static export to confirm no phase wording remains. In Chrome 1440×756, checked the landing's fee cap description and the demo's context/status copy, and confirmed the demo's document height equals the viewport height at 756px.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; check the Fee cap preview at `/` and the Canonical route, Pool verification and Fee cap preview copy at `/demo/`, and confirm no development phase numbers are shown.
+- Open issues: Real GitHub Pages deployment screen and physical mobile device verification not done.
+
+## WEB14 — Attack payload and clamp collision animation
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1440×756 check / Codex, Anthropic `frontend-design` skill
+- AI work: Changed the 30% request scene from a simple number enlargement into an attack sequence where a `Malicious hook` sends a `feeOverride(3000)` payload toward the pool. The request line, three moving packets, the 30% payload collision and a brief screen recoil run once, right after user input. In the cap scene, the incoming 30% hits the central clamp and recoils before the 1% result appears. Brick Red marks the attack and Clamp Orange the defense, and under reduced motion all animations are removed as before.
+- Human decisions/changes: Requested stronger attack and defense animations, since number changes alone did not make the attacker's attack feel dynamic enough.
+- References and versions: Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `frontend-design` skill.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. In Chrome 1440×756, confirmed the payload travel and collision frames right after the Request 30% input, the clamp collision and recoil frames right after the Apply 1% input, and the final 1% result. On the completed screen, the document height and viewport height matched at 756px.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; press the third button at `/demo/` to see the attack packets and the 30% collision, and with the fourth button confirm the 30% hits the clamp and then 1% appears. With the OS reduce-motion setting on, transitions should complete instantly.
+- Open issues: Animation verification on the real GitHub Pages deployment screen and physical mobile devices not done.
+
+## WEB15 — Remove the double transition in the cap scene
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1440×756 check / Codex, Anthropic `frontend-design` skill
+- AI work: Removed the cause of React remounting the whole Scene when `enforce-busy` changed to `complete-ready` on input 4. The `enforce` and `complete` states now use the same `fee-enforcement` key, so the attack collision animation runs only once on first entry, and after the mock result arrives only the 1% result and the completion copy update within the same scene.
+- Human decisions/changes: After noticing the screen appeared to be swapped once in the middle of action 4, requested a fix that updates the result within the same scene.
+- References and versions: Next.js 15.5.26, React 19, Emotion 11.14.1, `frontend-design` skill.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. In Chrome 1440×756, confirmed `Applying the 1% cap` appears right after the click, followed after completion by `The request was capped` and `1.00%`. The completed screen's document and viewport heights were both 756px.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; press the fourth button at `/demo/` and confirm the clamp collision animation runs only once and the 1% result appears on the same screen.
+- Open issues: Animation verification on the real GitHub Pages deployment screen and physical mobile devices not done.
+
+## WEB16 — klamp.eth-based 5-step mock verification flow
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×700 check / Codex, `frontend-design` skill
+- AI work: Restructured the demo into five steps: `Launch + ENS record` → `Verify route` → `Verify hook` → `Request 30%` → `Enforce 1%`. Each scene reflects its part: the launcher creating the token and pool and then recording the canonical pool in `tokens.klamp.eth`; route recomputation; the hook code hash and 1% cap confirmed from `hooks.klamp.eth`; a 3,000 bps request from malicious logic inside the verified proxy; and the final 1% application with matching quoted/received output. Kept the existing attack payload and clamp collision animations, and stated the local mock and no-wallet/RPC status at the top of the screen and inside the instrument.
+- Human decisions/changes: Requested holding off on the real contract connection and prioritizing the frontend demo up to just before contract connection and mock labeling, while keeping the existing level of interaction and animation.
+- References and versions: Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `frontend-design` skill.
+- AI-run verification: Passed `pnpm lint` and `pnpm build`. In Chrome, ran the five steps' states and buttons in order to confirm the ENS record, canonical route, hook cap, 30% request, 1% applied and matching quoted/received output. Also confirmed the `Start over` return and that on a 1470×700 screen the document and viewport heights are both 700px.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; at `/demo/`, press the five buttons in order and check each ENS namespace and verification result, the attack/defense animations, the final output match, and the `Mock data` and `No wallet or RPC` labels.
+- Open issues: Connecting a real wallet/RPC/ENS and the deployed contracts, switching to Sepolia live data, and physical mobile device verification not done.
+
+## WEB17 — Remove the double playback in the Launch scene
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 check / Codex, `frontend-design` skill
+- AI work: Removed the cause of the same screen remounting on the first Launch input, which was a different Scene key for each of `idle`, `launch-busy` and `launch-ready`. The three states now keep a single `launch-flow` scene, and the connector-line animation is tied to state so it starts only once on input. During async execution, a separate progress heading and Deploying/Initializing/Writing statuses are shown, and on completion only the actual mock values update in place.
+- Human decisions/changes: Requested removing the screen flicker in the middle of action 1 while keeping the existing level of interaction and animation.
+- References and versions: Next.js 15.5.26, React 19, Emotion 11.14.1, `frontend-design` skill.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. In Chrome, checked the initial state, the in-progress state 120ms after input and the completed state after 520ms, and confirmed only the copy and values update while the Launch actor and receipt structure stay in place. The completed screen's document and viewport heights were both 756px.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; press the first button at `/demo/` and confirm the whole scene does not disappear and reappear, the connector line runs only once, and the progress copy changes to the completed values in the same place.
+- Open issues: Transition verification in the real GitHub Pages deployment environment and on physical mobile devices not done.
+
+## WEB18 — Adjust per-step mock response delays
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 check / Codex, `frontend-design` skill
+- AI work: So the status copy and scene changes are readable, gathered the mock data layer's response delays in one place and increased them to Launch 950ms, route verification 850ms, hook verification 850ms and fee cap application 1,050ms. CSS animation speeds, including the attack payload and clamp collision, were not changed.
+- Human decisions/changes: Requested longer waits between all steps than before.
+- References and versions: Next.js 15.5.26, TypeScript 5, `frontend-design` skill.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. In Chrome, measured from the click until the next action button appears: Launch 1,064ms, route 970ms, hook 962ms, cap 1,166ms. The completed screen's document and viewport heights were both 756px.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; press each button at `/demo/` in order and confirm the in-progress state lasts about 1 second for Launch, route and hook, and about 1.1 seconds for the final cap application.
+- Open issues: Response times after connecting to a real network are unrelated to the mock delays, so a separate pending/loading policy is needed.
+
+## WEB19 — Clean up the demo header and pad the Launch table
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 check / Codex, `frontend-design` skill
+- AI work: Removed the `Protocol trace`, `klamp.eth namespaces`, `Mock data` and `No wallet or RPC` context group from the demo header, leaving only the Klamp brand and `Project overview` at either end. Added 18px of left and right inner padding to the receipt table in the first Launch scene so row text does not touch the borders.
+- Human decisions/changes: Requested adding left/right padding to the Step 1 table and removing all of the header's `klamp.eth namespaces`, `Mock data` and `No wallet or RPC` copy.
+- References and versions: Next.js 15.5.26, Emotion 11.14.1, `frontend-design` skill.
+- AI-run verification: `pnpm lint` passed. The first `pnpm build` failed while collecting page data because of a conflict with the `.next` output of a running dev server for the same repository; after stopping that dev server and rerunning, it passed through static export. In Chrome, confirmed the header copy is gone, the Launch table has left/right padding, and long ENS names are truncated with an ellipsis; the document and viewport heights were both 756px.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; confirm only Klamp and `Project overview` remain in the `/demo/` header, and Step 1's three rows are aligned away from the left and right borders.
+- Open issues: Verification in the real GitHub Pages deployment environment and on physical mobile devices not done.
+
+## WEB20 — Remove the double transition in the Route and Hook scenes
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 check / Codex, `frontend-design` skill
+- AI work: Changed the structure where the Scene key changed on every `busy → ready` transition in Step 2 and Step 3, remounting the whole screen, into fixed `route-verification` and `hook-verification` scenes respectively. Separated the animations so route animates only the clamp joining when the result arrives, and hook animates only the 1% cap figure when verification completes. While in progress, `Verifying the proposed route` and `Resolving the hook cap` are shown instead of the completion copy. Increased the mock response delays to Launch 1,250ms, route 1,150ms, hook 1,150ms and cap 1,350ms.
+- Human decisions/changes: Requested increasing the overall wait further and removing the screen flicker in the middle of Step 2 and Step 3.
+- References and versions: Next.js 15.5.26, React 19, Emotion 11.14.1, `frontend-design` skill.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. In Chrome, confirmed the progress headings of Step 2 and Step 3 are each shown and then updated to the completed data within the same structure. From the click until the next action became available, route and hook each took 1,296ms and cap took 1,497ms; the document and viewport heights were both 756px.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; run Steps 2 and 3 at `/demo/` and confirm the whole scene does not reappear and, after the progress copy, only the route clamp and the 1% cap value animate once.
+- Open issues: Transition verification in the real GitHub Pages deployment environment and on physical mobile devices not done.
+
+## WEB21 — Show the connector line after route verification completes
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, local Chrome check / Codex, `frontend-design` skill
+- AI work: Fixed the cause of the orange lines on either side of the central clamp in Step 2 being visible before route verification. The lines are hidden with `scaleX(0)` in the unmatched state, and when the `Canonical route verified` result arrives and matched becomes true, a 420ms animation expanding from the center out to both sides runs once and then holds the completed state.
+- Human decisions/changes: Pointed out that the orange connector animation in Step 2 should run after `Canonical route verified`.
+- References and versions: Next.js 15.5.26, React 19, Emotion 11.14.1, `frontend-design` skill.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. In Chrome, confirmed the pseudo-element transform is `matrix(0, 0, 0, 1, 0, 0)` while the in-progress heading is `Verifying the proposed route`, and `matrix(1, 0, 0, 1, 0, 0)` when the completed heading is `Canonical route verified`.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; run Step 2 at `/demo/` and confirm there is no central orange line during verification and the line spreads out to both sides together with the completion copy.
+- Open issues: Animation verification in the real GitHub Pages deployment environment and on physical mobile devices not done.
+
+## WEB22 — Sync the demo's causal order and result reveal
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 local check / Codex, `frontend-design`, `browser` skills
+- AI work: Added `deploying → initializing → recording → complete` visual states to Step 1 so token deployment, pool initialization and the ENS record do not look like they happen at the same time. During the 900ms the Step 4 30% attack sequence plays, the next action and Reset are locked and the progress copy is separate. In Step 5, the applied fee and settlement proof values and area are hidden until the mock execution result arrives, and only after the result is written to state are 1.00% and the actual quoted/received output shown. Reset is disabled during async work so in-flight requests and a reset do not race.
+- Human decisions/changes: Following the earlier full animation review, requested continuing with follow-up fixes to make the scenario's causality clearer.
+- References and versions: Next.js 15.5.26, React 19, Emotion 11.14.1, Zustand 5.0.8, `frontend-design` skill, Browser skill.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. In Chrome, confirmed Step 1 changes in the order `Deploying/Waiting/Waiting` → `Complete/Initializing/Waiting` → `Complete/Complete/Writing` → the actual recorded values. Confirmed that right after the Step 4 input the `Sending request…` button is disabled and `Apply 1% cap` becomes enabled 950ms later. Confirmed that after the Step 5 input, up to the 1,000ms mark, the applied/result area has opacity 0 and empty values, and after the mock result `1.00%` and `41,842.17` are shown. No console errors, and the document and viewport heights were both 756px.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; at `/demo/`, confirm Step 1's three tasks change in order, the next button cannot be pressed during the Step 4 attack motion, and the Step 5 result appears only after the cap execution completes.
+- Open issues: Pending/failure/retry states tied to real contract/RPC responses, the GitHub Pages deployment environment, and physical mobile device verification not done.
+
+## WEB23 — Unblock browser translation in the demo
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, pnpm 12.6.0 / Codex
+- AI work: Removed the `translate="no"` attribute applied to the entire demo instrument so the browser's translation feature can translate the on-screen copy. Screen structure, state transitions and technical data values were not changed.
+- Human decisions/changes: Requested removing the setting that blocks Korean browser translation of the demo page.
+- References and versions: Next.js 15.5.26, React 19.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. Also confirmed `/demo` is generated in the static export.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; run the browser's Korean translation at `/demo/` and confirm the UI copy is included in the translation.
+- Open issues: If a browser translation extension changes DOM attributes before React hydration, hydration warnings may reappear in development. Stable multilingual support at the product level requires a separate i18n implementation.
+
+## WEB24 — Visualize the protected pool creation premise and the routing actors
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×700 local check / Codex, `frontend-design`, `browser` skills
+- AI work: Added a row and description to Step 1 stating the dynamic-fee pool has `CappedHookProxy · 1% max` as its hook from creation. In Step 2, built and placed separate dedicated SVGs for the Aggregator, which merges candidate routes, and the Router, which forwards the selected route, and animated orange packets that travel through the two segments in sequence and then lead into the canonical pool comparison. Corrected the responsibilities in the copy: in Step 3 ENS attests the wrapper and cap, in Step 4 the compromised fee strategy inside the official pool requests an excessive value, and in Step 5 the on-chain wrapper, not ENS, enforces the cap. Fixed v4's dynamic fee PoolKey to `0x800000`, corrected the mock hook address to include `BEFORE_SWAP_FLAG(0x80)`, recomputed the PoolId, and labeled the 30% raw fee request as `300_000` pips.
+- Human decisions/changes: Requested separating canonical route verification and cap enforcement inside the official pool as two lines of defense, and adding separate images and animations for the Aggregator and the Router, which were not visible on the existing screen.
+- References and versions: Next.js 15.5.26, React 19, Emotion 11.14.1, Zustand 5.0.8, viem 2.56.9, Uniswap v4-core `PoolKey`, `IHooks`, `LPFeeLibrary`, `frontend-design` skill, Browser skill.
+- AI-run verification: Computed the PoolId `0x469206…d0cfbc` of the PoolKey reflecting the dynamic fee and the beforeSwap permission using viem 2.56.9 ABI encoding and keccak256. In Chrome, confirmed Step 1's capped proxy row, Step 2's Aggregator, Router, Selected branch order with the two packet movements, and the final route match. Then ran Steps 3~5 to confirm `Compromised strategy`, `requestFee(300_000)`, `Onchain maximum 1.00%` and the final applied/output values, with no console errors. At 1470×700 the document and viewport heights were both 700px with no horizontal overflow. After applying the final PoolKey and PoolId, reran `pnpm lint` and `pnpm build`, which passed.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; at `/demo/`, check the Pool hook row after Step 1 completes, and on the Step 2 input confirm the Aggregator and Router appear as separate images and the packets travel left to right in sequence.
+- Open issues: `CappedHookProxy` and the fee strategy are still a mock scenario; a real on-chain wrapper implementation, immutable cap verification, attack/bypass tests and animation verification on physical devices not done.
+
+## WEB25 — Six-step protected path and the completed return to PoolManager
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, Chrome desktop and 390×844 responsive check / Codex, `frontend-design`, `browser` skills
+- AI work: Split the existing flow into six steps so each screen shows only one decision. Made the scene where the Aggregator builds candidate branches and the Router hands the PoolKey to the v4 PoolManager its own step, and added a `ProposedRoute` type and a mock client boundary separate from the canonical lookup. Route verification shows the ENS resolver, chain, PoolManager and PoolId comparison; hook verification shows evidence of the ENS identity, PoolKey hook address, runtime code hash and the `Immutable · 1%` cap. The attack was made concrete as an external strategy admin key compromise producing a `setFee(300_000)` output, and the final scene shows the CappedHookProxy returning the value clamped to 1% back to the PoolManager. Added a new PoolManager SVG in the project palette and removed the page-level horizontal overflow caused by the minimum width of mobile grid items.
+- Human decisions/changes: Requested including all needed elements first and, if screen complexity grows, keeping it at a reasonable level by splitting steps.
+- References and versions: Next.js 15.5.26, React 19, Emotion 11.14.1, Zustand 5.0.8, Uniswap v4 PoolManager/PoolKey concepts, `frontend-design` skill, Browser skill.
+- AI-run verification: `pnpm lint`, `pnpm build` passed. In Chrome, ran all six steps in order and confirmed the Aggregator → Router → PoolManager handoff, the four canonical items matching, the four pieces of immutable hook cap evidence, the strategy admin attack, the wrapper → PoolManager 1% return and the settlement result. On desktop there were no console errors and no horizontal or vertical overflow, and at 390×844 there was no document-wide horizontal overflow apart from the intended internal horizontal scroll of the step progress area.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; run the six buttons in order at `/demo/` and confirm each step explains only one event and that both the handoff target in Step 2 and the return target in Step 6 are the PoolManager.
+- Open issues: All protocol responses, the attack and cap enforcement are explicitly in the mock data layer; real ENS/RPC/contract connections, failure/mismatch paths and physical mobile device verification are still needed.
+
+## WEB26 — Complete the malicious replica pool block, capped quote and revocation scenario
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 and 390×844 responsive check / Codex, `frontend-design`, PDF, Browser skills
+- AI work: Restructured the whole demo into 8 steps. Step 1 presents the CappedHookFactory's proxy deployment and hook identity issuance and the issuer's canonical pool record as one launch flow. In Step 2 the Aggregator discovers a 0.25% issuer pool and a 0.05% bait-quote replica pool as not-yet-trusted candidates, and in Step 3 the Guarded Router excludes the replica based on the ENS canonical PoolId. Step 4 verifies the hook address, runtime code hash, the immutable 1% maximum and that before/after swap return deltas are disabled, and quotes at the registered cap instead of the advertised fee. Moved the PoolManager handoff to Step 5, fixing the causal order so the PoolKey is handed over only after all verification. Step 6 shows the 30% request from the strategy admin key compromise, Step 7 a side-by-side comparison of the protected 1% result and the unguarded 30% result, and Step 8 the switch to resolver `0x0`, attestation revoked and route blocked after the Guardian unregisters. Each async step is split into its own typed mock client method and Zustand state.
+- Human decisions/changes: Requested adding all missing key scenes, adding steps if needed while keeping each screen's complexity at a reasonable level, and including plenty of interaction animation.
+- References and versions: Final phase 1 design PDF, CappedHooks development plan and spec PDF, Next.js 15.5.26, React 19, Emotion 11.14.1, Zustand 5.0.8, `frontend-design`, PDF, Browser skills.
+- AI-run verification: `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` passed. In Chrome, ran the 8 actions in order and confirmed replica `REJECT`, hook `Both disabled`, the 1% quote basis, PoolManager `Route accepted` after Step 5, the 30% attack, the guarded/unguarded comparison, the Guardian revoke and the final `Blocked`. There were no application console errors, only the browser extensions' own warnings. At 1470×756 the document and viewport sizes matched, and at 390×844 there was no document-wide horizontal overflow apart from the progress area's internal scroll.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; run the 8 steps in order at `/demo/`. Step 2 must have no PoolManager handoff; check Step 3 replica `REJECT`, Step 4 `Immutable maximum 1.00%` and `Both disabled`, Step 5 `Route accepted`, the Step 7 comparison of the two results, and Step 8's final `Revoked` and `Blocked`.
+- Open issues: CappedHookFactory, the hook ENS registry, GuardedRouter, Guardian and fee enforcement are still a typed mock data layer; the real phase 2 contracts and RPC connection, failure/retry branches and physical mobile device verification are still needed.
+
+## WEB27 — Align spacing in the Step 4 cap instrument panel
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26, Chrome 1470×756 and 390×844 responsive check / Codex, `frontend-design`, Browser skills
+- AI work: Fixed the structure in which Step 4's hook identity, immutable maximum and quote basis sat in three independent columns, doubling up the column gap and left padding. Changed it to two columns, the identity body and a 360px instrument panel, and gave `Immutable maximum` and `Quote basis` inside the panel the same 180px column, the same padding, the same left alignment and the same numeral size. Set the row gap to the verification row below to 22px, and at 430px and below the two figures stack into one column.
+- Human decisions/changes: Pointed out that the overall spacing around Step 4's `Immutable maximum` looked wrong and requested checking and fixing it.
+- References and versions: Next.js 15.5.26, Emotion 11.14.1, `frontend-design`, Browser skills.
+- AI-run verification: In Chrome's computed layout, confirmed the desktop instrument panel is 180px/180px, both cells have `15px 18px 16px` padding, and both are left-aligned. At 1470×756 the document and viewport matched, and at 390×844 the two cells stacked into a single column with no document horizontal overflow. `pnpm lint` and `pnpm build` also passed.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; proceed to Step 4 at `/demo/` and confirm `Immutable maximum` and `Quote basis` share the same baseline and padding within one instrument panel.
+- Open issues: Human visual verification of actual font rendering and on physical mobile devices is still needed.
+
+## WEB28 — Gentler demo motion and two-way step navigation
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26, Chrome 1470×756 and 390×844 responsive check / Codex, `frontend-design`, Browser skills
+- AI work: Increased all mock response delays by about 15% and slowed the scene entry, candidate branching, verification gate, route packet, cap reveal, attack collision, result comparison and Guardian revocation animations by about 15~20%. The existing order and easing are unchanged. Added `Previous` at the bottom and extended the Zustand state to go back one step at a time while keeping visited results. Changed the top 8-step progress table into keyboard-accessible buttons. Future steps with no data yet are disabled, the immediate next step is runnable, and a step completed once can later be clicked to jump to it instantly. In past scenes, the display range is limited to the current step so later results are not exposed in the bottom status.
+- Human decisions/changes: Requested slightly slowing all animations and adding, besides Reset, a previous-step button and click navigation on the top step table.
+- References and versions: Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `frontend-design`, Browser skills.
+- AI-run verification: `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` passed. In Chrome, ran all 8 steps to the end using only the top step table, and after completion confirmed jumping directly to Step 3, returning to Step 2 via `Previous`, and jumping directly to Step 7. Confirmed future state is hidden in past steps and all 8 step buttons become enabled once everything has been visited. At 390×844, `Reset`, `Previous` and the next action button fit within 390px, there was no document horizontal overflow, and there were no localhost application console errors.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; click Step 1 through Step 8 at the top in order, then click any completed step to jump to it immediately, go back one step with `Previous`, and confirm the data and bottom status match that scene.
+- Open issues: Once real on-chain transactions are connected, presentation mode and live mode must be distinguished so that moving to a previous step in the UI is not mistaken for reverting chain state that is already final.
+
+## WEB29 — Direct navigation to unvisited steps
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26, Chrome desktop and mobile responsive check / Codex, `frontend-design`, Browser skills
+- AI work: Changed the top 8-step progress table so future steps that have not been run yet can also be opened immediately. Added an optional presentation snapshot port to `ProtocolClient`; only the local mock adapter provides a completed deterministic snapshot. On direct navigation, only the data needed up to the selected scene is filled into Zustand and later steps' results are left empty, preventing state leaks such as Step 7 results appearing early at Step 4. Direct navigation to Step 8 shows the completed revocation scene. The bottom CTA's sequential execution and delayed animations and the `Previous` behavior are unchanged.
+- Human decisions/changes: Requested that during a presentation, future steps can also be navigated freely from the top progress table whether or not they have been visited.
+- References and versions: Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `frontend-design`, Browser skills.
+- AI-run verification: `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` passed. On Chrome's initial screen, confirmed 0 of the 8 progress buttons are disabled. On direct navigation to Step 4, the immutable 1% quote was visible and Step 7 results were not shown; after jumping directly to Step 7 and going back to Step 6 with `Previous`, the bottom `Applied at 1%` result was hidden. Direct navigation to Step 8 right after a reset also immediately showed the revoked/blocked completed scene. At 390×844, the document width and viewport width were both 390px. There were no localhost-related console errors; only the pre-existing hydration warning caused by the auto-translate extension changing `html lang` and wallet extension warnings were seen.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; from the initial screen, click Step 4, Step 7 and Step 8 directly, one at a time, and confirm the scene and the required prior data appear immediately. Also confirm that when going back from Step 7 to Step 6 with `Previous`, the cap application result does not remain visible in the bottom status.
+- Open issues: A real on-chain adapter without a presentation snapshot cannot fabricate unconfirmed future state, so when live mode is introduced the policy for direct navigation to future steps in the top table must be indicated separately or restricted.
+
+## WEB30 — Separate the normal quote from the attack fee
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26, Chrome desktop and 390×844 responsive check / Codex, `frontend-design`, Browser skills
+- AI work: Corrected the error where Step 4 quoted at the 100 bps cap instead of the verified normal pool's current 25 bps fee. Changed `CapQuote` to be based on the current fee and rearranged the screen in the order `Current quote 0.25% → Immutable maximum 1.00%`. The Step 5 handoff screen also shows the 0.25% current quote. Step 6 now spells out the actor, target and action: an external attacker uses a stolen strategy-admin key to make an unauthorized `setFee(300_000)` call on the verified official pool. Step 7 distinguishes the earlier 0.25% quote, the 30% attack request and the protected 1% applied fee, and removes the earlier claim that the 0.25% quote and the 1% execution result are the same. The mock output computes 0.25%, 1% and 30% each on the same fee-before-output basis.
+- Human decisions/changes: Requested that since the malicious replica pool is excluded in Step 3, Step 4 should show the normal pool's 0.25%, and that the 30% request in Step 6 be expressed more clearly as an external attack.
+- References and versions: Root `AGENTS.md`, `contract/AGENTS.md`, `contract/Klamp_Phase1_Agent_Spec.md`, Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `frontend-design`, Browser skills.
+- AI-run verification: `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` passed. In Chrome, confirmed the Step 4 heading and instrument panel show the normal pool's `0.25%` first and the immutable maximum `1.00%` separately. In Step 6, confirmed `External attacker`, `Stolen strategy-admin key`, the official pool as target, the unauthorized `setFee(300_000)` and the 30% output. In Step 7, the earlier 0.25% quote, the 30% attack request, and the guarded 1% and unguarded 30% results were distinguished. At 390×844, the document and viewport widths were both 390px. Apart from the pre-existing hydration warning caused by the auto-translate extension changing `html lang`, there were no localhost application errors.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; go directly to Step 4 at `/demo/` and confirm the order of the 0.25% current quote and the 1% cap, and in Step 6 confirm the attacker, stolen key, official pool target and 30% request read as one flow. Also confirm Step 7 does not describe the 0.25% quote and the 1% applied result as the same.
+- Open issues: The phase 2 CappedHookProxy, the strategy attack, fee enforcement and the output comparison are still typed mocks. When real contracts are connected, state differences between quote time and execution time and reverts due to `amountOutMinimum` must be replaced with real RPC results.
+
+## WEB31 — Remove demo execution-mode labels
+
+- Date / environment / tools: 2026-09-26 / Next.js 15.5.26 / Codex
+- AI work: In line with the presentation direction that the demo is not a DApp running the system live but a trace viewer for exploring prepared event records, removed the `Local mock` label from the instrument header. Also removed the execution-mode wording `mocked` from the metadata, leaving only the purpose, protocol trace. The internal typed mock adapter and the README's note on current implementation limits stay until they are replaced with real on-chain records.
+- Human decisions/changes: Decided that since the demo always traces existing records, the screen should not state a live/mock distinction.
+- References and versions: Root `AGENTS.md`, Next.js 15.5.26, Emotion 11.14.1.
+- AI-run verification: `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` passed. Statically confirmed `Local mock` and `mocked` were removed from the user-facing strings in `web/src` and only the trace naming remains.
+- Human verification: Pending human verification.
+- Human reproduction: `cd web && pnpm dev`; confirm there is no live/mock execution-mode wording at the top of the `/demo/` instrument or in the page metadata.
+- Open issues: The current trace data is not yet a real Sepolia execution artifact, so the README's mock notice stays. After Phase 2 is implemented and deployed, it must be replaced with a recorded trace adapter that includes transaction hashes, block numbers and event/read results.
+
+## C12 — Align the baseline code to the final design doc
+
+- Date / environment / tools: 2026-09-26 / Foundry (existing environment), Node, local Anvil / Claude Code (Opus 5.5)
+- AI work: Replaced the registrar with the full CanonicalPoolRegistrar code from `final_klamp_with_code.md` (5-argument path A, PoolKey-pinned path B, a path via a disposable contract, the extsload POOLS_SLOT initialization check, NotIssuer, and issuer and creator events). The setup drops the hooks pre-registration and hooksAdmin, leaves only the operator REGISTRAR (+admin) after the seal, and has it revoked in phase 2 via `finalizeHooks`. Added data record cross-verification, `judge()`, restriction of the event fallback to the launch pool shape, and an ENS conflict warning to the SDK. Aligned the deployment, seal, preflight and smoke scripts, `.env.example`, the Sepolia candidate file, related docs and the web result types. Detailed decisions are in the [C12 plan](plans/C12-design-doc-alignment.md).
+- Human decisions/changes: Requested aligning the baseline code to the two new design docs. The plan doc's "what was left different from the docs" is pending human review.
+- References and versions: Existing pinned versions (`deployments/versions.json`) unchanged. Confirmed v4-core 59d3ecf StateLibrary.POOLS_SLOT = 6.
+- AI-run verification: `forge test` 34 passed (0 failed, including 4,096 CREATE address fuzz runs). `npm test` 24 passed. `npm run typecheck` passed. `npm run test:e2e` passed (smoke for fresh Anvil deployment, registration, seal, viem found/missing/namespace, editor/issuer permissions, overwrite and sealed roles).
+- Human verification: Pending human verification.
+- Human reproduction: `cd contract && forge test && npm test && npm run typecheck && npm run test:e2e`.
+- Open issues: The Robinhood strategy address's code hash and start block, and whether the Sepolia LiquidityLauncher and UERC20Factory exist, are unverified. Phases 2~4 and the demo launchpad and terminal are not implemented. The running local demo chain must be redeployed with the new registrar.
+
+## C12 — Switch to three lookup states and check public chains
+
+- Date / environment / tools: 2026-09-26 / Node, Foundry, cast, Sepolia public RPC (publicnode), Robinhood Chain public RPC, Blockscout PRO API / Claude Code (Opus 5.5)
+- Human decisions/changes: Decided to change the lookup states to three as in the design doc, taking precedence over the root AGENTS.md. The Robinhood strategy constants and compareRoutes stay as they are. Of the design docs, only `final_klamp_with_code.md` is committed. Provided a Blockscout API key (not recorded in the repository).
+- AI work: Changed the SDK's `CanonicalPoolResult` to `registered | not_registered | lookup_failed` (+`reason`) and put the PoolKey in `registered`. Aligned the fallback, compareRoutes, judge, smoke scripts, the 4173 demo labels, the web mirror types and mock, the root AGENTS.md and the READMEs. Checked the LiquidityLauncher, UERC20Factory and InstantLaunchStrategy code read-only on Sepolia and Robinhood Chain (results in the [fallback doc](phase1-fallback.md) and the Sepolia candidate file).
+- Findings: LiquidityLauncher v3.0.0 `0x00004c4c…` (hash `0x6720…6ed6`) and v3.2.0 `0x0000FffF…` (hash `0x4a58…7d80`) exist on both Sepolia and Robinhood with identical hashes. The UERC20Factory used by Pools.trade is `0x000000e2…ad49b` (same hash `0x9f04…6aeb` on both chains), and `getUERC20Address(name, symbol, decimals, launcher, graffiti) == token` was reproduced for the real Robinhood token `0xd565…dead`. The `0x0cde87c1…` in the uerc20-factory README has no code on Robinhood. Robinhood InstantLaunchStrategy `0x23f8…`: code hash `0x29df…cffca`, deployment block 28,519,960, launcher = v3.2.0.
+- AI-run verification: See the command results in the WORKLOG additions below.
+- Human verification: Pending human verification.
+- Open issues: 1 of the latest 30 went through an intermediate contract that still has code and cannot be registered via either path. The public RPC does not provide traces or historical state, so the deployer of that contract could not be identified.
+
+## C12 — Show the block reason in the demo
+
+- Date / environment / tools: 2026-09-26 / local Anvil 18545, demo-server 4173 / Claude Code (Opus 5.5)
+- AI work: The 4173 demo status copy showed only "Blocked" regardless of why it was blocked; changed it to show copy per `comparison.reason` (no token hop in the route, not registered, lookup failed), the mismatch location (split route, hop), and the lookup failure `reason`.
+- Human decisions/changes: After a lookup with `tokenIn` still set to the previous token showed "Blocked" with no reason, requested a fix.
+- AI-run verification: Applied the screen logic to 4 real `/api/check` responses (invalid-route, match, mismatch, not_registered) from the running demo-server and confirmed the expected copy. Visual browser check not run.
+- Human verification: Pending human verification.
+
+## C12 — Add PoolKey to the CanonicalRecorded event
+
+- Date / environment / tools: 2026-09-26 / Foundry, local Anvil / Claude Code (Opus 5.5)
+- Human decisions/changes: Decided to put the PoolKey in the event for cases where an aggregator backend integrates through event indexing instead of ENS lookups. Judged there is no exposure issue since it is public information.
+- AI work: Changed it to `CanonicalRecorded(token, poolId, issuer, creator, key)` (key is non-indexed data) and updated the event definition and description in the design doc `final_klamp_with_code.md` and the C12 plan along with it. Two event tests verify down to key.
+
+## C13 — Confirm the team's Sepolia deployment and fix the SDK lookup path
+
+- Date / environment / tools: 2026-09-26 / Sepolia public RPC (publicnode), Blockscout PRO API, Sourcify / Claude Code (Opus 5.5)
+- Human decisions/changes: A teammate completed setup, role revocation and the KDEMO Via declaration on the Sepolia ENSv2 Beta set and shared the checklist results (verifier identifier pending). The user shared explorer.ens.dev screens (klamp.eth, tokens.klamp.eth) and confirmed wildcard token names show Not found. Requested the SDK fix and connecting the demo to Sepolia.
+- AI work: Cross-checked the shared claims read-only on chain. Found the Beta UniversalResolver `0x5d25c1d6…`, downloaded the deployed registrar source from Sourcify and compared it with the repository (a variant adapted to the Beta resolver API, with no PoolKey in the event). Changed the SDK's data record read from calling the resolver directly to going through UniversalResolver `resolve()`, and treated a returned resolver that differs from the configured one as `lookup_failed: namespace`. Wrote `deployments/sepolia.phase1.json`.
+- AI-run verification: `npm test` 25 passed, typecheck passed, `npm run test:e2e` passed (the local UniversalResolver also works through the same path). With the repository SDK, Sepolia KDEMO is `registered` (PoolKey `(ETH, KDEMO, 2500, 25, no hook)`, hash match) and an undeclared token is `not_registered`. In the Sepolia-connected demo (4174): KDEMO's own pool match, another pool mismatch, undeclared not_registered.
+- Human verification: The user checked the explorer.ens.dev structure screens. The rest is pending human verification.
+- Open issues: The repository's `src/`, setup and local tests differ from the Sepolia deployment (Beta API). The event PoolKey change is not in the deployment. A redeploy script for the Beta API is needed when ENSv2 Sepolia is reset.
+
+## C14 — Switch to ENSv2 Beta
+
+- Date / environment / tools: 2026-09-26 / Foundry 1.7.1 (solc 0.8.25, 0.8.26), Node, local Anvil, Sepolia public RPC, Sourcify / Claude Code (Opus 5.5)
+- Human decisions/changes: Decided to align the repository with the Sepolia deployment (Beta) and revert the event PoolKey change. Also requested doing any necessary side work.
+- AI work: Re-pinned contracts-v2 to `f2f0a05` (confirmed the official Sepolia address table matches the Beta set). Replaced the registrar with the Sourcify-verified source. Decoded the teammate's setup transactions to confirm the role values and the 4 `grantSetterRoles` calls, and moved `Phase1Setup`, the scripts and fixtures to an interface + `vm.deployCode` structure. Rewrote the metadata tests around `setTokenText` and changed the smoke script to read through UniversalResolver. Reverted the event PoolKey edit in the design doc. Plan: [C14](plans/C14-ensv2-beta.md).
+- AI-run verification: `forge test` 34 passed. `npm test` 25 passed, typecheck passed, `npm run test:e2e` passed (Beta ENS local deployment, registration, seal, viem lookup and permission smoke). The repository registrar's 0.8.26 build and the Sepolia `0x820bE7…` runtime code differ by 0 bytes apart from immutables and metadata.
+- Human verification: Pending human verification.
+- Open issues: A fresh Sepolia deployment with the repository scripts has not been run. When Sepolia ENSv2 is reset, redeploy with these scripts.
+
+## C15 — Merge the teammate handoff repository (handoff `klamp/`)
+
+- Date / environment / tools: 2026-09-26 / Foundry 1.7.1, Node, Sepolia public RPC / Claude Code (Opus 5.5)
+- Human decisions/changes: Decided not to create a new public repository and instead to merge the demo materials and tests from the handed-off `klamp/` (commit `2f2558b`) into this repository in small commits. The handoff folder and zip are not tracked and are deleted after the merge.
+- Sourcing principle: Teammate sources are brought in unmodified. Import path differences are absorbed with remapping aliases (`v4-core/`, `ensv2/`, `ens-contracts/`). The teammate repository uses v4-core `46c6834`; this repository uses `59d3ecf` (via liquidity-launcher).
+- 1) Four demo contracts in `src/demo/` (DeltaFeeHook, DemoLaunchpad, DisposableLauncher, PoolSeeder): copied verbatim; `forge build` passed (only DisposableLauncher's intended `selfdestruct` warning); existing `forge test` 34 passed.
+- 2) The scripts actually run for the Sepolia setup, `script/KlampSetup.sol`, `Commit.s.sol` and `Finish.s.sol`: verbatim. The signer is passed via the CLI and there are no keys in the code. `Commit` writes the registration secret to `deployments/sepolia.json`; this value is already public through the register transaction. Same order and role values as the repository's `Phase1Setup` family (cross-checked by transaction decoding in C14). `forge build` passed, existing tests 34 passed.
+- 3) Demo launch scripts `script/DemoLaunch.s.sol` (path B, KDEMO via a disposable contract) and `DemoPathA.s.sol` (path A, KHOOK with DemoLaunchpad + DeltaFeeHook), and the team deployment records they read and write, `deployments/sepolia.json`, `demo-pathA.json`, `demo-token.txt` and `pool-seeder.txt`: verbatim. The records contain only public addresses and the already-public registration secret. `forge build` passed.
+- 4) Sepolia fork tests `test/SetupFork.t.sol` (setup links and permission revocation, path B direct and via a disposable contract) and `test/PathAFork.t.sol` (path A hooked pool declaration and fixed-fee trade, attacker rejection, 4 registration checks): verbatim. Because they need a network, they are excluded from the default profile and run with `FOUNDRY_PROFILE=fork forge test` (`[rpc_endpoints] sepolia` is the same public RPC the teammate used). AI run: fork 10 passed (built with this repository's v4-core 59d3ecf and ENS f2f0a05), default 34 passed.
+- 5) JS demo tools in `demo/sepolia/` (`klamp-sdk.mjs` for lookup, judge, requote and UR calldata verification; `klamp-swap.mjs` with two modes, naive and klamp; `read-pool.mjs`; `pools.json`; package and lock): verbatim, placed in a subfolder separate from the existing 4173 demo. AI run (read-only): `read-pool` read the KDEMO pool and description; `naive` selected the undeclared pool 0x84dd…; `klamp` went ENS registered → judge `requote_canonical` → requote on the canonical pool 0xcd97…; calldata verify OK in both modes. Execution (`--execute`) needs a key and was not run.
+- 6) Teammate Sepolia run logs in `docs/evidence/sepolia-broadcast/` (Commit 5, Finish 11, DemoLaunch 2, DemoPathA 4 transactions, all receipts successful): since `broadcast/` is ignored, only `run-latest.json` was copied into the evidence folder (same content as the timestamped files). No key fields.
+- 7) Added the Uniswap submission `FEEDBACK.md` verbatim at the repository root (a draft; the Trading API section is a team TODO). `contract/docs/FEEDBACK.md` is separate and records teammate and mentor feedback.
+- 8) Merged the handoff README's introduction, issuer proof table, Sepolia deployment addresses, known limitations and AI-use disclosure into the root README, and changed the run paths to this repository's layout (`contract/`, `demo/sepolia`, fork profile). The original's "all admin roles are revoked" did not match chain state (REGISTRAR for hooks remains on the klamp registry), so it was corrected to an accurate sentence. The AI-use section distinguishes Codex and Claude Code as recorded in the WORKLOG.
+- 9) Added the handoff folder's `reference/` (analysis of the real Pools.trade launch Uptober and the flow via a disposable contract; public addresses and txs only, no keys) verbatim to `docs/evidence/pools-trade/` as evidence for the presentation. `HANDOFF.md` was not merged, since it is a work order that assumes publishing a separate repository.
+
+## C16 — Translate Korean docs, comments and UI strings to English
+
+- Date / environment / tools: 2026-09-26 / Foundry 1.7.1, Node / Claude Code (Opus 5.5, parallel sub-agents per file group)
+- Human decisions/changes: Translate every Korean Markdown file and code comment in the repository to English, including the comments of the Sepolia-deployed contracts, and also the Korean user-facing strings (lookup demo page, demo server messages, demo CLI output).
+- AI work: Translated 36 tracked files (docs, plans, evidence, AGENTS files, design doc, agent spec, this log, Solidity comments, demo JS/HTML/TS strings). Code, identifiers, addresses, hashes and commands were left unchanged; heading, line and code-fence counts were compared with the previous revision. One anchor link was updated (`phase1-deployment.md#sepolia-team-deployment-2026-09-26`). Status labels are now `Local pass / Sepolia pass / Manual check / Not run / Blocked`. Because the registrar comments changed, the docs now say the repository code (not the byte-for-byte source) matches the Sourcify-verified deployment.
+- AI-run verification: no tracked file outside `contract/lib/` contains Korean. `forge test` 34 passed, `FOUNDRY_PROFILE=fork forge test` 10 passed, `npm test` 25 passed, typecheck passed. Demo CLI (`read-pool`, naive, klamp) runs with English output. Registrar 0.8.26 build vs Sepolia `0x820bE7…`: 0 differing bytes outside immutables and metadata.
+- Human verification: Pending human verification.
