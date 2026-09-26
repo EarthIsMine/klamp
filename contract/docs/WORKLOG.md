@@ -497,3 +497,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/demo/`에서 8단계를 순서대로 실행한다. Step 2에는 PoolManager 전달이 없어야 하고, Step 3 replica `REJECT`, Step 4 `Immutable maximum 1.00%`와 `Both disabled`, Step 5 `Route accepted`, Step 7 두 결과 비교, Step 8 최종 `Revoked`·`Blocked`를 확인한다.
 - 남은 문제: CappedHookFactory·hook ENS registry·GuardedRouter·Guardian·fee enforcement는 여전히 typed mock data layer이며 실제 2단계 컨트랙트와 RPC 연결, 실패·재시도 분기, 모바일 실기기 검증은 아직 필요하다.
+
+## WEB27 — Step 4 상한 계측 패널 간격 정렬
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26, Chrome 1470×756 및 390×844 반응형 검증 / Codex, `frontend-design`, Browser skills
+- AI 수행: Step 4의 hook identity·immutable maximum·quote basis를 각각 독립된 세 열로 두면서 column gap과 좌측 padding이 중복되던 구조를 수정했다. identity 본문과 360px 계측 패널의 2열 구조로 바꾸고, 패널 안의 `Immutable maximum`과 `Quote basis`를 동일한 180px 열·동일 padding·동일 왼쪽 정렬·동일 숫자 크기로 통일했다. 하단 검증 행과의 row gap은 22px로 정리하고 430px 이하에서는 두 수치가 한 열로 쌓이도록 했다.
+- 사람의 결정/수정: Step 4 `Immutable maximum` 주변의 전체 간격이 비정상적으로 보인다고 지적하고 확인·수정을 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, `frontend-design`, Browser skills.
+- AI 실행 검증: Chrome 계산 레이아웃에서 데스크톱 계측 패널이 180px/180px, 두 셀 padding이 모두 `15px 18px 16px`, 왼쪽 정렬로 일치함을 확인했다. 1470×756에서 document/viewport가 일치했고, 390×844에서 두 셀이 단일 열로 쌓이며 문서 가로 overflow가 없음을 확인했다. `pnpm lint`, `pnpm build`도 통과했다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/demo/` Step 4까지 진행해 `Immutable maximum`과 `Quote basis`가 하나의 계측 패널 안에서 같은 baseline·padding으로 보이는지 확인한다.
+- 남은 문제: 실제 폰트 렌더링과 모바일 실기기에서의 사람 시각 검증은 아직 필요하다.

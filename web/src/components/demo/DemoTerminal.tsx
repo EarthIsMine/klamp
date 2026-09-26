@@ -257,29 +257,33 @@ const RouteHandoff = styled.div`
 `;
 
 const HookProof = styled.div`
-  width: min(900px, 100%); display: grid; grid-template-columns: minmax(0, 1fr) 210px 210px; gap: 32px; align-items: center;
-  @media (max-width: 700px) { grid-template-columns: 1fr; gap: 24px; }
+  width: min(900px, 100%); display: grid; grid-template-columns: minmax(0, 1fr) 360px; column-gap: 48px; row-gap: 22px; align-items: center;
+  @media (max-width: 760px) { grid-template-columns: 1fr; gap: 20px; }
 `;
 const HookIdentity = styled.div`
   display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 24px; align-items: center;
   h2 { margin: 0 0 8px; font-size: 23px; }
   p { margin: 0; color: ${colors.textSecondary}; font: 500 13px/1.5 ${mono}; overflow-wrap: anywhere; }
 `;
+const HookMetrics = styled.div`
+  display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid ${colors.borderStrong}; border-bottom: 1px solid ${colors.borderStrong};
+  @media (max-width: 430px) { grid-template-columns: 1fr; }
+`;
 const HookCap = styled.div<{ verified: boolean }>`
-  padding-left: 34px; border-left: 1px solid ${colors.borderStrong}; text-align: right;
-  span { display: block; color: ${colors.textMuted}; font-size: 13px; margin-bottom: 9px; }
-  strong { font: 500 clamp(52px, 6vw, 76px)/1 ${mono}; letter-spacing: -.07em; color: ${colors.primaryHover}; animation: ${({ verified }) => verified ? "capReveal .42s cubic-bezier(.2,.8,.3,1) both" : "none"}; }
+  min-width: 0; padding: 15px 18px 16px; text-align: left;
+  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 8px; }
+  strong { display: block; font: 500 clamp(38px, 4vw, 50px)/1 ${mono}; letter-spacing: -.06em; color: ${colors.primaryHover}; animation: ${({ verified }) => verified ? "capReveal .42s cubic-bezier(.2,.8,.3,1) both" : "none"}; }
+  p { margin: 8px 0 0; color: ${colors.textSecondary}; font-size: 12px; line-height: 1.35; }
   @keyframes capReveal { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: scale(1); } }
-  @media (max-width: 700px) { border-left: 0; border-top: 1px solid ${colors.borderStrong}; padding: 20px 0 0; text-align: left; }
 `;
 const QuoteBasis = styled.div<{ ready: boolean }>`
-  padding-left: 28px; border-left: 1px solid ${colors.borderStrong};
+  min-width: 0; padding: 15px 18px 16px; border-left: 1px solid ${colors.borderStrong};
   span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 8px; }
-  strong { display: block; font: 500 31px/1 ${mono}; color: ${colors.primaryHover}; }
+  strong { display: block; font: 500 clamp(38px, 4vw, 50px)/1 ${mono}; letter-spacing: -.06em; color: ${colors.primaryHover}; }
   p { margin: 8px 0 0; color: ${colors.textSecondary}; font-size: 12px; line-height: 1.35; }
   opacity: ${({ ready }) => ready ? 1 : .35}; animation: ${({ ready }) => ready ? "quoteIn .36s ease-out .18s both" : "none"};
   @keyframes quoteIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
-  @media (max-width: 700px) { border-left: 0; border-top: 1px solid ${colors.borderStrong}; padding: 18px 0 0; }
+  @media (max-width: 430px) { border-left: 0; border-top: 1px solid ${colors.border}; }
 `;
 const HookChecks = styled.div`
   grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid ${colors.borderStrong};
@@ -617,8 +621,10 @@ export function DemoTerminal() {
                       <p>{attestation?.ensName ?? `${record?.key.hooks.toLowerCase()}.hooks.klamp.eth`}</p>
                     </div>
                   </HookIdentity>
-                  <HookCap verified={hookCompliant}><span>Immutable maximum</span><strong>{hookCompliant ? `${capPercent}%` : "…"}</strong></HookCap>
-                  <QuoteBasis ready={Boolean(quote)}><span>Quote basis</span><strong>{quote ? `${(quote.pricedBps / 100).toFixed(2)}%` : "…"}</strong><p>Uses registered max, not the advertised 0.25%.</p></QuoteBasis>
+                  <HookMetrics>
+                    <HookCap verified={hookCompliant}><span>Immutable maximum</span><strong>{hookCompliant ? `${capPercent}%` : "…"}</strong><p>Fixed in the wrapper</p></HookCap>
+                    <QuoteBasis ready={Boolean(quote)}><span>Quote basis</span><strong>{quote ? `${(quote.pricedBps / 100).toFixed(2)}%` : "…"}</strong><p>Advertised 0.25% ignored</p></QuoteBasis>
+                  </HookMetrics>
                   <HookChecks>
                     <div><span>ENS identity</span><strong>{hookVerified ? "Verified" : "Checking"}</strong></div>
                     <div><span>PoolKey hook</span><strong>{hookMatches ? "Address match" : "Checking"}</strong></div>
