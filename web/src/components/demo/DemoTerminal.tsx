@@ -1,6 +1,7 @@
 "use client";
 
 import styled from "@emotion/styled";
+import Image from "next/image";
 import { Mark } from "@/components/brand/Mark";
 import { useDemoStore, type DemoStage } from "@/store/demo-store";
 import { colors, layout, mono } from "@/styles/tokens";
@@ -8,25 +9,25 @@ import { colors, layout, mono } from "@/styles/tokens";
 const stageOrder: DemoStage[] = ["idle", "launch", "verify", "attest", "request", "enforce", "complete"];
 
 const copy = {
-  idle: { state: "Step 1 of 5", title: "Launch and record the pool", detail: "The issuer launches a token and writes its canonical pool under tokens.klamp.eth." },
-  launch: { state: "Step 1 complete", title: "Launch recorded in ENS", detail: "The token, initialized pool, and issuer-authorized record were created together." },
+  idle: { state: "Step 1 of 5", title: "Launch the protected pool", detail: "The issuer creates a dynamic-fee pool with CappedHookProxy and records it under tokens.klamp.eth." },
+  launch: { state: "Step 1 complete", title: "Protected pool recorded", detail: "The capped proxy was attached at initialization, then the canonical PoolId was written to ENS." },
   verify: { state: "Step 2 complete", title: "Canonical route verified", detail: "The resolver, chain, pool data, and proposed route agree." },
-  attest: { state: "Step 3 complete", title: "Hook cap verified", detail: "The pool hook resolves under hooks.klamp.eth with a 1% maximum." },
-  request: { state: "Step 4 complete", title: "Hook logic requested 30%", detail: "Malicious logic inside the verified proxy sends a 3,000 bps request." },
-  enforce: { state: "Step 5 of 5", title: "Applying the verified cap", detail: "Klamp applies the maximum resolved from the hook identity record." },
-  complete: { state: "Trace complete", title: "The request was capped", detail: "The canonical route held and the simulated swap applied the verified 1% maximum." },
+  attest: { state: "Step 3 complete", title: "Hook cap verified", detail: "ENS attests that the pool hook is the Klamp wrapper with an immutable 1% maximum." },
+  request: { state: "Step 4 complete", title: "Fee strategy requested 30%", detail: "Compromised strategy logic inside the official pool requests an excessive dynamic fee." },
+  enforce: { state: "Step 5 of 5", title: "Applying the onchain cap", detail: "The pool's capped proxy clamps the strategy output before returning it to PoolManager." },
+  complete: { state: "Trace complete", title: "The request was capped", detail: "The canonical route held and the pool's immutable wrapper returned the 1% maximum." },
 };
 
 const launchPendingCopy = {
   state: "Step 1 of 5",
   title: "Launching token and pool",
-  detail: "The launcher is deploying the token, initializing its pool, and writing the ENS record.",
+  detail: "The launcher is deploying the token, attaching CappedHookProxy, and writing the canonical pool record.",
 };
 
 const routePendingCopy = {
   state: "Step 2 of 5",
   title: "Verifying the proposed route",
-  detail: "Klamp is resolving the canonical pool and comparing every declared field.",
+  detail: "The aggregator proposes a route, the router forwards it, and Klamp compares every declared pool field.",
 };
 
 const hookPendingCopy = {
@@ -38,7 +39,7 @@ const hookPendingCopy = {
 const attackPendingCopy = {
   state: "Step 4 of 5",
   title: "Sending the 30% request",
-  detail: "Malicious logic inside the verified proxy is sending a 3,000 bps request.",
+  detail: "Compromised fee strategy logic is sending a 300,000-pip request through the verified wrapper.",
 };
 
 const steps = [
@@ -135,7 +136,38 @@ const LaunchReceipt = styled.dl`
   dd[data-complete="true"] { color: ${colors.textPrimary}; }
 `;
 
-const Comparison = styled.div`width: min(880px, 100%); display: grid; grid-template-columns: 1fr 104px 1fr; align-items: center;`;
+const RoutePipeline = styled.div`
+  grid-column: 1 / -1; display: grid; grid-template-columns: 170px minmax(44px, 1fr) 150px minmax(44px, 1fr) 170px;
+  align-items: center; margin-bottom: 24px;
+  @media (max-width: 680px) { grid-template-columns: 1fr 32px 1fr 32px 1fr; margin-bottom: 20px; }
+`;
+const RouteActor = styled.div<{ delay?: number }>`
+  display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 11px; align-items: center;
+  animation: actorIn .34s ease-out ${({ delay = 0 }) => delay}s both;
+  img { width: 44px; height: 44px; }
+  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 3px; }
+  strong { display: block; font-size: 14px; }
+  @keyframes actorIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+  @media (max-width: 680px) {
+    grid-template-columns: 1fr; justify-items: center; text-align: center; gap: 6px;
+    img { width: 38px; height: 38px; }
+  }
+`;
+const RouteEndpoint = styled(RouteActor)`
+  padding: 9px 11px; border: 1px solid ${colors.borderStrong};
+  img { width: 32px; height: 32px; padding: 4px; }
+`;
+const RouteRail = styled.div<{ delay: number }>`
+  position: relative; height: 2px; margin: 0 10px; background: ${colors.border}; overflow: visible;
+  &::after {
+    content: ""; position: absolute; top: -4px; left: 0; width: 10px; height: 10px; background: ${colors.primary};
+    animation: routePacket .62s cubic-bezier(.2,.7,.3,1) ${({ delay }) => delay}s both;
+  }
+  @keyframes routePacket { from { opacity: 0; left: 0; } 20% { opacity: 1; } to { opacity: 1; left: calc(100% - 10px); } }
+  @media (max-width: 680px) { margin: 0 4px; }
+`;
+
+const Comparison = styled.div`width: min(920px, 100%); display: grid; grid-template-columns: 1fr 104px 1fr; align-items: center;`;
 const CompareSide = styled.div`
   min-width: 0;
   h2 { margin: 0 0 18px; font-size: 18px; }
@@ -151,7 +183,7 @@ const AnimatedClamp = styled.div<{ matched: boolean }>`
   @keyframes clamp { 0% { transform: scale(1.16); } 65% { transform: scale(.94); } 100% { transform: scale(1); } }
 `;
 const VerificationChecks = styled.div`
-  grid-column: 1 / -1; margin-top: 30px; display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid ${colors.borderStrong};
+  grid-column: 1 / -1; margin-top: 24px; display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid ${colors.borderStrong};
   div { padding: 12px 14px; }
   div + div { border-left: 1px solid ${colors.border}; }
   span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 4px; }
@@ -420,6 +452,7 @@ export function DemoTerminal() {
                   <LaunchReceipt>
                     <dt>Token deployed</dt><dd data-complete={tokenReady}>{tokenValue}</dd>
                     <dt>Pool initialized</dt><dd data-complete={poolReady}>{poolValue}</dd>
+                    <dt>Pool hook</dt><dd data-complete={poolReady}>{poolReady ? "CappedHookProxy · 1% max" : "Waiting"}</dd>
                     <dt>ENS record written</dt><dd data-complete={Boolean(record)}>{ensValue}</dd>
                   </LaunchReceipt>
                 </LaunchFlow>
@@ -429,6 +462,13 @@ export function DemoTerminal() {
             {stage === "verify" && (
               <Scene key={sceneKey}>
                 <Comparison>
+                  <RoutePipeline aria-label="Aggregator and router route flow">
+                    <RouteActor><Image src="/aggregator.svg" width={44} height={44} alt="" aria-hidden /><div><span>Aggregator</span><strong>Builds candidates</strong></div></RouteActor>
+                    <RouteRail delay={0.16} aria-hidden="true" />
+                    <RouteActor delay={0.34}><Image src="/router.svg" width={44} height={44} alt="" aria-hidden /><div><span>Router</span><strong>Forwards route</strong></div></RouteActor>
+                    <RouteRail delay={0.5} aria-hidden="true" />
+                    <RouteEndpoint delay={0.68}><Mark size={32} /><div><span>Selected branch</span><strong>Pool 0</strong></div></RouteEndpoint>
+                  </RoutePipeline>
                   <CompareSide><SceneLabel>ENSv2 record</SceneLabel><h2>Canonical pool</h2><strong>{poolId ? short(poolId) : "Resolving…"}</strong><p>Chain 11155111 · {manager}</p></CompareSide>
                   <AnimatedClamp matched={matched}><Mark size={70} /></AnimatedClamp>
                   <CompareSideRight><SceneLabel>Proposed route</SceneLabel><h2>Route branch 0</h2><strong>{matched && poolId ? short(poolId) : "Waiting…"}</strong><p>{matched ? "Chain and PoolManager agree" : "Comparing declared fields"}</p></CompareSideRight>
@@ -466,7 +506,7 @@ export function DemoTerminal() {
             {stage === "request" && (
               <Scene key={sceneKey}>
                 <AttackSequence>
-                  <AttackOrigin><span>Inside verified proxy</span><strong>Malicious logic</strong><code>feeOverride(3000)</code></AttackOrigin>
+                  <AttackOrigin><span>Inside official pool</span><strong>Compromised strategy</strong><code>requestFee(300_000)</code></AttackOrigin>
                   <AttackRail aria-hidden="true"><i /><i /><i /></AttackRail>
                   <AttackPayload><SceneLabel>Incoming fee request</SceneLabel><FeeValue>30.00%</FeeValue><FeeCaption>3,000 bps sent toward the pool.</FeeCaption></AttackPayload>
                 </AttackSequence>
@@ -477,7 +517,7 @@ export function DemoTerminal() {
               <Scene key={sceneKey}>
                 <Enforcement>
                   <IncomingFee><span>Incoming</span><strong style={{ color: colors.danger }}>30.00%</strong></IncomingFee>
-                  <Cap><Mark size={76} /><span>ENS maximum {capPercent}%</span></Cap>
+                  <Cap><Mark size={76} /><span>Onchain maximum {capPercent}%</span></Cap>
                   <AppliedFee revealed={enforced}><span>Applied</span><strong>{enforced ? `${(enforcement.appliedBps / 100).toFixed(2)}%` : ""}</strong></AppliedFee>
                   <SettlementProof revealed={enforced}>
                     <div><span>Quoted output</span><strong>{enforced ? amount(enforcement.quotedOut) : ""}</strong></div>

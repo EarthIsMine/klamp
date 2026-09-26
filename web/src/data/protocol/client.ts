@@ -22,9 +22,9 @@ export interface ProtocolClient {
 export const DEMO_POOL_KEY: PoolKey = {
   currency0: "0x0000000000000000000000000000000000000000",
   currency1: "0x7A4b2F65c84A51D9A96c98f3cA7f5881eB02d135",
-  fee: 0x800000 | 500,
+  fee: 0x800000,
   tickSpacing: 25,
-  hooks: "0xC4A9906718d27DB7b3f0AbB2d9E62188C3A71140",
+  hooks: "0xC4A9906718d27DB7b3f0AbB2d9E62188C3A70080",
 };
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -37,7 +37,7 @@ const DEMO_DELAY_MS = {
 } as const;
 
 const DEMO_POOL_ID =
-  "0x91f62a3ac70c4d7d6418c69e3d2a1b081e6149c2f54a775b9d928f08d86e46b0" as const;
+  "0x4692066cc525b9e3c28f2d7d6cbfc36c44836ca0112c586185f250fa0bd0cfbc" as const;
 
 const DEMO_CANONICAL: CanonicalPoolRecord = {
   chainId: 11155111,

@@ -464,3 +464,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/demo/`에서 브라우저의 한국어 번역을 실행해 UI 문구가 번역 대상에 포함되는지 확인한다.
 - 남은 문제: 브라우저 확장 번역이 React hydration 전에 DOM 속성을 변경하면 개발 환경에서 hydration 경고가 다시 발생할 수 있다. 제품 차원의 안정적인 다국어 지원은 별도 i18n 구현이 필요하다.
+
+## WEB24 — 보호 풀 생성 전제와 라우팅 주체 시각화
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×700 로컬 검증 / Codex, `frontend-design`, `browser` skills
+- AI 수행: Step 1에 dynamic-fee pool이 생성 시점부터 `CappedHookProxy · 1% max`를 hook으로 가진다는 행과 설명을 추가했다. Step 2에는 후보 경로를 합치는 Aggregator와 선택 경로를 전달하는 Router를 서로 다른 전용 SVG로 제작해 배치하고, 두 구간의 오렌지 패킷이 순차 이동한 뒤 canonical pool 비교로 이어지도록 애니메이션을 구성했다. Step 3은 ENS가 wrapper와 상한을 증명하고, Step 4는 공식 풀 내부의 compromised fee strategy가 과도한 값을 요청하며, Step 5는 ENS가 아니라 온체인 wrapper가 상한을 강제한다는 문구로 책임을 바로잡았다. v4의 dynamic fee PoolKey는 `0x800000`으로 수정하고 mock hook 주소에 `BEFORE_SWAP_FLAG(0x80)`가 포함되도록 정정한 뒤 PoolId를 다시 계산했으며, 30% raw fee 요청은 `300_000` pips로 표기했다.
+- 사람의 결정/수정: canonical route 검증과 공식 풀 내부 상한 강제를 두 방어선으로 구분하고, 기존 화면에 보이지 않던 Aggregator와 Router 각각의 이미지와 애니메이션을 추가하도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, React 19, Emotion 11.14.1, Zustand 5.0.8, viem 2.56.9, Uniswap v4-core `PoolKey`, `IHooks`, `LPFeeLibrary`, `frontend-design` skill, Browser skill.
+- AI 실행 검증: viem 2.56.9의 ABI encoding과 keccak256으로 dynamic fee와 beforeSwap permission을 반영한 PoolKey의 PoolId `0x469206…d0cfbc`를 계산했다. Chrome에서 Step 1의 capped proxy 행, Step 2의 Aggregator·Router·Selected branch 순서와 두 패킷 이동, 최종 route match를 확인했다. 이어서 Step 3~5를 실행해 `Compromised strategy`, `requestFee(300_000)`, `Onchain maximum 1.00%`, 최종 applied/output 값을 확인했으며 콘솔 오류는 없었다. 1470×700에서 document/viewport 높이가 모두 700px이고 가로 overflow가 없었다. 최종 PoolKey와 PoolId 반영 후 `pnpm lint`, `pnpm build`를 다시 실행해 통과했다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 Step 1 완료 후 Pool hook 행을 확인하고 Step 2 입력 시 Aggregator와 Router가 별도 이미지로 나타나며 패킷이 왼쪽에서 오른쪽으로 순차 이동하는지 확인한다.
+- 남은 문제: `CappedHookProxy`와 fee strategy는 아직 mock 시나리오이며 실제 온체인 wrapper 구현, 불변 cap 검증, 공격·우회 테스트와 실기기 애니메이션 검증은 미실행이다.
