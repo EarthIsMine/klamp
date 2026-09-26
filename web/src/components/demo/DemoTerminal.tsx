@@ -17,6 +17,12 @@ const copy = {
   complete: { state: "Trace complete", title: "The request was capped", detail: "The canonical route held and the simulated swap applied the verified 1% maximum." },
 };
 
+const launchPendingCopy = {
+  state: "Step 1 of 5",
+  title: "Launching token and pool",
+  detail: "The launcher is deploying the token, initializing its pool, and writing the ENS record.",
+};
+
 const steps = [
   { stage: "launch" as const, index: "1", title: "Launch", detail: "ENS record" },
   { stage: "verify" as const, index: "2", title: "Verify route", detail: "Canonical pool" },
@@ -93,9 +99,12 @@ const LaunchActor = styled.div`
   h2 { margin: 0; font-size: 19px; }
   p { margin: 8px 0 0; color: ${colors.border}; font-size: 13px; line-height: 1.45; }
 `;
-const LaunchBridge = styled.div`
+const LaunchBridge = styled.div<{ active: boolean }>`
   position: relative; display: grid; place-items: center;
-  &::before { content: ""; position: absolute; left: 0; right: 0; height: 2px; background: ${colors.primary}; transform-origin: left; animation: launchLine .42s ease-out both; }
+  &::before {
+    content: ""; position: absolute; left: 0; right: 0; height: 2px; background: ${colors.primary}; transform-origin: left;
+    transform: scaleX(0); animation: ${({ active }) => active ? "launchLine .42s ease-out both" : "none"};
+  }
   img { position: relative; z-index: 1; background: white; padding: 8px; }
   @keyframes launchLine { from { transform: scaleX(0); } to { transform: scaleX(1); } }
   @media (max-width: 720px) { display: none; }
@@ -318,7 +327,7 @@ function feeCapStatus(stage: DemoStage, verified: boolean, enforced: boolean) {
 export function DemoTerminal() {
   const { stage, busy, launch, canonical, comparison, attestation, enforcement, advance, reset } = useDemoStore();
   const current = stageIndex(stage);
-  const view = copy[stage];
+  const view = stage === "launch" && busy ? launchPendingCopy : copy[stage];
   const found = canonical?.status === "found";
   const matched = comparison?.status === "match";
   const hookVerified = attestation?.status === "verified";
@@ -328,9 +337,11 @@ export function DemoTerminal() {
   const capPercent = (capBps / 100).toFixed(2);
   const poolId = found ? canonical.poolId : record?.poolId;
   const manager = found ? short(canonical.poolManager) : "Resolving after declaration";
-  const sceneKey = stage === "enforce" || stage === "complete"
-    ? "fee-enforcement"
-    : `${stage}-${busy ? "busy" : "ready"}`;
+  const sceneKey = stage === "idle" || stage === "launch"
+    ? "launch-flow"
+    : stage === "enforce" || stage === "complete"
+      ? "fee-enforcement"
+      : `${stage}-${busy ? "busy" : "ready"}`;
 
   return (
     <ReducedMotion>
@@ -366,7 +377,7 @@ export function DemoTerminal() {
                     <h2>CREATE2 launcher</h2>
                     <p>Deploys the token, initializes its pool, and calls the registrar.</p>
                   </LaunchActor>
-                  <LaunchBridge><Mark size={62} /></LaunchBridge>
+                  <LaunchBridge active={stage === "launch"}><Mark size={62} /></LaunchBridge>
                   <LaunchReceipt>
                     <dt>Token deployed</dt><dd data-complete={Boolean(record)}>{record ? short(record.token) : busy ? "Deploying…" : "Waiting"}</dd>
                     <dt>Pool initialized</dt><dd data-complete={Boolean(record)}>{record ? short(record.poolId) : busy ? "Initializing…" : "Waiting"}</dd>

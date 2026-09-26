@@ -387,3 +387,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/demo/`에서 다섯 버튼을 순서대로 누르며 각 ENS namespace와 검증 결과, 공격/방어 애니메이션, 최종 output 일치, `Mock data`와 `No wallet or RPC` 표기를 확인한다.
 - 남은 문제: 실제 wallet/RPC/ENS 및 배포 컨트랙트 연결, Sepolia live data 전환, 모바일 실기기 검증은 미실행이다.
+
+## WEB17 — Launch 장면의 이중 재생 제거
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 검증 / Codex, `frontend-design` skill
+- AI 수행: 첫 번째 Launch 입력에서 `idle`, `launch-busy`, `launch-ready`마다 Scene key가 달라져 같은 화면이 다시 마운트되던 원인을 제거했다. 세 상태가 하나의 `launch-flow` 장면을 유지하도록 하고, 연결선 애니메이션은 입력 시 한 번만 시작하도록 상태에 연결했다. 비동기 실행 중에는 별도의 진행 제목과 Deploying/Initializing/Writing 상태를 표시하고 완료 시 같은 위치에서 실제 mock 값만 갱신한다.
+- 사람의 결정/수정: 1번 동작 중간의 화면 깜빡임을 제거하되 기존 상호작용과 애니메이션 수준은 유지하도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, React 19, Emotion 11.14.1, `frontend-design` skill.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 초기 상태, 입력 120ms 후 진행 상태, 520ms 후 완료 상태를 확인했으며 Launch actor와 receipt 구조가 유지된 채 문구와 값만 갱신되는 것을 확인했다. 완료 화면의 document/viewport 높이는 모두 756px였다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 첫 번째 버튼을 누르고 장면 전체가 사라졌다 다시 나타나지 않는지, 연결선은 한 번만 실행되고 진행 문구가 같은 자리에서 완료 값으로 바뀌는지 확인한다.
+- 남은 문제: 실제 GitHub Pages 배포 환경과 모바일 실기기의 전환 검증은 미실행이다.
