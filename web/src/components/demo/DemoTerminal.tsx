@@ -110,7 +110,7 @@ const LaunchBridge = styled.div<{ active: boolean }>`
   @media (max-width: 720px) { display: none; }
 `;
 const LaunchReceipt = styled.dl`
-  margin: 0; display: grid; grid-template-columns: 145px minmax(0, 1fr); border-top: 1px solid ${colors.borderStrong};
+  margin: 0; padding: 0 18px; display: grid; grid-template-columns: 145px minmax(0, 1fr); border-top: 1px solid ${colors.borderStrong};
   dt, dd { margin: 0; padding: 12px 0; border-bottom: 1px solid ${colors.border}; }
   dt { color: ${colors.textSecondary}; font-size: 13px; }
   dd { font: 500 13px/1.45 ${mono}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

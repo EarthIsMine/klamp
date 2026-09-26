@@ -409,3 +409,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/demo/`의 각 버튼을 순서대로 누르고 Launch·route·hook은 약 1초, 최종 cap 적용은 약 1.1초 동안 진행 상태가 유지되는지 확인한다.
 - 남은 문제: 실제 네트워크 연결 후의 응답 시간은 mock 지연과 무관하므로 별도의 pending/loading 정책이 필요하다.
+
+## WEB19 — 데모 헤더 정리와 Launch 표 여백
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 검증 / Codex, `frontend-design` skill
+- AI 수행: 데모 헤더에서 `Protocol trace`, `klamp.eth namespaces`, `Mock data`, `No wallet or RPC` context 묶음을 제거하고 Klamp 브랜드와 `Project overview`만 양 끝에 남겼다. 첫 번째 Launch 장면의 receipt 표에는 좌우 18px 내부 여백을 추가해 행 텍스트가 경계선에 붙지 않도록 했다.
+- 사람의 결정/수정: Step 1 표의 좌우 padding을 추가하고 헤더의 `klamp.eth namespaces`, `Mock data`, `No wallet or RPC` 문구를 모두 제거하도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, `frontend-design` skill.
+- AI 실행 검증: `pnpm lint` 통과. 실행 중이던 동일 저장소 개발 서버와 `.next` 산출물 충돌로 첫 `pnpm build`의 page data 수집이 실패했으나 해당 개발 서버를 종료한 뒤 재실행하여 static export까지 통과했다. Chrome에서 헤더 문구 제거, Launch 표 좌우 여백과 긴 ENS 이름 말줄임을 확인했으며 document/viewport 높이는 모두 756px였다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/demo/` 헤더에 Klamp와 `Project overview`만 남았는지, Step 1의 세 행이 좌우 경계에서 떨어져 정렬되는지 확인한다.
+- 남은 문제: 실제 GitHub Pages 배포 환경과 모바일 실기기 검증은 미실행이다.
