@@ -385,7 +385,7 @@ export function DemoTerminal() {
   return (
     <ReducedMotion>
       <Shell>
-        <Instrument translate="no">
+        <Instrument>
           <InstrumentHead>
             <TraceName><LiveMark complete={stage === "complete"} />Verification trace 01</TraceName>
             <Network>Local mock</Network>
