@@ -72,11 +72,13 @@ The repository build of `CanonicalPoolRegistrar` matches the deployed bytecode (
 ```text
 klamp/
 ├── contract/   # Phase 1 Solidity, ENSv2 integration, SDK, scripts, and tests
+├── dex/        # Vite dApp: launch, look-alike pool and swap with real Sepolia transactions
 └── web/        # Next.js App Router protocol terminal
 ```
 
 - [`contract/README.md`](contract/README.md) describes the implemented Phase 1 guarantees, deployment flow, and validation evidence.
 - [`web/README.md`](web/README.md) describes the frontend architecture and demo flow.
+- [`dex/README.md`](dex/README.md) describes the wallet dApp that uses the deployed contracts as a launchpad and router would.
 
 ## Contract workspace
 
@@ -127,6 +129,16 @@ The web workspace is statically exported and deployed from `main` to GitHub Page
 The UI models the Phase 1 SDK results as `registered`, `not_registered`, or `lookup_failed`, route comparisons as `match`, `mismatch`, or `blocked`, and route verdicts as `allow`, `requote_canonical`, `requote_static`, or `hold`. The trace follows the path A demo on Sepolia (launch, naive quote, ENS lookup, verdict, requote, verified swap) and reads each step from Sepolia in the browser: the launch tx's `CanonicalRecorded` and `Initialize` events, V4Quoter quotes for both pools, the ENSv2 lookup, and the team's Klamp-mode swap tx, whose Universal Router calldata is decoded and checked against the judged PoolKey. Each step is labelled `Live · Sepolia #<block>`, or `Recorded snapshot` if a read fails and the recorded value is shown instead; a failed ENS lookup stays `lookup_failed`. Only the final attack outcome is simulated and labelled in the UI. Capped hooks (stage 2) are roadmap only.
 
 For presentations, the demo is an animated node diagram with a one-line caption per step. `Play` autoplays all eight steps; `→`/Space, `←`, `P` (play) and `R` (reset) drive it from the keyboard, and the progress dots seek to any step using a deterministic recorded snapshot (labelled as such).
+
+## DEX workspace
+
+`dex/` is a separate Vite app (pnpm) where you use Klamp with your own wallet: launch a token and its declared pool through DemoLaunchpad, open a look-alike pool as a third party, and swap through Universal Router with Klamp routing on or off. It imports `contract/sdk`, `contract/demo/sepolia/klamp-sdk.mjs` and `contract/deployments` directly.
+
+```sh
+cd dex
+pnpm install
+pnpm dev        # http://localhost:5174
+```
 
 ## Known limits
 
