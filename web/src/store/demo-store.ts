@@ -16,8 +16,13 @@ import { mockProtocolClient, type ProtocolClient } from "@/data/protocol/client"
 export type DemoStage = "idle" | "launch" | "candidates" | "verify" | "attest" | "forward" | "request" | "enforce" | "revoke" | "complete";
 export type LaunchVisualStep = "idle" | "deploying" | "initializing" | "recording" | "complete";
 
+const demoStageOrder: DemoStage[] = ["idle", "launch", "candidates", "verify", "attest", "forward", "request", "enforce", "revoke", "complete"];
+const laterStage = (current: DemoStage, candidate: DemoStage) =>
+  demoStageOrder.indexOf(candidate) > demoStageOrder.indexOf(current) ? candidate : current;
+
 type DemoState = {
   stage: DemoStage;
+  furthestStage: DemoStage;
   busy: boolean;
   launchStep: LaunchVisualStep;
   launch: LaunchReceipt | null;
@@ -30,11 +35,14 @@ type DemoState = {
   enforcement: FeeEnforcement | null;
   revocation: HookRevocation | null;
   advance: (client?: ProtocolClient) => Promise<void>;
+  goBack: () => void;
+  goToStage: (stage: DemoStage) => void;
   reset: () => void;
 };
 
 const initial = {
   stage: "idle" as DemoStage,
+  furthestStage: "idle" as DemoStage,
   busy: false,
   launchStep: "idle" as LaunchVisualStep,
   launch: null,
@@ -49,8 +57,8 @@ const initial = {
 };
 
 const wait = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
-const LAUNCH_SEQUENCE_INTERVAL_MS = 360;
-const ATTACK_SEQUENCE_MS = 900;
+const LAUNCH_SEQUENCE_INTERVAL_MS = 420;
+const ATTACK_SEQUENCE_MS = 1050;
 
 export const useDemoStore = create<DemoState>((set, get) => ({
   ...initial,
@@ -70,14 +78,14 @@ export const useDemoStore = create<DemoState>((set, get) => ({
 
       const launch = await launchRequest;
       if (get().stage !== "launch" || !get().busy) return;
-      set({ launch, launchStep: "complete", stage: "launch", busy: false });
+      set({ launch, launchStep: "complete", stage: "launch", furthestStage: laterStage(state.furthestStage, "launch"), busy: false });
       return;
     }
 
     if (state.stage === "launch" && state.launch) {
       set({ stage: "candidates", busy: true });
       const proposal = await client.buildRoute(state.launch.token);
-      set({ proposal, stage: "candidates", busy: false });
+      set({ proposal, stage: "candidates", furthestStage: laterStage(state.furthestStage, "candidates"), busy: false });
       return;
     }
 
@@ -90,7 +98,7 @@ export const useDemoStore = create<DemoState>((set, get) => ({
       }
       const official = state.proposal.candidates.find((candidate) => candidate.id === "official");
       const comparison = compareRoutes(state.launch.token, canonical, official ? [official.route] : []);
-      set({ canonical, comparison, stage: "verify", busy: false });
+      set({ canonical, comparison, stage: "verify", furthestStage: laterStage(state.furthestStage, "verify"), busy: false });
       return;
     }
 
@@ -107,7 +115,7 @@ export const useDemoStore = create<DemoState>((set, get) => ({
         return;
       }
       const quote = await client.quoteAtCap(state.launch.canonicalPool.poolId, 25, attestation.capBps);
-      set({ attestation, quote, stage: "attest", busy: false });
+      set({ attestation, quote, stage: "attest", furthestStage: laterStage(state.furthestStage, "attest"), busy: false });
       return;
     }
 
@@ -117,32 +125,78 @@ export const useDemoStore = create<DemoState>((set, get) => ({
       if (!route) return;
       set({ stage: "forward", busy: true });
       const forwarding = await client.forwardVerifiedRoute(route);
-      set({ forwarding, stage: "forward", busy: false });
+      set({ forwarding, stage: "forward", furthestStage: laterStage(state.furthestStage, "forward"), busy: false });
       return;
     }
 
     if (state.stage === "forward") {
       set({ stage: "request", busy: true });
       await wait(ATTACK_SEQUENCE_MS);
-      if (get().stage === "request" && get().busy) set({ busy: false });
+      if (get().stage === "request" && get().busy) set({ furthestStage: laterStage(state.furthestStage, "request"), busy: false });
       return;
     }
 
     if (state.stage === "request") {
       set({ stage: "enforce", busy: true });
       const enforcement = await client.simulateFeeRequest(3000, 41842.17);
-      set({ enforcement, stage: "enforce", busy: false });
+      set({ enforcement, stage: "enforce", furthestStage: laterStage(state.furthestStage, "enforce"), busy: false });
       return;
     }
 
     if (state.stage === "enforce" && state.launch) {
       set({ stage: "revoke", busy: true });
       const revocation = await client.revokeHook(state.launch.canonicalPool.key.hooks);
-      set({ revocation, stage: "complete", busy: false });
+      set({ revocation, stage: "complete", furthestStage: laterStage(state.furthestStage, "complete"), busy: false });
       return;
     }
 
     if (state.stage === "complete") set(initial);
+  },
+  goBack: () => {
+    const state = get();
+    if (state.busy) return;
+
+    if (state.stage === "launch") {
+      set(initial);
+      return;
+    }
+    if (state.stage === "candidates") {
+      set({ stage: "launch" });
+      return;
+    }
+    if (state.stage === "verify") {
+      set({ stage: "candidates" });
+      return;
+    }
+    if (state.stage === "attest") {
+      set({ stage: "verify" });
+      return;
+    }
+    if (state.stage === "forward") {
+      set({ stage: "attest" });
+      return;
+    }
+    if (state.stage === "request") {
+      set({ stage: "forward" });
+      return;
+    }
+    if (state.stage === "enforce") {
+      set({ stage: "request" });
+      return;
+    }
+    if (state.stage === "revoke" || state.stage === "complete") {
+      set({ stage: "enforce" });
+    }
+  },
+  goToStage: (target) => {
+    const state = get();
+    if (state.busy) return;
+    if (demoStageOrder.indexOf(target) > demoStageOrder.indexOf(state.furthestStage)) return;
+    if (target === "revoke" && state.revocation) {
+      set({ stage: "complete" });
+      return;
+    }
+    set({ stage: target });
   },
   reset: () => set(initial),
 }));

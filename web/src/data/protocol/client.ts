@@ -39,14 +39,14 @@ export const DEMO_POOL_KEY: PoolKey = {
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const DEMO_DELAY_MS = {
-  launch: 1250,
-  routeBuild: 1050,
-  canonicalVerification: 1150,
-  hookVerification: 1150,
-  capQuote: 1050,
-  routeForwarding: 1050,
-  feeEnforcement: 1350,
-  guardianRevocation: 1250,
+  launch: 1450,
+  routeBuild: 1200,
+  canonicalVerification: 1325,
+  hookVerification: 1325,
+  capQuote: 1200,
+  routeForwarding: 1350,
+  feeEnforcement: 1550,
+  guardianRevocation: 1450,
 } as const;
 
 const DEMO_POOL_ID =

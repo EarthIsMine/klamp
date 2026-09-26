@@ -98,13 +98,19 @@ const Progress = styled.ol`
   list-style: none; margin: 0; padding: 0 16px; display: grid; grid-template-columns: repeat(8, 1fr); border-bottom: 1px solid ${colors.border}; overflow-x: auto;
 `;
 const ProgressItem = styled.li<{ active: boolean; done: boolean }>`
-  position: relative; min-width: 124px; padding: 13px 10px 12px; color: ${({ active, done }) => active || done ? colors.textPrimary : colors.textMuted};
+  position: relative; min-width: 124px; color: ${({ active, done }) => active || done ? colors.textPrimary : colors.textMuted};
   &::before {
     content: ""; position: absolute; left: 10px; right: 10px; top: -1px; height: 3px;
     background: ${({ active, done }) => active ? colors.primary : done ? colors.textPrimary : "transparent"};
-    transform-origin: left; animation: ${({ active }) => active ? "progressIn .28s ease-out" : "none"};
+    transform-origin: left; animation: ${({ active }) => active ? "progressIn .34s ease-out" : "none"};
   }
   @keyframes progressIn { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+`;
+const ProgressButton = styled.button`
+  width: 100%; min-height: 61px; padding: 13px 10px 12px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer;
+  &:hover:not(:disabled) { background: ${colors.surfaceSecondary}; }
+  &:disabled { cursor: default; }
+  &:focus-visible { position: relative; z-index: 2; outline-offset: -3px; }
 `;
 const StepNumber = styled.span`font: 500 12px/1 ${mono}; margin-right: 8px;`;
 const StepTitle = styled.span`font-size: 13px; font-weight: 650;`;
@@ -126,7 +132,7 @@ const StageDetail = styled.p`color: ${colors.textSecondary}; font-size: 15px; li
 const Scene = styled.div`
   min-height: 0; overflow: hidden; display: grid; place-items: center; padding: clamp(22px, 4vh, 42px);
   border-top: 1px solid ${colors.borderStrong}; border-bottom: 1px solid ${colors.borderStrong};
-  animation: sceneIn .28s cubic-bezier(.2,.75,.25,1);
+  animation: sceneIn .34s cubic-bezier(.2,.75,.25,1);
   @keyframes sceneIn { from { opacity: .25; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
   @media (max-width: 820px) { min-height: 390px; }
 `;
@@ -145,7 +151,7 @@ const LaunchBridge = styled.div<{ active: boolean }>`
   position: relative; display: grid; place-items: center;
   &::before {
     content: ""; position: absolute; left: 0; right: 0; height: 2px; background: ${colors.primary}; transform-origin: left;
-    transform: scaleX(0); animation: ${({ active }) => active ? "launchLine .42s ease-out both" : "none"};
+    transform: scaleX(0); animation: ${({ active }) => active ? "launchLine .5s ease-out both" : "none"};
   }
   img { position: relative; z-index: 1; background: white; padding: 8px; }
   @keyframes launchLine { from { transform: scaleX(0); } to { transform: scaleX(1); } }
@@ -171,11 +177,11 @@ const CandidateSource = styled.div`
 `;
 const ForkRail = styled.div`
   position: relative; height: 126px;
-  &::before, &::after { content: ""; position: absolute; left: 0; width: 100%; height: 2px; background: ${colors.borderStrong}; transform-origin: left; animation: forkOut .5s ease-out both; }
+  &::before, &::after { content: ""; position: absolute; left: 0; width: 100%; height: 2px; background: ${colors.borderStrong}; transform-origin: left; animation: forkOut .6s ease-out both; }
   &::before { top: 28%; transform: rotate(-12deg); }
-  &::after { bottom: 28%; transform: rotate(12deg); animation-delay: .12s; }
-  i { position: absolute; left: 42%; top: calc(28% - 5px); width: 10px; height: 10px; background: ${colors.primary}; animation: candidatePacket .56s ease-out .18s both; }
-  i + i { top: auto; bottom: calc(28% - 5px); background: ${colors.danger}; animation-delay: .32s; }
+  &::after { bottom: 28%; transform: rotate(12deg); animation-delay: .14s; }
+  i { position: absolute; left: 42%; top: calc(28% - 5px); width: 10px; height: 10px; background: ${colors.primary}; animation: candidatePacket .68s ease-out .22s both; }
+  i + i { top: auto; bottom: calc(28% - 5px); background: ${colors.danger}; animation-delay: .38s; }
   @keyframes forkOut { from { opacity: 0; scale: 0 1; } to { opacity: 1; scale: 1 1; } }
   @keyframes candidatePacket { from { opacity: 0; translate: -38px 0; } to { opacity: 1; translate: 38px 0; } }
   @media (max-width: 720px) { display: none; }
@@ -184,7 +190,7 @@ const CandidateList = styled.div`display: grid; gap: 12px;`;
 const CandidatePool = styled.div<{ replica?: boolean }>`
   position: relative; padding: 15px 18px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center;
   border: 1px solid ${({ replica }) => replica ? colors.danger : colors.borderStrong}; background: ${({ replica }) => replica ? colors.dangerSoft : colors.surface};
-  animation: candidateIn .38s ease-out ${({ replica }) => replica ? ".32s" : ".18s"} both;
+  animation: candidateIn .46s ease-out ${({ replica }) => replica ? ".38s" : ".22s"} both;
   h2 { margin: 0 0 5px; font-size: 17px; }
   p { margin: 0; color: ${colors.textSecondary}; font: 500 12px/1.35 ${mono}; }
   strong { font: 500 28px/1 ${mono}; color: ${({ replica }) => replica ? colors.danger : colors.textPrimary}; }
@@ -206,12 +212,12 @@ const FilterRow = styled.div<{ rejected?: boolean }>`
   strong { font-size: 14px; }
   code { display: block; margin-top: 5px; color: ${colors.textMuted}; font: 500 12px/1.3 ${mono}; }
   b { color: ${({ rejected }) => rejected ? colors.danger : colors.success}; font-size: 13px; }
-  ${({ rejected }) => rejected ? `&::after { content: ""; position: absolute; left: 10px; right: 10px; top: 50%; height: 2px; background: ${colors.danger}; transform-origin: left; animation: rejectLine .42s ease-out .42s both; }` : ""}
+  ${({ rejected }) => rejected ? `&::after { content: ""; position: absolute; left: 10px; right: 10px; top: 50%; height: 2px; background: ${colors.danger}; transform-origin: left; animation: rejectLine .52s ease-out .5s both; }` : ""}
   @keyframes rejectLine { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 `;
 const GuardGate = styled.div`
   display: grid; place-items: center; position: relative;
-  &::before { content: ""; position: absolute; top: 12%; bottom: 12%; width: 3px; background: ${colors.primary}; animation: gateDrop .32s ease-out .24s both; }
+  &::before { content: ""; position: absolute; top: 12%; bottom: 12%; width: 3px; background: ${colors.primary}; animation: gateDrop .4s ease-out .3s both; }
   img { position: relative; z-index: 1; padding: 7px; background: white; }
   @keyframes gateDrop { from { transform: scaleY(0); } to { transform: scaleY(1); } }
   @media (max-width: 680px) { min-height: 54px; &::before { top: 50%; left: 18%; right: 18%; bottom: auto; width: auto; height: 3px; transform-origin: left; } }
@@ -225,7 +231,7 @@ const RoutePipeline = styled.div`
 `;
 const RouteActor = styled.div<{ delay?: number }>`
   display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 11px; align-items: center;
-  animation: actorIn .34s ease-out ${({ delay = 0 }) => delay}s both;
+  animation: actorIn .42s ease-out ${({ delay = 0 }) => delay}s both;
   img { width: 44px; height: 44px; }
   span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 3px; }
   strong { display: block; font-size: 14px; }
@@ -243,7 +249,7 @@ const RouteRail = styled.div<{ delay: number }>`
   position: relative; height: 2px; margin: 0 10px; background: ${colors.border}; overflow: visible;
   &::after {
     content: ""; position: absolute; top: -4px; left: 0; width: 10px; height: 10px; background: ${colors.primary};
-    animation: routePacket .62s cubic-bezier(.2,.7,.3,1) ${({ delay }) => delay}s both;
+    animation: routePacket .74s cubic-bezier(.2,.7,.3,1) ${({ delay }) => delay}s both;
   }
   @keyframes routePacket { from { opacity: 0; left: 0; } 20% { opacity: 1; } to { opacity: 1; left: calc(100% - 10px); } }
   @media (max-width: 680px) { margin: 0 4px; }
@@ -272,7 +278,7 @@ const HookMetrics = styled.div`
 const HookCap = styled.div<{ verified: boolean }>`
   min-width: 0; padding: 15px 18px 16px; text-align: left;
   span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 8px; }
-  strong { display: block; font: 500 clamp(38px, 4vw, 50px)/1 ${mono}; letter-spacing: -.06em; color: ${colors.primaryHover}; animation: ${({ verified }) => verified ? "capReveal .42s cubic-bezier(.2,.8,.3,1) both" : "none"}; }
+  strong { display: block; font: 500 clamp(38px, 4vw, 50px)/1 ${mono}; letter-spacing: -.06em; color: ${colors.primaryHover}; animation: ${({ verified }) => verified ? "capReveal .5s cubic-bezier(.2,.8,.3,1) both" : "none"}; }
   p { margin: 8px 0 0; color: ${colors.textSecondary}; font-size: 12px; line-height: 1.35; }
   @keyframes capReveal { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: scale(1); } }
 `;
@@ -281,7 +287,7 @@ const QuoteBasis = styled.div<{ ready: boolean }>`
   span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 8px; }
   strong { display: block; font: 500 clamp(38px, 4vw, 50px)/1 ${mono}; letter-spacing: -.06em; color: ${colors.primaryHover}; }
   p { margin: 8px 0 0; color: ${colors.textSecondary}; font-size: 12px; line-height: 1.35; }
-  opacity: ${({ ready }) => ready ? 1 : .35}; animation: ${({ ready }) => ready ? "quoteIn .36s ease-out .18s both" : "none"};
+  opacity: ${({ ready }) => ready ? 1 : .35}; animation: ${({ ready }) => ready ? "quoteIn .44s ease-out .22s both" : "none"};
   @keyframes quoteIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
   @media (max-width: 430px) { border-left: 0; border-top: 1px solid ${colors.border}; }
 `;
@@ -305,7 +311,7 @@ const OutcomeComparison = styled.div`
 const Outcome = styled.div<{ guarded?: boolean }>`
   position: relative; padding: 18px 20px; border-top: 4px solid ${({ guarded }) => guarded ? colors.primary : colors.danger};
   background: ${({ guarded }) => guarded ? colors.primarySoft : colors.dangerSoft}; overflow: hidden;
-  animation: ${({ guarded }) => guarded ? "safeOutcome .44s ease-out .32s both" : "unsafeOutcome .44s ease-out .5s both"};
+  animation: ${({ guarded }) => guarded ? "safeOutcome .54s ease-out .4s both" : "unsafeOutcome .54s ease-out .62s both"};
   h2 { margin: 0 0 16px; font-size: 18px; }
   dl { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 9px 16px; }
   dt { color: ${colors.textSecondary}; font-size: 13px; }
@@ -328,9 +334,9 @@ const Guardian = styled.div`
 `;
 const RevokeRail = styled.div`
   position: relative; height: 3px; background: ${colors.borderStrong};
-  &::after { content: ""; position: absolute; top: -5px; left: 0; width: 13px; height: 13px; background: ${colors.danger}; animation: revokePacket .7s cubic-bezier(.15,.7,.3,1) .18s both; }
+  &::after { content: ""; position: absolute; top: -5px; left: 0; width: 13px; height: 13px; background: ${colors.danger}; animation: revokePacket .84s cubic-bezier(.15,.7,.3,1) .22s both; }
   @keyframes revokePacket { from { opacity: 0; left: 0; } 15% { opacity: 1; } to { opacity: 1; left: calc(100% - 13px); } }
-  @media (max-width: 700px) { width: 3px; height: 48px; justify-self: center; &::after { top: 0; left: -5px; animation: revokePacketDown .55s ease-out both; } @keyframes revokePacketDown { from { opacity: 0; top: 0; } to { opacity: 1; top: calc(100% - 13px); } } }
+  @media (max-width: 700px) { width: 3px; height: 48px; justify-self: center; &::after { top: 0; left: -5px; animation: revokePacketDown .66s ease-out both; } @keyframes revokePacketDown { from { opacity: 0; top: 0; } to { opacity: 1; top: calc(100% - 13px); } } }
 `;
 const RevokedRecord = styled.div<{ revoked: boolean }>`
   position: relative; padding: 18px 20px; border: 1px solid ${({ revoked }) => revoked ? colors.danger : colors.borderStrong};
@@ -339,13 +345,13 @@ const RevokedRecord = styled.div<{ revoked: boolean }>`
   dl { margin: 16px 0 0; display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; }
   dt { color: ${colors.textMuted}; font-size: 12px; }
   dd { margin: 0; font-size: 13px; font-weight: 650; color: ${({ revoked }) => revoked ? colors.danger : colors.textPrimary}; }
-  ${({ revoked }) => revoked ? `animation: recordRevoke .38s ease-out both; &::after { content: "REVOKED"; position: absolute; right: 18px; top: 16px; color: ${colors.danger}; font: 700 12px/1 ${mono}; }` : ""}
+  ${({ revoked }) => revoked ? `animation: recordRevoke .46s ease-out both; &::after { content: "REVOKED"; position: absolute; right: 18px; top: 16px; color: ${colors.danger}; font: 700 12px/1 ${mono}; }` : ""}
   @keyframes recordRevoke { 0% { transform: translateX(0); } 35% { transform: translateX(7px); } 70% { transform: translateX(-4px); } 100% { transform: translateX(0); } }
 `;
 
 const AttackSequence = styled.div`
   width: min(940px, 100%); display: grid; grid-template-columns: 180px minmax(150px, 1fr) minmax(270px, auto); align-items: center;
-  animation: impactShake .22s linear .62s both;
+  animation: impactShake .28s linear .78s both;
   @keyframes impactShake {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-7px); }
@@ -355,7 +361,7 @@ const AttackSequence = styled.div`
   @media (max-width: 720px) { grid-template-columns: 1fr; gap: 18px; text-align: center; }
 `;
 const AttackOrigin = styled.div`
-  padding: 16px 18px; background: ${colors.textPrimary}; color: white; animation: attackerIn .28s ease-out both;
+  padding: 16px 18px; background: ${colors.textPrimary}; color: white; animation: attackerIn .34s ease-out both;
   span { display: block; color: ${colors.border}; font-size: 12px; margin-bottom: 7px; }
   strong { display: block; font-size: 17px; }
   code { display: block; margin-top: 7px; color: ${colors.primary}; font: 500 12px/1.3 ${mono}; }
@@ -365,12 +371,12 @@ const AttackRail = styled.div`
   position: relative; height: 76px; overflow: hidden;
   &::before {
     content: ""; position: absolute; top: 50%; left: 0; width: 100%; height: 3px; background: ${colors.danger};
-    transform: scaleX(0); transform-origin: left; animation: attackLine .38s ease-in .2s forwards;
+    transform: scaleX(0); transform-origin: left; animation: attackLine .46s ease-in .24s forwards;
   }
   i { position: absolute; top: calc(50% - 8px); width: 16px; height: 16px; background: ${colors.danger}; transform: rotate(45deg); opacity: 0; }
-  i:nth-of-type(1) { animation: packetRush .44s ease-in .22s forwards; }
-  i:nth-of-type(2) { animation: packetRush .44s ease-in .31s forwards; }
-  i:nth-of-type(3) { animation: packetRush .44s ease-in .4s forwards; }
+  i:nth-of-type(1) { animation: packetRush .54s ease-in .26s forwards; }
+  i:nth-of-type(2) { animation: packetRush .54s ease-in .37s forwards; }
+  i:nth-of-type(3) { animation: packetRush .54s ease-in .48s forwards; }
   @keyframes attackLine { to { transform: scaleX(1); } }
   @keyframes packetRush {
     0% { left: -16px; opacity: 0; }
@@ -381,10 +387,10 @@ const AttackRail = styled.div`
   @media (max-width: 720px) { height: 34px; transform: rotate(90deg); width: 76px; justify-self: center; margin: -18px 0; }
 `;
 const AttackPayload = styled.div`
-  position: relative; text-align: center; padding-left: 28px; animation: payloadStrike .68s cubic-bezier(.15,.72,.2,1.16) .18s both;
+  position: relative; text-align: center; padding-left: 28px; animation: payloadStrike .82s cubic-bezier(.15,.72,.2,1.16) .22s both;
   &::before {
     content: ""; position: absolute; inset: -14px auto -14px 0; width: 5px; background: ${colors.danger};
-    animation: impactBar .18s ease-out .63s both;
+    animation: impactBar .22s ease-out .78s both;
   }
   @keyframes payloadStrike {
     0% { opacity: 0; transform: translateX(-110px) scale(.68); }
@@ -407,19 +413,24 @@ const Status = styled.div`
   span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 3px; }
   strong { font-size: 14px; font-weight: 650; }
 `;
-const Actions = styled.div`display: flex; gap: 9px; justify-content: flex-end;`;
+const Actions = styled.div`
+  display: flex; gap: 9px; justify-content: flex-end;
+  @media (max-width: 620px) { display: grid; grid-template-columns: auto auto minmax(0, 1fr); }
+`;
 const Next = styled.button`
   border: 1px solid ${colors.primary}; padding: 12px 18px; background: ${colors.primary}; color: ${colors.textPrimary}; cursor: pointer;
   font-weight: 700; font-size: 14px; min-width: 180px; transition: transform .12s ease, background .12s ease;
   &:hover { background: ${colors.primaryHover}; border-color: ${colors.primaryHover}; color: white; }
   &:active { transform: translateY(2px); }
   &:disabled { cursor: wait; opacity: .65; }
+  @media (max-width: 620px) { min-width: 0; padding-inline: 12px; }
 `;
 const Reset = styled.button`
   border: 1px solid ${colors.borderStrong}; padding: 12px 15px; background: transparent; color: ${colors.textSecondary}; cursor: pointer; font-weight: 600; font-size: 13px;
   &:not(:disabled):hover { color: ${colors.textPrimary}; border-color: ${colors.textPrimary}; }
   &:disabled { cursor: wait; opacity: .45; }
 `;
+const Previous = styled(Reset)``;
 
 const ReducedMotion = styled.div`
   display: contents;
@@ -468,8 +479,9 @@ function feeCapStatus(stage: DemoStage, verified: boolean, enforced: boolean) {
 }
 
 export function DemoTerminal() {
-  const { stage, busy, launchStep, launch, proposal, canonical, comparison, attestation, quote, forwarding, enforcement, revocation, advance, reset } = useDemoStore();
+  const { stage, furthestStage, busy, launchStep, launch, proposal, canonical, comparison, attestation, quote, forwarding, enforcement, revocation, advance, goBack, goToStage, reset } = useDemoStore();
   const current = stageIndex(stage);
+  const furthest = stageIndex(furthestStage);
   const view = stage === "launch" && busy
     ? launchPendingCopy
     : stage === "candidates" && busy
@@ -501,6 +513,11 @@ export function DemoTerminal() {
   const hookMatches = Boolean(attestation && hookVerified && record && attestation.hook.toLowerCase() === record.key.hooks.toLowerCase());
   const enforced = enforcement !== null;
   const revoked = revocation?.routeStatus === "blocked";
+  const visibleMatched = current >= stageIndex("verify") && matched;
+  const visibleHookCompliant = current >= stageIndex("attest") && hookCompliant;
+  const visibleForwarding = current >= stageIndex("forward") && Boolean(forwarding);
+  const visibleEnforced = current >= stageIndex("enforce") && enforced;
+  const visibleRevoked = stage === "complete" && revoked;
   const capBps = attestation?.capBps ?? 100;
   const capPercent = (capBps / 100).toFixed(2);
   const poolId = found ? canonical.poolId : record?.poolId;
@@ -538,11 +555,20 @@ export function DemoTerminal() {
           <Progress aria-label="Trace progress">
             {steps.map((item) => {
               const index = stageIndex(item.stage);
-              const active = stage === "idle" ? item.stage === "launch" : stage === item.stage;
+              const active = stage === "idle" ? item.stage === "launch" : stage === "complete" ? item.stage === "revoke" : stage === item.stage;
               const done = stage === "complete" || current > index || (current === index && !busy);
+              const canVisit = index <= furthest;
+              const isNext = index === current + 1;
               return (
                 <ProgressItem key={item.stage} active={active} done={done} aria-current={active ? "step" : undefined}>
-                  <StepNumber>{item.index}</StepNumber><StepTitle>{item.title}</StepTitle><StepDetail>{item.detail}</StepDetail>
+                  <ProgressButton
+                    type="button"
+                    disabled={busy || (!canVisit && !isNext)}
+                    onClick={() => canVisit ? goToStage(item.stage) : advance()}
+                    aria-label={`Go to step ${item.index}: ${item.title}`}
+                  >
+                    <StepNumber>{item.index}</StepNumber><StepTitle>{item.title}</StepTitle><StepDetail>{item.detail}</StepDetail>
+                  </ProgressButton>
                 </ProgressItem>
               );
             })}
@@ -640,10 +666,10 @@ export function DemoTerminal() {
                 <RouteJourney>
                   <RoutePipeline aria-label="Verified router to PoolManager flow">
                     <RouteActor><Mark size={44} /><div><span>Klamp checks</span><strong>Route + cap passed</strong></div></RouteActor>
-                    <RouteRail delay={0.18} aria-hidden="true" />
-                    <RouteActor delay={0.35}><Image src="/router.svg" width={44} height={44} alt="" aria-hidden /><div><span>Guarded Router</span><strong>{forwarding ? "PoolKey sent" : "Encoding calldata"}</strong></div></RouteActor>
-                    <RouteRail delay={0.54} aria-hidden="true" />
-                    <RouteEndpoint delay={0.72}><Image src="/pool-manager.svg" width={38} height={38} alt="" aria-hidden /><div><span>PoolManager</span><strong>{forwarding ? "Route accepted" : "Waiting for proof"}</strong></div></RouteEndpoint>
+                    <RouteRail delay={0.22} aria-hidden="true" />
+                    <RouteActor delay={0.42}><Image src="/router.svg" width={44} height={44} alt="" aria-hidden /><div><span>Guarded Router</span><strong>{forwarding ? "PoolKey sent" : "Encoding calldata"}</strong></div></RouteActor>
+                    <RouteRail delay={0.65} aria-hidden="true" />
+                    <RouteEndpoint delay={0.86}><Image src="/pool-manager.svg" width={38} height={38} alt="" aria-hidden /><div><span>PoolManager</span><strong>{forwarding ? "Route accepted" : "Waiting for proof"}</strong></div></RouteEndpoint>
                   </RoutePipeline>
                   <RouteHandoff>
                     <div><span>Selected branch</span><strong>Issuer pool · 1 hop</strong></div>
@@ -698,11 +724,12 @@ export function DemoTerminal() {
             <Bottom>
               <Statuses>
                 <Status><span>Pool record</span><strong>{poolStatus(Boolean(record))}</strong></Status>
-                <Status><span>Route</span><strong>{routeStatus(stage, busy, Boolean(proposal), matched, Boolean(forwarding), revoked)}</strong></Status>
-                <Status><span>Hook cap</span><strong>{feeCapStatus(stage, hookCompliant, enforced)}</strong></Status>
+                <Status><span>Route</span><strong>{routeStatus(stage, busy, Boolean(proposal), visibleMatched, visibleForwarding, visibleRevoked)}</strong></Status>
+                <Status><span>Hook cap</span><strong>{feeCapStatus(stage, visibleHookCompliant, visibleEnforced)}</strong></Status>
               </Statuses>
               <Actions>
                 {stage !== "idle" && <Reset onClick={reset} disabled={busy}>Reset</Reset>}
+                {stage !== "idle" && <Previous onClick={goBack} disabled={busy}>Previous</Previous>}
                 <Next onClick={() => advance()} disabled={busy}>{actionLabel(stage, busy)}</Next>
               </Actions>
             </Bottom>
