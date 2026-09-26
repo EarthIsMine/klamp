@@ -398,3 +398,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/demo/`에서 첫 번째 버튼을 누르고 장면 전체가 사라졌다 다시 나타나지 않는지, 연결선은 한 번만 실행되고 진행 문구가 같은 자리에서 완료 값으로 바뀌는지 확인한다.
 - 남은 문제: 실제 GitHub Pages 배포 환경과 모바일 실기기의 전환 검증은 미실행이다.
+
+## WEB18 — 단계별 mock 응답 대기 시간 조정
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 검증 / Codex, `frontend-design` skill
+- AI 수행: 상태 문구와 장면 변화를 읽을 수 있도록 mock 데이터 계층의 응답 지연을 한 곳에 모으고 Launch 950ms, route 검증 850ms, hook 검증 850ms, fee cap 적용 1,050ms로 늘렸다. 공격 payload와 clamp 충돌을 포함한 CSS 애니메이션 속도는 변경하지 않았다.
+- 사람의 결정/수정: 전체 단계 사이의 대기 시간을 기존보다 늘리도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, TypeScript 5, `frontend-design` skill.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 클릭부터 다음 동작 버튼 표시까지 Launch 1,064ms, route 970ms, hook 962ms, cap 1,166ms를 측정했다. 완료 화면의 document/viewport 높이는 모두 756px였다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/demo/`의 각 버튼을 순서대로 누르고 Launch·route·hook은 약 1초, 최종 cap 적용은 약 1.1초 동안 진행 상태가 유지되는지 확인한다.
+- 남은 문제: 실제 네트워크 연결 후의 응답 시간은 mock 지연과 무관하므로 별도의 pending/loading 정책이 필요하다.

@@ -29,6 +29,13 @@ export const DEMO_POOL_KEY: PoolKey = {
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const DEMO_DELAY_MS = {
+  launch: 950,
+  routeVerification: 850,
+  hookVerification: 850,
+  feeEnforcement: 1050,
+} as const;
+
 const DEMO_POOL_ID =
   "0x91f62a3ac70c4d7d6418c69e3d2a1b081e6149c2f54a775b9d928f08d86e46b0" as const;
 
@@ -48,7 +55,7 @@ const DEMO_CANONICAL: CanonicalPoolRecord = {
 
 export const mockProtocolClient: ProtocolClient = {
   async launchToken() {
-    await wait(520);
+    await wait(DEMO_DELAY_MS.launch);
     return {
       txHash: "0x7c093f9c52a4b974d8ca3c2491fe0446b68b92aef32f7640d3133cf96b8ab47e",
       blockNumber: 9241851,
@@ -57,7 +64,7 @@ export const mockProtocolClient: ProtocolClient = {
     };
   },
   async resolveCanonicalPool() {
-    await wait(430);
+    await wait(DEMO_DELAY_MS.routeVerification);
     return {
       status: "found",
       source: "ens",
@@ -67,7 +74,7 @@ export const mockProtocolClient: ProtocolClient = {
     };
   },
   async resolveHookAttestation(hook) {
-    await wait(420);
+    await wait(DEMO_DELAY_MS.hookVerification);
     return {
       ensName: `${hook.toLowerCase()}.hooks.klamp.eth`,
       hook: hook as HookAttestation["hook"],
@@ -77,7 +84,7 @@ export const mockProtocolClient: ProtocolClient = {
     };
   },
   async simulateFeeRequest(requestedBps, quotedOut) {
-    await wait(520);
+    await wait(DEMO_DELAY_MS.feeEnforcement);
     const appliedBps = Math.min(requestedBps, 100);
     return {
       requestedBps,
