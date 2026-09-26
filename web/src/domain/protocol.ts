@@ -162,12 +162,29 @@ export type NaiveOutcome = {
   simulated: true;
 };
 
+/**
+ * Who can still change the Klamp namespace, read from ENSv2 Enhanced Access Control (role holder counts).
+ * `registryRegistrar` is the one role kept on klamp.eth's registry to add hooks.klamp.eth in stage 2.
+ */
+export type SealStatus = {
+  resolverRootRoles: number;
+  keys: { key: string; writers: number; registrarOnly: boolean }[];
+  tokensRoles: number;
+  tokensNeverExpires: boolean;
+  klampRoles: number;
+  klampExpiryYear: number;
+  registryRegistrar: number;
+  registryOtherRoles: number;
+  evidence?: Evidence;
+};
+
 /** Optional presentation-only state used to seek through the local mock trace. */
 export type PresentationSnapshot = {
   launch: LaunchReceipt;
   board: QuoteBoard;
   naive: NaiveSelection;
   canonical: Extract<CanonicalPoolResult, { status: "registered" }>;
+  seal: SealStatus;
   judgement: RouteJudgement;
   requote: Requote;
   execution: SwapExecution;

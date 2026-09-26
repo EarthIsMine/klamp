@@ -19,7 +19,7 @@ import {
 } from "viem";
 import { sepolia } from "viem/chains";
 import { normalize, packetToBytes } from "viem/ens";
-import type { CanonicalPoolResult, HexAddress, PoolKey } from "@/domain/protocol";
+import type { CanonicalPoolResult, HexAddress, PoolKey, SealStatus } from "@/domain/protocol";
 
 /**
  * Live Sepolia reads for the browser. A port of contract/sdk/canonicalPool.ts (same checks, same
@@ -268,5 +268,68 @@ export async function readSwap(txHash: HexAddress, token: HexAddress, decimals =
     pools: swapPoolIds(tx.input),
     receivedOut: Number(formatUnits(amounts[0], decimals)),
     hookFeeOut: amounts[1] === undefined ? 0 : Number(formatUnits(amounts[1], decimals)),
+  };
+}
+
+const eacAbi = parseAbi([
+  "function roleCount(uint256 resource) view returns (uint256)",
+  "function hasRoles(uint256 resource, uint256 roleBitmap, address account) view returns (bool)",
+  "function getResource(uint256 anyId) view returns (uint256)",
+  "function getExpiry(uint256 anyId) view returns (uint64)",
+]);
+// ENSv2 roles are 4-bit slots (RegistryRolesLib, PermissionedResolverLib); roleCount packs one holder count per slot.
+const holders = (packed: bigint) => {
+  let total = 0;
+  for (let rest = packed; rest > 0n; rest >>= 4n) total += Number(rest & 0xfn);
+  return total;
+};
+const slot = (bit: bigint) => 0xfn << bit;
+const REGISTRAR_SLOTS = slot(0n) | slot(128n); // ROLE_REGISTRAR and its admin
+const SET_TEXT = 4n;
+const SET_DATA = 24n;
+const labelId = (label: string) => BigInt(keccak256(toBytes(label)));
+const NEVER = (1n << 64n) - 1n;
+const SEAL_KEYS = ["pool", "description", "url", "avatar"] as const;
+
+/** Reads who can still write or change the namespace: root roles, per-key writers, and both names' roles and expiry. */
+export async function readSeal(): Promise<SealStatus & { blockNumber: number }> {
+  const blockNumber = await sepoliaClient.getBlockNumber();
+  const roleCount = (address: HexAddress, resource: bigint) =>
+    sepoliaClient.readContract({ address, abi: eacAbi, functionName: "roleCount", args: [resource], blockNumber });
+  const read = (address: HexAddress, functionName: "getResource" | "getExpiry", label: string) =>
+    sepoliaClient.readContract({ address, abi: eacAbi, functionName, args: [labelId(label)], blockNumber });
+  const registrarWrites = (key: string, bit: bigint) =>
+    sepoliaClient.readContract({ address: SEPOLIA.resolver, abi: eacAbi, functionName: "hasRoles", args: [labelId(key), 1n << bit, SEPOLIA.registrar], blockNumber });
+
+  const [tokensResource, klampResource, tokensExpiry, klampExpiry] = await Promise.all([
+    read(SEPOLIA.registry, "getResource", "tokens"),
+    read(SEPOLIA.ethRegistry, "getResource", "klamp"),
+    read(SEPOLIA.registry, "getExpiry", "tokens"),
+    read(SEPOLIA.ethRegistry, "getExpiry", "klamp"),
+  ]);
+  const [resolverRoot, registryRoot, tokensRoles, klampRoles, keys] = await Promise.all([
+    roleCount(SEPOLIA.resolver, 0n),
+    roleCount(SEPOLIA.registry, 0n),
+    roleCount(SEPOLIA.registry, tokensResource),
+    roleCount(SEPOLIA.ethRegistry, klampResource),
+    Promise.all(SEAL_KEYS.map(async (key) => {
+      // Per-key resources hold text writers, and for `pool` also data writers.
+      const [packed, text, data] = await Promise.all([roleCount(SEPOLIA.resolver, labelId(key)), registrarWrites(key, SET_TEXT), registrarWrites(key, SET_DATA)]);
+      const writers = holders(packed & slot(SET_TEXT));
+      const dataWriters = holders(packed & slot(SET_DATA));
+      const registrarOnly = writers === 1 && text && (key === "pool" ? dataWriters === 1 && data : dataWriters === 0);
+      return { key, writers: Math.max(writers, dataWriters), registrarOnly };
+    })),
+  ]);
+  return {
+    blockNumber: Number(blockNumber),
+    resolverRootRoles: holders(resolverRoot),
+    keys,
+    tokensRoles: holders(tokensRoles),
+    tokensNeverExpires: tokensExpiry === NEVER,
+    klampRoles: holders(klampRoles),
+    klampExpiryYear: new Date(Number(klampExpiry) * 1000).getUTCFullYear(),
+    registryRegistrar: holders(registryRoot & slot(0n)),
+    registryOtherRoles: holders(registryRoot & ~REGISTRAR_SLOTS),
   };
 }

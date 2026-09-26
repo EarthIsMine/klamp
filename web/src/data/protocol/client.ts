@@ -13,9 +13,10 @@ import type {
   QuoteBoard,
   Requote,
   ResolvedCanonicalPool,
+  SealStatus,
   SwapExecution,
 } from "@/domain/protocol";
-import { getCanonicalPool, quoteExactIn, readLaunch, readSwap, sepoliaClient, tokenName } from "@/data/protocol/sepolia";
+import { getCanonicalPool, quoteExactIn, readLaunch, readSeal, readSwap, sepoliaClient, tokenName } from "@/data/protocol/sepolia";
 
 /**
  * The UI only talks to this port. `sepoliaProtocolClient` reads Sepolia live; `mockProtocolClient`
@@ -26,6 +27,7 @@ export interface ProtocolClient {
   quoteCandidates(token: HexAddress): Promise<QuoteBoard>;
   naivePick(board: QuoteBoard): Promise<NaiveSelection>;
   resolveCanonicalPool(token: HexAddress): Promise<ResolvedCanonicalPool>;
+  readSeal(): Promise<SealStatus>;
   requoteCanonical(key: PoolKey, poolId: HexAddress): Promise<Requote>;
   buildAndExecute(requote: Requote): Promise<SwapExecution>;
   executeNaive(selection: NaiveSelection): Promise<NaiveOutcome>;
@@ -78,10 +80,29 @@ const DEMO_DELAY_MS = {
   quotes: 450,
   naive: 350,
   lookup: 500,
+  seal: 400,
   requote: 450,
   execute: 500,
   naiveExecute: 450,
 } as const;
+
+/** Read from Sepolia on 2026-09-27 (block ~11787500): only the REGISTRAR role kept for hooks.klamp.eth remains. */
+const recordedSeal = (): SealStatus => ({
+  resolverRootRoles: 0,
+  keys: [
+    { key: "pool", writers: 1, registrarOnly: true },
+    { key: "description", writers: 1, registrarOnly: true },
+    { key: "url", writers: 1, registrarOnly: true },
+    { key: "avatar", writers: 0, registrarOnly: false },
+  ],
+  tokensRoles: 0,
+  tokensNeverExpires: true,
+  klampRoles: 0,
+  klampExpiryYear: 3026,
+  registryRegistrar: 1,
+  registryOtherRoles: 0,
+  evidence: RECORDED,
+});
 
 const CANONICAL_RECORD: CanonicalPoolRecord = {
   chainId: CHAIN_ID,
@@ -213,6 +234,10 @@ export const mockProtocolClient: ProtocolClient = {
     await wait(DEMO_DELAY_MS.lookup);
     return canonicalResult();
   },
+  async readSeal() {
+    await wait(DEMO_DELAY_MS.seal);
+    return recordedSeal();
+  },
   async requoteCanonical() {
     await wait(DEMO_DELAY_MS.requote);
     return requote();
@@ -235,6 +260,7 @@ export const mockProtocolClient: ProtocolClient = {
       board,
       naive: naiveSelection(),
       canonical,
+      seal: recordedSeal(),
       judgement: {
         verdict: "requote_canonical",
         comparison: { status: "mismatch", branch: 0, hop: 0 },
@@ -302,6 +328,13 @@ export const sepoliaProtocolClient: ProtocolClient = {
   async resolveCanonicalPool(token) {
     const lookup = await paced(DEMO_DELAY_MS.lookup, getCanonicalPool(token));
     return lookup.blockNumber === null ? lookup.result : { ...lookup.result, evidence: live(lookup.blockNumber) };
+  },
+  async readSeal() {
+    const read = async () => {
+      const { blockNumber, ...seal } = await readSeal();
+      return { ...seal, evidence: live(blockNumber) };
+    };
+    return paced(DEMO_DELAY_MS.seal, read().catch(() => recordedSeal()));
   },
   async requoteCanonical(key, poolId) {
     const read = async () => {

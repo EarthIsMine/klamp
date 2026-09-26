@@ -10,14 +10,15 @@ import {
   type Requote,
   type ResolvedCanonicalPool,
   type RouteJudgement,
+  type SealStatus,
   type SwapExecution,
 } from "@/domain/protocol";
 import { mockProtocolClient, sepoliaProtocolClient, type ProtocolClient } from "@/data/protocol/client";
 
-export type DemoStage = "idle" | "launch" | "quotes" | "naive" | "lookup" | "judge" | "requote" | "execute" | "outcome";
+export type DemoStage = "idle" | "launch" | "quotes" | "naive" | "lookup" | "seal" | "judge" | "requote" | "execute" | "outcome";
 export type LaunchVisualStep = "idle" | "deploying" | "initializing" | "recording" | "complete";
 
-export const demoStageOrder: DemoStage[] = ["idle", "launch", "quotes", "naive", "lookup", "judge", "requote", "execute", "outcome"];
+export const demoStageOrder: DemoStage[] = ["idle", "launch", "quotes", "naive", "lookup", "seal", "judge", "requote", "execute", "outcome"];
 const indexOf = (stage: DemoStage) => demoStageOrder.indexOf(stage);
 const laterStage = (current: DemoStage, candidate: DemoStage) => (indexOf(candidate) > indexOf(current) ? candidate : current);
 
@@ -30,6 +31,7 @@ type DemoState = {
   board: QuoteBoard | null;
   naive: NaiveSelection | null;
   canonical: ResolvedCanonicalPool | null;
+  seal: SealStatus | null;
   judgement: RouteJudgement | null;
   requote: Requote | null;
   execution: SwapExecution | null;
@@ -49,6 +51,7 @@ const initial = {
   board: null,
   naive: null,
   canonical: null,
+  seal: null,
   judgement: null,
   requote: null,
   execution: null,
@@ -115,7 +118,14 @@ export const useDemoStore = create<DemoState>((set, get) => ({
       return;
     }
 
-    if (state.stage === "lookup" && state.launch && state.board && state.naive && state.canonical) {
+    if (state.stage === "lookup" && state.canonical) {
+      set({ stage: "seal", busy: true });
+      const seal = await client.readSeal();
+      set({ seal, furthestStage: reach("seal"), busy: false });
+      return;
+    }
+
+    if (state.stage === "seal" && state.launch && state.board && state.naive && state.canonical) {
       set({ stage: "judge", busy: true });
       await wait(350);
       const judgement = judgeNaivePick(state.launch, state.board, state.naive, state.canonical);
@@ -175,6 +185,7 @@ export const useDemoStore = create<DemoState>((set, get) => ({
       board: reached("quotes") ? snapshot.board : null,
       naive: reached("naive") ? snapshot.naive : null,
       canonical: reached("lookup") ? snapshot.canonical : null,
+      seal: reached("seal") ? snapshot.seal : null,
       judgement: reached("judge") ? snapshot.judgement : null,
       requote: reached("requote") ? snapshot.requote : null,
       execution: reached("execute") ? snapshot.execution : null,

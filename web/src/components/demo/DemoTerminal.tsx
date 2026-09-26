@@ -3,18 +3,19 @@
 import styled from "@emotion/styled";
 import { AnimatePresence, animate, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
-import type { Evidence } from "@/domain/protocol";
+import type { Evidence, SealStatus } from "@/domain/protocol";
 import { demoStageOrder, useDemoStore, type DemoStage } from "@/store/demo-store";
 import { colors, mono } from "@/styles/tokens";
 
 /* ---------- copy: one headline and one short line per step ---------- */
 
 const captions: Record<DemoStage, { title: string; line: string }> = {
-  idle: { title: "Klamp in eight steps", line: "Press play or →" },
+  idle: { title: "Klamp in nine steps", line: "Press play or →" },
   launch: { title: "The issuer declares one pool", line: "Launch tx · recordByCreate2 → ENSv2" },
   quotes: { title: "Someone adds a look-alike pool", line: "Same pair · more output on paper" },
   naive: { title: "A naive router takes it", line: "Best quote wins" },
   lookup: { title: "Klamp asks ENS", line: "0x4cb4….tokens.klamp.eth → registered" },
+  seal: { title: "Nobody can rewrite it", line: "ENSv2 roles on the namespace · us included" },
   judge: { title: "Undeclared hook pool: rejected", line: "verdict · requote_canonical" },
   requote: { title: "Requote the declared pool", line: "V4Quoter · same fee at swap time" },
   execute: { title: "Verified swap on Sepolia", line: "Universal Router · calldata = judged PoolKey" },
@@ -24,7 +25,7 @@ const captions: Record<DemoStage, { title: string; line: string }> = {
 const steps = demoStageOrder.filter((stage): stage is Exclude<DemoStage, "idle"> => stage !== "idle");
 /** How long autoplay lingers on a finished step before moving on (ms). */
 const DWELL: Record<DemoStage, number> = {
-  idle: 800, launch: 4200, quotes: 4000, naive: 3400, lookup: 4000, judge: 3800, requote: 3800, execute: 4800, outcome: 0,
+  idle: 800, launch: 4200, quotes: 4000, naive: 3400, lookup: 4000, seal: 4600, judge: 3800, requote: 3800, execute: 4800, outcome: 0,
 };
 
 /* ---------- scene geometry (SVG viewBox 1200 × 620) ---------- */
@@ -37,13 +38,14 @@ const P = {
   declared: { x: 1010, y: 250 },
   undeclared: { x: 1010, y: 500 },
 };
+const HALF = 120; // node box half-width
 const PATH = {
-  launch: `M${P.launchpad.x + 90},${P.launchpad.y} C 560,110 760,250 ${P.declared.x - 95},${P.declared.y}`,
-  record: `M${P.declared.x - 60},${P.declared.y - 40} C 930,150 850,110 ${P.ens.x + 95},${P.ens.y}`,
-  toRouter: `M${P.trader.x + 90},${P.trader.y} L${P.router.x - 95},${P.router.y}`,
-  toUndeclared: `M${P.router.x + 95},${P.router.y} C 720,380 800,500 ${P.undeclared.x - 95},${P.undeclared.y}`,
-  toDeclared: `M${P.router.x + 95},${P.router.y} C 720,380 800,250 ${P.declared.x - 95},${P.declared.y}`,
-  lookup: `M${P.router.x},${P.router.y - 40} C 540,240 620,120 ${P.ens.x - 95},${P.ens.y}`,
+  launch: `M${P.launchpad.x + HALF},${P.launchpad.y} C 560,110 760,250 ${P.declared.x - HALF},${P.declared.y}`,
+  record: `M${P.declared.x - 60},${P.declared.y - 42} C 930,150 900,110 ${P.ens.x + HALF},${P.ens.y}`,
+  toRouter: `M${P.trader.x + HALF},${P.trader.y} L${P.router.x - HALF},${P.router.y}`,
+  toUndeclared: `M${P.router.x + HALF},${P.router.y} C 740,380 800,500 ${P.undeclared.x - HALF},${P.undeclared.y}`,
+  toDeclared: `M${P.router.x + HALF},${P.router.y} C 740,380 800,250 ${P.declared.x - HALF},${P.declared.y}`,
+  lookup: `M${P.router.x},${P.router.y - 42} C 540,240 600,120 ${P.ens.x - HALF},${P.ens.y}`,
 };
 
 const fmt = (value: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
@@ -99,14 +101,14 @@ function Node({ x, y, glyph, label, sub, tone = "ink", show = true, pulse = fals
           transition={{ type: "spring", stiffness: 260, damping: 22 }} style={{ transformOrigin: `${x}px ${y}px` }}
         >
           {pulse && (
-            <motion.rect x={x - 95} y={y - 42} width={190} height={84} rx={16} fill="none" stroke={color} strokeWidth={2}
+            <motion.rect x={x - HALF} y={y - 42} width={HALF * 2} height={84} rx={16} fill="none" stroke={color} strokeWidth={2}
               animate={{ opacity: [0.7, 0], scale: [1, 1.18] }} transition={{ duration: 1.3, repeat: Infinity }} style={{ transformOrigin: `${x}px ${y}px` }} />
           )}
-          <rect x={x - 95} y={y - 42} width={190} height={84} rx={16} fill={colors.surface} stroke={color} strokeWidth={tone === "ink" ? 1.5 : 3} />
-          <circle cx={x - 58} cy={y} r={22} fill={color} />
-          <text x={x - 58} y={y + 7} textAnchor="middle" fontSize={20} fontWeight={700} fill="white">{glyph}</text>
-          <text x={x - 26} y={y - 4} fontSize={17} fontWeight={650} fill={colors.textPrimary}>{label}</text>
-          {sub && <text x={x - 26} y={y + 18} fontSize={13} fontFamily={mono} fill={colors.textSecondary}>{sub}</text>}
+          <rect x={x - HALF} y={y - 42} width={HALF * 2} height={84} rx={16} fill={colors.surface} stroke={color} strokeWidth={tone === "ink" ? 1.5 : 3} />
+          <circle cx={x - HALF + 38} cy={y} r={22} fill={color} />
+          <text x={x - HALF + 38} y={y + 7} textAnchor="middle" fontSize={20} fontWeight={700} fill="white">{glyph}</text>
+          <text x={x - HALF + 72} y={y - 4} fontSize={17} fontWeight={650} fill={colors.textPrimary}>{label}</text>
+          {sub && <text x={x - HALF + 72} y={y + 18} fontSize={13} fontFamily={mono} fill={colors.textSecondary}>{sub}</text>}
         </motion.g>
       )}
     </AnimatePresence>
@@ -115,7 +117,9 @@ function Node({ x, y, glyph, label, sub, tone = "ink", show = true, pulse = fals
 
 function Chip({ x, y, text, tone = "ink", delay = 0, big = false }: { x: number; y: number; text: React.ReactNode; tone?: Tone; delay?: number; big?: boolean }) {
   const color = toneColor[tone];
-  const width = big ? 230 : 200;
+  // Size string chips to their text (mono, so width ≈ characters × advance); counters use the default.
+  const chars = typeof text === "string" ? text.length : 10;
+  const width = Math.max(big ? 230 : 200, chars * (big ? 14 : 9.6) + 44);
   const height = big ? 50 : 36;
   return (
     <motion.g initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.45, delay }}>
@@ -135,6 +139,48 @@ function Stamp({ x, y, text, tone, delay = 0 }: { x: number; y: number; text: st
   );
 }
 
+/* ---------- seal slide: who can still change the record ---------- */
+
+function Lock({ tone }: { tone: "ok" | "kept" | "open" }) {
+  const color = tone === "ok" ? colors.success : tone === "kept" ? colors.warning : colors.danger;
+  return (
+    <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden>
+      <rect x="4" y="11" width="18" height="13" rx="3" fill={color} />
+      <path d={tone === "open" ? "M8 11V7a5 5 0 0 1 9.6-2" : "M8 11V7a5 5 0 0 1 10 0v4"} fill="none" stroke={color} strokeWidth="2.6" />
+      {tone === "kept" && <text x="13" y="21.5" textAnchor="middle" fontSize="10" fontWeight="800" fill="white">!</text>}
+    </svg>
+  );
+}
+
+function SealBoard({ seal }: { seal: SealStatus }) {
+  const key = (name: string) => seal.keys.find((entry) => entry.key === name);
+  const pool = key("pool");
+  const texts = [key("description"), key("url")];
+  const other = key("avatar");
+  const rows: { label: string; value: string; tone: "ok" | "kept" | "open" }[] = [
+    { label: "pool record", value: pool?.registrarOnly ? "registrar only" : `${pool?.writers ?? "?"} writers`, tone: pool?.registrarOnly ? "ok" : "open" },
+    { label: "description · url", value: texts.every((t) => t?.registrarOnly) ? "registrar · creator-gated" : "open", tone: texts.every((t) => t?.registrarOnly) ? "ok" : "open" },
+    { label: "any other key", value: `${other?.writers ?? "?"} writers`, tone: other?.writers === 0 ? "ok" : "open" },
+    { label: "resolver admins", value: `${seal.resolverRootRoles} · no upgrade`, tone: seal.resolverRootRoles === 0 ? "ok" : "open" },
+    { label: "tokens.klamp.eth", value: `${seal.tokensRoles} roles · ${seal.tokensNeverExpires ? "never expires" : "expires"}`, tone: seal.tokensRoles === 0 && seal.tokensNeverExpires ? "ok" : "open" },
+    { label: "klamp.eth", value: `${seal.klampRoles} roles · until ${seal.klampExpiryYear}`, tone: seal.klampRoles === 0 ? "ok" : "open" },
+    { label: "klamp.eth registry", value: `REGISTRAR ×${seal.registryRegistrar} · for hooks.klamp.eth`, tone: seal.registryOtherRoles === 0 ? "kept" : "open" },
+  ];
+  return (
+    <Board initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+      {rows.map((row, index) => (
+        <Row key={row.label} tone={row.tone} initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + index * 0.28 }}>
+          <motion.span initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 380, damping: 14, delay: 0.35 + index * 0.28 }}>
+            <Lock tone={row.tone} />
+          </motion.span>
+          <b>{row.label}</b>
+          <em>{row.value}</em>
+        </Row>
+      ))}
+    </Board>
+  );
+}
+
 /* ---------- layout ---------- */
 
 const Screen = styled.section`
@@ -149,8 +195,8 @@ const Tag = styled.span<{ live?: boolean }>`
   display: inline-block; padding: 4px 8px; border: 1.5px solid ${({ live }) => live ? colors.success : colors.warning}; color: ${({ live }) => live ? colors.success : colors.warning};
   font: 700 11px/1 ${mono}; letter-spacing: .06em; text-transform: uppercase;
 `;
-const Canvas = styled.div`position: relative; min-height: 0; display: grid; place-items: center;`;
-const Svg = styled.svg`width: 100%; height: 100%; max-height: 100%; overflow: visible; font-family: inherit;`;
+const Canvas = styled.div`position: relative; min-height: 0;`;
+const Svg = styled.svg`position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; font-family: inherit;`;
 const Outcome = styled(motion.div)`
   position: absolute; inset: auto 0 4% 0; margin: 0 auto; width: min(980px, 96%); display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
   @media (max-width: 720px) { grid-template-columns: 1fr; }
@@ -161,6 +207,16 @@ const Card = styled(motion.div)<{ tone: "klamp" | "danger" }>`
   h2 { margin: 0 0 6px; font-size: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   strong { display: block; font: 600 clamp(36px, 5vw, 60px)/1 ${mono}; letter-spacing: -.05em; color: ${({ tone }) => tone === "klamp" ? colors.primaryHover : colors.danger}; }
   p { margin: 10px 0 0; color: ${colors.textSecondary}; font: 500 14px/1.4 ${mono}; }
+`;
+const Board = styled(motion.div)`
+  position: absolute; inset: 0; margin: auto; width: min(760px, 96%); height: fit-content; display: grid; gap: 10px;
+`;
+const Row = styled(motion.div)<{ tone: "ok" | "kept" | "open" }>`
+  display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 18px;
+  background: ${colors.surface}; border-left: 5px solid ${({ tone }) => tone === "ok" ? colors.success : tone === "kept" ? colors.warning : colors.danger};
+  box-shadow: 0 8px 22px rgba(32, 32, 30, .08);
+  b { font-size: clamp(15px, 1.6vw, 20px); }
+  em { font: 600 clamp(13px, 1.3vw, 16px) ${mono}; font-style: normal; color: ${({ tone }) => tone === "kept" ? colors.warning : colors.textSecondary}; text-align: right; }
 `;
 const Foot = styled.footer`display: flex; align-items: center; justify-content: space-between; gap: 18px; padding-top: 12px;`;
 const Dots = styled.ol`list-style: none; margin: 0; padding: 0; display: flex; gap: 8px;`;
@@ -183,7 +239,7 @@ const ReducedMotion = styled.div`
 /* ---------- the demo ---------- */
 
 export function DemoTerminal() {
-  const { stage, busy, launch, board, naive, canonical, judgement, requote, execution, naiveOutcome, advance, goBack, goToStage, reset } = useDemoStore();
+  const { stage, busy, launch, board, naive, canonical, seal, judgement, requote, execution, naiveOutcome, advance, goBack, goToStage, reset } = useDemoStore();
   const [playing, setPlaying] = useState(false);
   const s = demoStageOrder.indexOf(stage);
   const at = (target: DemoStage) => s >= demoStageOrder.indexOf(target);
@@ -192,7 +248,7 @@ export function DemoTerminal() {
   const undeclared = board?.candidates.find((candidate) => candidate.id === "undeclared");
   const registered = canonical?.status === "registered";
   const evidence: Evidence | undefined = {
-    idle: undefined, launch: launch?.evidence, quotes: board?.evidence, naive: board?.evidence, lookup: canonical?.evidence,
+    idle: undefined, launch: launch?.evidence, quotes: board?.evidence, naive: board?.evidence, lookup: canonical?.evidence, seal: seal?.evidence,
     judge: canonical?.evidence, requote: requote?.evidence, execute: execution?.evidence, outcome: undefined,
   }[stage];
 
@@ -229,7 +285,7 @@ export function DemoTerminal() {
       <Screen>
         <Head>
           <div>
-            <Count>{stage === "idle" ? "Klamp · Sepolia" : `${s} / 8`}</Count>
+            <Count>{stage === "idle" ? "Klamp · Sepolia" : `${s} / ${steps.length}`}</Count>
             <AnimatePresence mode="wait">
               <motion.div key={stage} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.35 }}>
                 <Title>{caption.title}</Title>
@@ -246,7 +302,7 @@ export function DemoTerminal() {
         </Head>
 
         <Canvas>
-          <Svg viewBox="0 0 1200 620" role="img" aria-label={`${caption.title}. ${caption.line}`}>
+          <Svg viewBox="0 0 1200 620" role="img" aria-label={`${caption.title}. ${caption.line}`} style={{ opacity: only("seal") ? 0.12 : 1, transition: "opacity .4s" }}>
             {/* edges first so nodes sit on top */}
             <AnimatePresence>
               {at("launch") && launch && <Edge key="launch" d={PATH.launch} color={colors.textPrimary} />}
@@ -272,8 +328,8 @@ export function DemoTerminal() {
             <Node {...P.undeclared} glyph="?" label="Undeclared pool" sub={undeclared ? short(undeclared.poolId) : "same pair"} tone={at("judge") ? "muted" : "danger"} show={at("quotes") && Boolean(board)} dim={at("requote")} />
 
             <AnimatePresence>
-              {only("launch") && launch && <Chip key="rec" x={880} y={150} text={`pool = ${short(launch.canonicalPool.poolId)}`} tone="klamp" delay={1.3} />}
-              {only("launch") && launch && <Stamp key="once" x={P.declared.x} y={P.declared.y - 78} text="ONCE" tone="klamp" delay={1.9} />}
+              {only("launch") && launch && <Chip key="rec" x={870} y={190} text={`pool = ${short(launch.canonicalPool.poolId)}`} tone="klamp" delay={1.3} />}
+              {only("launch") && launch && <Stamp key="once" x={P.declared.x} y={P.declared.y + 78} text="ONCE" tone="klamp" delay={1.9} />}
               {at("quotes") && !at("requote") && board && declared && <Chip key="qd" x={P.declared.x} y={P.declared.y + 72} text={<Counter to={declared.quotedOut} />} tone="ink" />}
               {at("quotes") && !at("requote") && board && undeclared && <Chip key="qu" x={P.undeclared.x} y={P.undeclared.y + 72} text={<Counter to={undeclared.quotedOut} delay={0.2} />} tone="danger" />}
               {only("quotes") && board && <Chip key="third" x={P.undeclared.x - 10} y={P.undeclared.y - 70} text="third party" tone="muted" delay={0.3} />}
@@ -281,13 +337,15 @@ export function DemoTerminal() {
               {only("lookup") && canonical && (
                 <Chip key="reg" x={600} y={200} text={canonical.status === "registered" ? `registered · ${canonical.poolId.slice(0, 6)}…` : canonical.status} tone={registered ? "klamp" : "danger"} delay={0.8} />
               )}
-              {at("judge") && judgement && !at("requote") && <Stamp key="x" x={P.undeclared.x} y={P.undeclared.y} text="REJECT" tone="danger" delay={0.2} />}
+              {at("judge") && judgement && !at("requote") && <Stamp key="x" x={P.undeclared.x - 190} y={P.undeclared.y - 20} text="REJECT" tone="danger" delay={0.2} />}
               {only("judge") && judgement && <Chip key="verdict" x={P.router.x} y={P.router.y + 80} text={judgement.verdict} tone="klamp" delay={0.6} big />}
               {at("requote") && requote && !at("outcome") && <Chip key="rq" x={P.declared.x} y={P.declared.y + 72} text={<Counter to={requote.quotedOut} />} tone="klamp" big />}
               {only("execute") && execution && <Chip key="cd" x={P.router.x} y={P.router.y + 80} text="calldata ✓ judged key" tone="ok" delay={0.3} />}
               {only("execute") && execution && <Chip key="got" x={P.trader.x} y={P.trader.y + 80} text={<Counter to={execution.receivedOut} delay={1.2} duration={1.8} />} tone="klamp" big delay={1} />}
             </AnimatePresence>
           </Svg>
+
+          <AnimatePresence>{only("seal") && seal && <SealBoard key="seal" seal={seal} />}</AnimatePresence>
 
           <AnimatePresence>
             {only("outcome") && naiveOutcome && execution && requote && (
