@@ -30,6 +30,7 @@ export type Seal = {
   klampRoles: number;
   klampExpiryYear: number;
   registryRegistrar: number;
+  registryRegistrarAdmin: number;
   registryOtherRoles: number;
 };
 
@@ -71,6 +72,7 @@ export async function readSeal(): Promise<Seal> {
     klampRoles: holders(klampRoles),
     klampExpiryYear: new Date(Number(klampExpiry) * 1000).getUTCFullYear(),
     registryRegistrar: holders(registryRoot & slot(0n)),
+    registryRegistrarAdmin: holders(registryRoot & slot(128n)),
     registryOtherRoles: holders(registryRoot & ~(slot(0n) | slot(128n))),
   };
 }

@@ -164,7 +164,7 @@ function SealBoard({ seal }: { seal: SealStatus }) {
     { label: "resolver admins", value: `${seal.resolverRootRoles} · no upgrade`, tone: seal.resolverRootRoles === 0 ? "ok" : "open" },
     { label: "tokens.klamp.eth", value: `${seal.tokensRoles} roles · ${seal.tokensNeverExpires ? "never expires" : "expires"}`, tone: seal.tokensRoles === 0 && seal.tokensNeverExpires ? "ok" : "open" },
     { label: "klamp.eth", value: `${seal.klampRoles} roles · until ${seal.klampExpiryYear}`, tone: seal.klampRoles === 0 ? "ok" : "open" },
-    { label: "klamp.eth registry", value: `REGISTRAR ×${seal.registryRegistrar} · for hooks.klamp.eth`, tone: seal.registryOtherRoles === 0 ? "kept" : "open" },
+    { label: "klamp.eth registry", value: `REGISTRAR ×${seal.registryRegistrar} + admin ×${seal.registryRegistrarAdmin} · for hooks.klamp.eth`, tone: seal.registryOtherRoles === 0 ? "kept" : "open" },
   ];
   return (
     <Board initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>

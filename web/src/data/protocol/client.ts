@@ -86,7 +86,7 @@ const DEMO_DELAY_MS = {
   naiveExecute: 450,
 } as const;
 
-/** Read from Sepolia on 2026-09-27 (block ~11787500): only the REGISTRAR role kept for hooks.klamp.eth remains. */
+/** Read from Sepolia on 2026-09-27 (block ~11787500): only REGISTRAR and its admin, kept for hooks.klamp.eth, remain. */
 const recordedSeal = (): SealStatus => ({
   resolverRootRoles: 0,
   keys: [
@@ -100,6 +100,7 @@ const recordedSeal = (): SealStatus => ({
   klampRoles: 0,
   klampExpiryYear: 3026,
   registryRegistrar: 1,
+  registryRegistrarAdmin: 1,
   registryOtherRoles: 0,
   evidence: RECORDED,
 });

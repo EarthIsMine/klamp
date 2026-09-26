@@ -3,7 +3,7 @@
 **The fee you're quoted is the fee you pay.** Klamp lets a token's issuer declare its canonical Uniswap v4 pool **once**, records it in **ENSv2**, and lets any router or terminal read it with standard ENS tools to route around look-alike pools.
 
 - Only the address a token's address cryptographically points to (its **issuer**) can declare. Nobody can declare for someone else's token.
-- A declaration is permanent and nobody, us included, can rewrite it. The registrar is not upgradeable. After setup every role on the `tokens.klamp.eth` resolver, on `tokens.klamp.eth` and on `klamp.eth` itself was revoked, ours included. The `klamp.eth` registry keeps one role, REGISTRAR, only to add `hooks.klamp.eth` in stage 2; `tokens` is registered without expiry, so that role cannot replace it. Both demos read these role counts live from Sepolia.
+- A declaration is permanent and nobody, us included, can rewrite it. The registrar is not upgradeable. After setup every role on the `tokens.klamp.eth` resolver, on `tokens.klamp.eth` and on `klamp.eth` itself was revoked, ours included. The `klamp.eth` registry keeps two roles, REGISTRAR and its admin (both held by our operator), only to add `hooks.klamp.eth` in stage 2; `tokens` is registered without expiry, so neither can replace it. Both demos read these role counts live from Sepolia.
 - The record lives at `<token>.tokens.klamp.eth` (`text("pool")` = `eip155:<chainId>:<poolId>`, `data("pool")` = `abi.encode(chainId, PoolKey)`), readable with `viem.getEnsText`, no Klamp ABI needed.
 
 ## Why ENSv2
@@ -63,7 +63,7 @@ The repository build of `CanonicalPoolRegistrar` matches the deployed bytecode (
 | Registrar writes `text("pool")` and `data("pool")` on the PermissionedResolver of `tokens.klamp.eth` after the issuer proof | [`CanonicalPoolRegistrar.sol:147-165`](contract/src/CanonicalPoolRegistrar.sol#L147-L165) |
 | Issuer-only `description` / `url` updates | [`CanonicalPoolRegistrar.sol:169-175`](contract/src/CanonicalPoolRegistrar.sol#L169-L175) |
 | `klamp.eth` UserRegistry creates `tokens`; Enhanced Access Control grants the registrar `ROLE_SET_TEXT` / `ROLE_SET_DATA` scoped per record key (`pool`, `description`, `url`) | [`Phase1Setup.sol:52-76`](contract/script/Phase1Setup.sol#L52-L76) |
-| Seal: root roles on the resolver, roles on `tokens.klamp.eth` and our roles on `klamp.eth` are revoked, so no one (us included) can rewrite a record; the registry keeps only REGISTRAR for `hooks.klamp.eth` (stage 2) | [`Phase1Setup.sol:98-133`](contract/script/Phase1Setup.sol#L98-L133) |
+| Seal: root roles on the resolver, roles on `tokens.klamp.eth` and our roles on `klamp.eth` are revoked, so no one (us included) can rewrite a record; the registry keeps only REGISTRAR and its admin for `hooks.klamp.eth` (stage 2) | [`Phase1Setup.sol:98-133`](contract/script/Phase1Setup.sol#L98-L133) |
 | The same role counts, read live in both demos | [`web/src/data/protocol/sepolia.ts`](web/src/data/protocol/sepolia.ts) `readSeal`, [`dex/src/lib/seal.ts`](dex/src/lib/seal.ts) |
 | Token names are wildcard under `tokens.klamp.eth`; lookup via UniversalResolverV2 with namespace, text/data and pool checks (SDK) | [`contract/sdk/canonicalPool.ts:54`](contract/sdk/canonicalPool.ts#L54) |
 | The same lookup, in the browser | [`web/src/data/protocol/sepolia.ts:105`](web/src/data/protocol/sepolia.ts#L105), UI in [`LiveLookup.tsx`](web/src/components/lookup/LiveLookup.tsx#L114) |

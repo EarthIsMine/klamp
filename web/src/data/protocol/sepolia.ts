@@ -330,6 +330,7 @@ export async function readSeal(): Promise<SealStatus & { blockNumber: number }> 
     klampRoles: holders(klampRoles),
     klampExpiryYear: new Date(Number(klampExpiry) * 1000).getUTCFullYear(),
     registryRegistrar: holders(registryRoot & slot(0n)),
+    registryRegistrarAdmin: holders(registryRoot & slot(128n)),
     registryOtherRoles: holders(registryRoot & ~REGISTRAR_SLOTS),
   };
 }

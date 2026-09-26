@@ -164,7 +164,8 @@ export type NaiveOutcome = {
 
 /**
  * Who can still change the Klamp namespace, read from ENSv2 Enhanced Access Control (role holder counts).
- * `registryRegistrar` is the one role kept on klamp.eth's registry to add hooks.klamp.eth in stage 2.
+ * `registryRegistrar` and `registryRegistrarAdmin` are the two roles kept on klamp.eth's registry (both held by the operator)
+ * to add hooks.klamp.eth in stage 2; neither can replace tokens.klamp.eth, which never expires.
  */
 export type SealStatus = {
   resolverRootRoles: number;
@@ -174,6 +175,7 @@ export type SealStatus = {
   klampRoles: number;
   klampExpiryYear: number;
   registryRegistrar: number;
+  registryRegistrarAdmin: number;
   registryOtherRoles: number;
   evidence?: Evidence;
 };

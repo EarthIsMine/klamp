@@ -40,7 +40,7 @@ export function SealBadge() {
     { label: "resolver admins", value: `${seal.resolverRootRoles} · no upgrade`, tone: seal.resolverRootRoles === 0 ? "ok" : "open", href: `${EXPLORER}/address/${NETWORK.resolver}` },
     { label: "tokens.klamp.eth", value: `${seal.tokensRoles} roles · ${seal.tokensNeverExpires ? "no expiry" : "expires"}`, tone: seal.tokensRoles === 0 && seal.tokensNeverExpires ? "ok" : "open", href: "https://explorer.ens.dev/tokens.klamp.eth" },
     { label: "klamp.eth", value: `${seal.klampRoles} roles · until ${seal.klampExpiryYear}`, tone: seal.klampRoles === 0 ? "ok" : "open", href: "https://explorer.ens.dev/klamp.eth" },
-    { label: "registry", value: `REGISTRAR ×${seal.registryRegistrar} · hooks.klamp.eth`, tone: seal.registryOtherRoles === 0 ? "kept" : "open" },
+    { label: "registry", value: `REGISTRAR ×${seal.registryRegistrar} + admin ×${seal.registryRegistrarAdmin} · hooks.klamp.eth`, tone: seal.registryOtherRoles === 0 ? "kept" : "open" },
   ] : [];
   const sealed = seal !== null && rows.every((row) => row.tone !== "open");
 
@@ -64,7 +64,7 @@ export function SealBadge() {
                 <span className="seal-value">{row.value}</span>
               </motion.div>
             ))}
-            {seal && <p className="seal-note">Only the registrar writes records, and only after the issuer proof. The one registry role left can add hooks.klamp.eth; it cannot touch tokens.</p>}
+            {seal && <p className="seal-note">Only the registrar writes records, and only after the issuer proof. Two registry roles are left, REGISTRAR and its admin, both ours, to add hooks.klamp.eth in stage 2. Neither can replace tokens.klamp.eth.</p>}
           </motion.div>
         )}
       </AnimatePresence>
