@@ -13,10 +13,10 @@ const copy = {
   launch: { state: "Step 1 complete", title: "Pool and hook identities recorded", detail: "The immutable 1% proxy and canonical PoolId now have separate ENS records under klamp.eth." },
   candidates: { state: "Step 2 complete", title: "Two pools compete for the route", detail: "The replica advertises 0.05% to beat the issuer pool before either candidate is trusted." },
   verify: { state: "Step 3 complete", title: "Replica pool excluded", detail: "The guarded router keeps the canonical PoolId and rejects the unregistered dynamic-fee clone." },
-  attest: { state: "Step 4 complete", title: "Quoted at the immutable maximum", detail: "The wrapper identity, bytecode, delta permissions, and 1% cap pass before the quote is accepted." },
+  attest: { state: "Step 4 complete", title: "Official pool quoted at 0.25%", detail: "The replica is gone. The verified pool's current fee is below the wrapper's immutable 1% ceiling." },
   forward: { state: "Step 5 complete", title: "Verified route reached PoolManager", detail: "Only after both checks does the router forward the canonical PoolKey to the v4 singleton." },
-  request: { state: "Step 6 complete", title: "Fee strategy requested 30%", detail: "A compromised strategy admin pushes the official pool's dynamic fee far above policy." },
-  enforce: { state: "Step 7 complete", title: "Protection changed the outcome", detail: "Klamp returns the quoted 1% maximum while an unguarded path accepts the full 30% request." },
+  request: { state: "Step 6 complete", title: "Attacker injected a 30% fee request", detail: "An external attacker uses a stolen strategy-admin key against the verified official pool." },
+  enforce: { state: "Step 7 complete", title: "Protection changed the outcome", detail: "The earlier quote was 0.25%. Under attack, Klamp limits the official pool to 1% while an unguarded path accepts 30%." },
   revoke: { state: "Step 8 of 8", title: "Guardian is revoking the identity", detail: "Removing the hook subname makes the resolver return empty and closes the routing gate." },
   complete: { state: "Trace complete", title: "Revoked hook blocked immediately", detail: "The same pool can no longer pass guarded routing after its ENS hook identity is removed." },
 };
@@ -41,8 +41,8 @@ const routePendingCopy = {
 
 const hookPendingCopy = {
   state: "Step 4 of 8",
-  title: "Verifying hook policy and quote",
-  detail: "Klamp checks the wrapper bytecode, forbidden delta permissions, and prices the route at the 1% cap.",
+  title: "Verifying the official pool's fee and cap",
+  detail: "Klamp checks the wrapper policy, then quotes the current 0.25% fee beneath its immutable 1% ceiling.",
 };
 
 const forwardPendingCopy = {
@@ -53,8 +53,8 @@ const forwardPendingCopy = {
 
 const attackPendingCopy = {
   state: "Step 6 of 8",
-  title: "Sending the 30% request",
-  detail: "Compromised fee strategy logic is sending a 300,000-pip request through the verified wrapper.",
+  title: "Attacker is sending an unauthorized request",
+  detail: "A stolen strategy-admin key is forcing the verified official pool to request a 300,000-pip fee.",
 };
 
 const enforcePendingCopy = {
@@ -67,9 +67,9 @@ const steps = [
   { stage: "launch" as const, index: "1", title: "Launch", detail: "Two ENS records" },
   { stage: "candidates" as const, index: "2", title: "Candidates", detail: "Official + replica" },
   { stage: "verify" as const, index: "3", title: "Filter", detail: "Clone rejected" },
-  { stage: "attest" as const, index: "4", title: "Price", detail: "Immutable max" },
+  { stage: "attest" as const, index: "4", title: "Price", detail: "0.25% · max 1%" },
   { stage: "forward" as const, index: "5", title: "Forward", detail: "Verified PoolKey" },
-  { stage: "request" as const, index: "6", title: "Attack", detail: "Request 30%" },
+  { stage: "request" as const, index: "6", title: "Attack", detail: "Stolen key · 30%" },
   { stage: "enforce" as const, index: "7", title: "Compare", detail: "1% vs 30%" },
   { stage: "revoke" as const, index: "8", title: "Revoke", detail: "Route blocked" },
 ];
@@ -273,7 +273,11 @@ const HookIdentity = styled.div`
 `;
 const HookMetrics = styled.div`
   display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid ${colors.borderStrong}; border-bottom: 1px solid ${colors.borderStrong};
-  @media (max-width: 430px) { grid-template-columns: 1fr; }
+  > div + div { border-left: 1px solid ${colors.borderStrong}; }
+  @media (max-width: 430px) {
+    grid-template-columns: 1fr;
+    > div + div { border-left: 0; border-top: 1px solid ${colors.border}; }
+  }
 `;
 const HookCap = styled.div<{ verified: boolean }>`
   min-width: 0; padding: 15px 18px 16px; text-align: left;
@@ -283,13 +287,12 @@ const HookCap = styled.div<{ verified: boolean }>`
   @keyframes capReveal { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: scale(1); } }
 `;
 const QuoteBasis = styled.div<{ ready: boolean }>`
-  min-width: 0; padding: 15px 18px 16px; border-left: 1px solid ${colors.borderStrong};
+  min-width: 0; padding: 15px 18px 16px;
   span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 8px; }
   strong { display: block; font: 500 clamp(38px, 4vw, 50px)/1 ${mono}; letter-spacing: -.06em; color: ${colors.primaryHover}; }
   p { margin: 8px 0 0; color: ${colors.textSecondary}; font-size: 12px; line-height: 1.35; }
   opacity: ${({ ready }) => ready ? 1 : .35}; animation: ${({ ready }) => ready ? "quoteIn .44s ease-out .22s both" : "none"};
   @keyframes quoteIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
-  @media (max-width: 430px) { border-left: 0; border-top: 1px solid ${colors.border}; }
 `;
 const HookChecks = styled.div`
   grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid ${colors.borderStrong};
@@ -364,6 +367,7 @@ const AttackOrigin = styled.div`
   padding: 16px 18px; background: ${colors.textPrimary}; color: white; animation: attackerIn .34s ease-out both;
   span { display: block; color: ${colors.border}; font-size: 12px; margin-bottom: 7px; }
   strong { display: block; font-size: 17px; }
+  p { margin: 7px 0 0; color: ${colors.border}; font-size: 12px; line-height: 1.4; }
   code { display: block; margin-top: 7px; color: ${colors.primary}; font: 500 12px/1.3 ${mono}; }
   @keyframes attackerIn { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: translateX(0); } }
 `;
@@ -449,9 +453,9 @@ function actionLabel(stage: DemoStage, busy: boolean) {
   if (stage === "idle") return "Launch and register";
   if (stage === "launch") return "Discover route candidates";
   if (stage === "candidates") return "Filter malicious replica";
-  if (stage === "verify") return "Verify cap and price route";
+  if (stage === "verify") return "Verify 0.25% quote and cap";
   if (stage === "attest") return "Forward verified PoolKey";
-  if (stage === "forward") return "Compromise fee strategy";
+  if (stage === "forward") return "Simulate admin-key attack";
   if (stage === "request") return "Compare protected execution";
   if (stage === "enforce") return "Revoke hook identity";
   if (stage === "complete") return "Start over";
@@ -645,8 +649,8 @@ export function DemoTerminal() {
                     </div>
                   </HookIdentity>
                   <HookMetrics>
+                    <QuoteBasis ready={Boolean(quote)}><span>Current quote</span><strong>{quote ? `${(quote.pricedBps / 100).toFixed(2)}%` : "…"}</strong><p>Official pool fee · below cap</p></QuoteBasis>
                     <HookCap verified={hookCompliant}><span>Immutable maximum</span><strong>{hookCompliant ? `${capPercent}%` : "…"}</strong><p>Fixed in the wrapper</p></HookCap>
-                    <QuoteBasis ready={Boolean(quote)}><span>Quote basis</span><strong>{quote ? `${(quote.pricedBps / 100).toFixed(2)}%` : "…"}</strong><p>Advertised 0.25% ignored</p></QuoteBasis>
                   </HookMetrics>
                   <HookChecks>
                     <div><span>ENS identity</span><strong>{hookVerified ? "Verified" : "Checking"}</strong></div>
@@ -670,7 +674,7 @@ export function DemoTerminal() {
                   </RoutePipeline>
                   <RouteHandoff>
                     <div><span>Selected branch</span><strong>Issuer pool · 1 hop</strong></div>
-                    <div><span>Quote basis</span><strong>{quote ? `${(quote.pricedBps / 100).toFixed(2)}% maximum` : "Verified"}</strong></div>
+                    <div><span>Current quote</span><strong>{quote ? `${(quote.pricedBps / 100).toFixed(2)}% fee` : "Verified"}</strong></div>
                     <div><span>PoolId</span><strong>{proposedHop ? short(proposedHop.poolId) : "Waiting…"}</strong></div>
                   </RouteHandoff>
                 </RouteJourney>
@@ -680,9 +684,9 @@ export function DemoTerminal() {
             {stage === "request" && (
               <Scene key={sceneKey}>
                 <AttackSequence>
-                  <AttackOrigin><span>External compromise</span><strong>Strategy admin key</strong><code>setFee(300_000)</code></AttackOrigin>
+                  <AttackOrigin><span>External attacker</span><strong>Stolen strategy-admin key</strong><p>Targets the verified official pool</p><code>unauthorized setFee(300_000)</code></AttackOrigin>
                   <AttackRail aria-hidden="true"><i /><i /><i /></AttackRail>
-                  <AttackPayload><SceneLabel>Fee strategy output</SceneLabel><FeeValue>30.00%</FeeValue><FeeCaption>The official pool requests 3,000 bps.</FeeCaption></AttackPayload>
+                  <AttackPayload><SceneLabel>Unauthorized strategy output</SceneLabel><FeeValue>30.00%</FeeValue><FeeCaption>The attacker makes the official pool request 3,000 bps.</FeeCaption></AttackPayload>
                 </AttackSequence>
               </Scene>
             )}
@@ -692,12 +696,12 @@ export function DemoTerminal() {
                 <OutcomeComparison>
                   <Outcome guarded>
                     <h2>Guarded route</h2>
-                    <dl><dt>Strategy request</dt><dd>30.00%</dd><dt>Wrapper return</dt><dd>{enforced ? `${(enforcement.appliedBps / 100).toFixed(2)}%` : "Applying…"}</dd><dt>PoolManager</dt><dd>Protected</dd></dl>
-                    <strong>{enforced ? amount(enforcement.receivedOut) : "—"}</strong><p>Received exactly as quoted at the 1% maximum.</p>
+                    <dl><dt>Earlier quote</dt><dd>{quote ? `${(quote.pricedBps / 100).toFixed(2)}%` : "0.25%"}</dd><dt>Attack request</dt><dd>30.00%</dd><dt>Applied fee</dt><dd>{enforced ? `${(enforcement.appliedBps / 100).toFixed(2)}%` : "Applying…"}</dd></dl>
+                    <strong>{enforced ? amount(enforcement.receivedOut) : "—"}</strong><p>The fee rose from the quote, but the wrapper held it to 1%. A tighter minimum can still revert.</p>
                   </Outcome>
                   <Outcome>
                     <h2>Unguarded route</h2>
-                    <dl><dt>Strategy request</dt><dd>30.00%</dd><dt>Applied fee</dt><dd>{enforced ? `${(enforcement.unguardedAppliedBps / 100).toFixed(2)}%` : "Applying…"}</dd><dt>PoolManager</dt><dd>No cap</dd></dl>
+                    <dl><dt>Earlier quote</dt><dd>{quote ? `${(quote.pricedBps / 100).toFixed(2)}%` : "0.25%"}</dd><dt>Attack request</dt><dd>30.00%</dd><dt>Applied fee</dt><dd>{enforced ? `${(enforcement.unguardedAppliedBps / 100).toFixed(2)}%` : "Applying…"}</dd></dl>
                     <strong>{enforced ? amount(enforcement.unguardedReceivedOut) : "—"}</strong><p>30% fee accepted; output falls below the quoted amount.</p>
                   </Outcome>
                 </OutcomeComparison>

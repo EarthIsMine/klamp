@@ -80,9 +80,10 @@ export type HookAttestation = {
 };
 
 export type CapQuote = {
-  basis: "registered-cap";
+  basis: "current-fee";
   poolId: HexAddress;
-  advertisedBps: number;
+  currentFeeBps: number;
+  capBps: number;
   pricedBps: number;
 };
 

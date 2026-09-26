@@ -23,9 +23,9 @@ export interface ProtocolClient {
   buildRoute(token: HexAddress): Promise<ProposedRoute>;
   resolveCanonicalPool(token: HexAddress): Promise<CanonicalPoolResult>;
   resolveHookAttestation(hook: string): Promise<HookAttestation>;
-  quoteAtCap(poolId: HexAddress, advertisedBps: number, capBps: number): Promise<CapQuote>;
+  quoteVerifiedPool(poolId: HexAddress, currentFeeBps: number, capBps: number): Promise<CapQuote>;
   forwardVerifiedRoute(route: RouteHop): Promise<RouteForwarding>;
-  simulateFeeRequest(requestedBps: number, quotedOut: number): Promise<FeeEnforcement>;
+  simulateFeeRequest(requestedBps: number, quotedBps: number, quotedOut: number): Promise<FeeEnforcement>;
   revokeHook(hook: HexAddress): Promise<HookRevocation>;
   getPresentationSnapshot?(): PresentationSnapshot;
 }
@@ -136,16 +136,17 @@ const hookAttestation = (hook: string): HookAttestation => ({
   status: "verified",
 });
 
-const feeEnforcement = (requestedBps: number, quotedOut: number): FeeEnforcement => {
+const feeEnforcement = (requestedBps: number, quotedBps: number, quotedOut: number): FeeEnforcement => {
   const appliedBps = Math.min(requestedBps, 100);
+  const grossOut = quotedOut / (1 - quotedBps / 10_000);
   return {
     requestedBps,
     appliedBps,
     capped: appliedBps < requestedBps,
     quotedOut,
-    receivedOut: quotedOut,
+    receivedOut: grossOut * (1 - appliedBps / 10_000),
     unguardedAppliedBps: requestedBps,
-    unguardedReceivedOut: quotedOut * 0.7,
+    unguardedReceivedOut: grossOut * (1 - requestedBps / 10_000),
   };
 };
 
@@ -173,17 +174,17 @@ export const mockProtocolClient: ProtocolClient = {
     await wait(DEMO_DELAY_MS.hookVerification);
     return hookAttestation(hook);
   },
-  async quoteAtCap(poolId, advertisedBps, capBps) {
+  async quoteVerifiedPool(poolId, currentFeeBps, capBps) {
     await wait(DEMO_DELAY_MS.capQuote);
-    return { basis: "registered-cap", poolId, advertisedBps, pricedBps: capBps };
+    return { basis: "current-fee", poolId, currentFeeBps, capBps, pricedBps: Math.min(currentFeeBps, capBps) };
   },
   async forwardVerifiedRoute(route) {
     await wait(DEMO_DELAY_MS.routeForwarding);
     return { poolId: route.poolId, poolManager: route.poolManager, status: "accepted" };
   },
-  async simulateFeeRequest(requestedBps, quotedOut) {
+  async simulateFeeRequest(requestedBps, quotedBps, quotedOut) {
     await wait(DEMO_DELAY_MS.feeEnforcement);
-    return feeEnforcement(requestedBps, quotedOut);
+    return feeEnforcement(requestedBps, quotedBps, quotedOut);
   },
   async revokeHook(hook) {
     await wait(DEMO_DELAY_MS.guardianRevocation);
@@ -195,14 +196,15 @@ export const mockProtocolClient: ProtocolClient = {
     const canonical = canonicalResult();
     const attestation = hookAttestation(launch.canonicalPool.key.hooks);
     const official = proposal.candidates[0].route[0];
+    const quote: CapQuote = { basis: "current-fee", poolId: canonical.poolId, currentFeeBps: 25, capBps: attestation.capBps, pricedBps: 25 };
     return {
       launch,
       proposal,
       canonical,
       attestation,
-      quote: { basis: "registered-cap", poolId: canonical.poolId, advertisedBps: 25, pricedBps: attestation.capBps },
+      quote,
       forwarding: { poolId: official.poolId, poolManager: official.poolManager, status: "accepted" },
-      enforcement: feeEnforcement(3000, 41842.17),
+      enforcement: feeEnforcement(3000, quote.pricedBps, 42159.16),
       revocation: hookRevocation(launch.canonicalPool.key.hooks),
     };
   },

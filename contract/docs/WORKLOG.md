@@ -530,3 +530,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; 초기 화면에서 Step 4·Step 7·Step 8을 각각 직접 클릭해 해당 장면과 필요한 선행 데이터가 즉시 나타나는지 확인한다. Step 7에서 `Previous`로 Step 6에 돌아갔을 때 상한 적용 결과가 하단 상태에 남아 보이지 않는지도 확인한다.
 - 남은 문제: presentation snapshot이 없는 실제 온체인 adapter에서는 미확정 미래 상태를 만들어낼 수 없으므로, live mode 도입 시 상단 미래 단계의 직접 탐색 정책을 별도로 표시하거나 제한해야 한다.
+
+## WEB30 — 정상 견적과 공격 수수료의 분리
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26, Chrome 데스크톱·390×844 반응형 검증 / Codex, `frontend-design`, Browser skills
+- AI 수행: Step 4가 검증된 정상 풀의 현재 25 bps 수수료 대신 100 bps 상한으로 견적하던 오류를 정정했다. `CapQuote`를 current-fee 기반으로 바꾸고 화면을 `Current quote 0.25% → Immutable maximum 1.00%` 순서로 재배치했다. Step 5 전달 화면도 0.25% 현재 견적을 표시한다. Step 6은 외부 공격자가 탈취한 strategy-admin key로 검증된 공식 풀에 `setFee(300_000)`을 비인가 호출한다는 주체·대상·행위를 명시했다. Step 7은 이전 0.25% 견적, 공격 요청 30%, 보호 적용 1%를 구분하고, 0.25% 견적과 1% 실행 결과가 같다는 기존 주장을 제거했다. mock output은 같은 fee-before-output 기준으로 0.25%, 1%, 30%를 각각 계산한다.
+- 사람의 결정/수정: 악성 복제 풀은 Step 3에서 제외되므로 Step 4에는 정상 풀의 0.25%가 나와야 하며, Step 6의 30% 요청이 외부 공격임을 더 명확하게 표현하도록 요청함.
+- 참고 문서 및 버전: 루트 `AGENTS.md`, `contract/AGENTS.md`, `contract/Klamp_Phase1_Agent_Spec.md`, Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `frontend-design`, Browser skills.
+- AI 실행 검증: `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` 통과. Chrome에서 Step 4 제목과 계측 패널이 정상 풀 `0.25%`를 먼저, immutable maximum `1.00%`를 별도로 표시하는 것을 확인했다. Step 6에서 `External attacker`, `Stolen strategy-admin key`, 공식 풀 대상, 비인가 `setFee(300_000)`, 30% 출력을 확인했다. Step 7에서 0.25% 이전 견적, 30% 공격 요청, guarded 1%와 unguarded 30% 결과가 구분됐다. 390×844에서 document/viewport width가 모두 390px였다. 자동 번역 확장이 `html lang`을 변경해 발생시키는 기존 hydration 경고 외 localhost 애플리케이션 오류는 없었다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/demo/` Step 4로 직접 이동해 0.25% 현재 견적과 1% 상한 순서를 확인하고, Step 6에서 공격 주체·탈취 키·공식 풀 대상·30% 요청이 한 흐름으로 읽히는지 확인한다. Step 7에서 0.25% 견적과 1% 적용 결과가 동일하다고 표현되지 않는지도 확인한다.
+- 남은 문제: 2단계 CappedHookProxy, strategy 공격, fee enforcement와 output 비교는 여전히 typed mock이다. 실제 컨트랙트 연결 시 quote 시점과 execution 시점의 상태 차이, `amountOutMinimum`에 따른 revert를 실제 RPC 결과로 대체해야 한다.

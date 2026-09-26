@@ -114,7 +114,7 @@ export const useDemoStore = create<DemoState>((set, get) => ({
         set({ attestation, stage: "complete", busy: false });
         return;
       }
-      const quote = await client.quoteAtCap(state.launch.canonicalPool.poolId, 25, attestation.capBps);
+      const quote = await client.quoteVerifiedPool(state.launch.canonicalPool.poolId, 25, attestation.capBps);
       set({ attestation, quote, stage: "attest", furthestStage: laterStage(state.furthestStage, "attest"), busy: false });
       return;
     }
@@ -136,9 +136,9 @@ export const useDemoStore = create<DemoState>((set, get) => ({
       return;
     }
 
-    if (state.stage === "request") {
+    if (state.stage === "request" && state.quote) {
       set({ stage: "enforce", busy: true });
-      const enforcement = await client.simulateFeeRequest(3000, 41842.17);
+      const enforcement = await client.simulateFeeRequest(3000, state.quote.pricedBps, 42159.16);
       set({ enforcement, stage: "enforce", furthestStage: laterStage(state.furthestStage, "enforce"), busy: false });
       return;
     }
