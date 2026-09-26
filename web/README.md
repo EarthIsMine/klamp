@@ -30,7 +30,7 @@ Replace the mock `ProtocolClient` with a viem-backed adapter to connect the UI. 
 
 The frontend follows the implemented canonical-pool SDK state model:
 
-- canonical pool resolution: `found | missing | invalid | unavailable | ambiguous`
+- canonical pool resolution: `registered | not_registered | lookup_failed`
 - route comparison: `match | mismatch | blocked`
 
 The eight-step trace launches a token, atomically issues its capped-hook identity and canonical pool records, shows an aggregator discovering both issuer and replica pools, excludes the unregistered replica before execution, verifies the wrapper bytecode, return-delta permissions, and immutable 100 bps cap, prices the accepted official pool at its current 25 bps fee, and only then forwards its PoolKey through the guarded router to PoolManager. It then simulates an external attacker using a stolen strategy-admin key to produce a 3,000 bps request, compares the protected 100 bps result with an unguarded 3,000 bps loss, and revokes the hook identity so guarded routing blocks it immediately. In local presentation mode, the progress rail can seek directly to any step from a deterministic mock snapshot; `Previous` moves back one scene without discarding the completed trace, while the bottom action still plays the ordered delayed sequence. The demo uses the typed mock client: no wallet, RPC, ENS lookup, or transaction is performed, and mock addresses or receipts are not live-chain claims.

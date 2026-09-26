@@ -30,7 +30,7 @@ npm run demo
 ## Sepolia 준비와 dry-run
 
 1. `.env.example`을 무시되는 `.env`로 복사해 설정한다. 서명은 Foundry keystore를 사용하고 비밀키를 manifest에 넣지 않는다. registration secret은 로컬에서 새로 생성하여 commit과 register 사이 동일하게 유지한다.
-2. 후보 JSON을 `deployments/sepolia.private.json`으로 복사하고 operator/hooksAdmin, 검증된 tokenFactory/launcher, 최대 등록비를 채운다. 각 프로토콜 주소의 runtime code hash를 독립적으로 확인한 빌드/공식 배포 근거와 대조한 뒤 `expectedCodeHashes`에 필드명별로 넣는다. 현재 RPC에서 읽은 값을 그대로 넣는 것은 버전 검증이 아니다. immutable·프록시 구현과 protocol role도 확인한다.
+2. 후보 JSON을 `deployments/sepolia.private.json`으로 복사하고 operator, 검증된 tokenFactory/launchers(LiquidityLauncher v3.0.0·v3.2.0 후보), 최대 등록비를 채운다. 각 프로토콜 주소의 runtime code hash를 독립적으로 확인한 빌드/공식 배포 근거와 대조한 뒤 `expectedCodeHashes`에 필드명별로 넣는다. 현재 RPC에서 읽은 값을 그대로 넣는 것은 버전 검증이 아니다. immutable·프록시 구현과 protocol role도 확인한다.
 3. dotenv 파일은 명령 실행 환경에 로드한다. JSON과 env의 chain/address/operator 설정은 일치시킨다. root 이름은 klamp.eth로 고정하며 충돌 시 다른 이름으로 몰래 바꾸지 않는다.
 4. `npx tsx scripts/preflight.ts`는 체인, 코드 해시, UniversalResolver/registry/StateView 연결, registrar 역할, 이름 소유자, 등록 가격 상한·잔액·allowance·gas 잔액을 읽기 전용으로 검사한다. 미기입·미검증 값이 있으면 실패한다. RPC/서명/코드 신뢰가 준비되지 않았다면 여기서 공개 배포 준비가 완료된 것으로 표시하지 않는다.
 5. 다음 명령은 `--broadcast`가 없으므로 시뮬레이션이다. 단계가 아직 온체인에 없으면 다음 단계는 선행 단계의 실제 배포 후에 재현할 수 있다.
@@ -59,7 +59,7 @@ forge script script/SealPhase1.s.sol:SealPhase1 --rpc-url "$RPC_URL"
 `deployments/sepolia.phase1.json`은 실제 배포 후 작성한다. 미실행 주소를 가짜 manifest로 만들지 않는다. `deployments/local.json`과 `versions.json`을 구조 참고로 사용한다.
 
 - chainId, rootRegistry, ethRegistry, registry, resolver, registryImplementation, resolverImplementation, universalResolver, registrar, stateView, poolManager, launcher, tokenFactory
-- operator, hooksAdmin, editor(생략 시 operator), token, poolId, create2Launcher, salt, initCodeHash
+- operator, editor(생략 시 operator), token, poolId, create2Launcher, salt, initCodeHash
 - independently verified expectedCodeHashes(위 각 코드 주소 필드에 대응), deploymentBlock, publicTransactions(공개 tx 해시 목록)
 
 smoke는 이 설정을 읽고 text/data·권한·봉인·코드를 검증하여 실제 observedCodeHashes, expiry, checkedBlock, versions를 보고서에 남긴다. 코드 해시 일치만으로 공급자 코드 안전성이나 감사 완료를 주장하지 않는다. ENS 앱 표시 여부와 사람이 SDK 문서를 읽고 직접 실행했는지는 별도 수동 확인이다.

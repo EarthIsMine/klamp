@@ -117,9 +117,10 @@ const proposedRoute = (token: HexAddress): ProposedRoute => ({
   ],
 });
 
-const canonicalResult = (): Extract<CanonicalPoolResult, { status: "found" }> => ({
-  status: "found",
+const canonicalResult = (): Extract<CanonicalPoolResult, { status: "registered" }> => ({
+  status: "registered",
   source: "ens",
+  key: DEMO_POOL_KEY,
   chainId: 11155111n,
   poolManager: "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543",
   poolId: DEMO_POOL_ID,

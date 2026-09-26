@@ -170,7 +170,7 @@ export default function Home() {
             <TuiSection>
               <TuiSectionHead><span>01</span>resolve canonical record</TuiSectionHead>
               <TuiRows>
-                <TuiRow><span>ensv2</span><code>tokens.klamp.eth</code><span>[found]</span></TuiRow>
+                <TuiRow><span>ensv2</span><code>tokens.klamp.eth</code><span>[registered]</span></TuiRow>
                 <TuiRow><span>chain</span><code>11155111</code><span>[ok]</span></TuiRow>
                 <TuiRow><span>poolManager</span><code>0xE03A…3543</code><span>[ok]</span></TuiRow>
                 <TuiRow><span>poolId</span><code>0x91f6…e46b0</code><span>[ok]</span></TuiRow>

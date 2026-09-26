@@ -27,16 +27,27 @@ export type CanonicalPoolRecord = {
 /** Mirrors contract/sdk/canonicalPool.ts. */
 export type CanonicalPoolResult =
   | {
-      status: "found";
+      status: "registered";
       source: "ens" | "launch-event";
       chainId: bigint;
       poolManager: HexAddress;
       poolId: HexAddress;
+      key: PoolKey;
+      warning?: "launch-pool-differs";
     }
-  | { status: "missing" }
-  | { status: "invalid"; reason: "format" | "chain" | "pool-uninitialized" }
-  | { status: "unavailable"; reason: "rpc" | "resolution" | "namespace" }
-  | { status: "ambiguous"; reason: "multiple-launch-pools" };
+  | { status: "not_registered" }
+  | {
+      status: "lookup_failed";
+      reason:
+        | "rpc"
+        | "resolution"
+        | "namespace"
+        | "format"
+        | "chain"
+        | "pool-uninitialized"
+        | "record-mismatch"
+        | "multiple-launch-pools";
+    };
 
 export type RouteHop = {
   chainId: bigint;
@@ -65,7 +76,7 @@ export type RouteComparison =
   | { status: "mismatch"; branch: number; hop: number }
   | {
       status: "blocked";
-      reason: "invalid-route" | Exclude<CanonicalPoolResult["status"], "found">;
+      reason: "invalid-route" | Exclude<CanonicalPoolResult["status"], "registered">;
     };
 
 export type HookAttestation = {
@@ -128,7 +139,7 @@ export type LaunchReceipt = {
 export type PresentationSnapshot = {
   launch: LaunchReceipt;
   proposal: ProposedRoute;
-  canonical: Extract<CanonicalPoolResult, { status: "found" }>;
+  canonical: Extract<CanonicalPoolResult, { status: "registered" }>;
   attestation: HookAttestation;
   quote: CapQuote;
   forwarding: RouteForwarding;
@@ -146,7 +157,7 @@ export function compareRoutes(
   canonical: CanonicalPoolResult,
   branches: readonly (readonly RouteHop[])[],
 ): RouteComparison {
-  if (canonical.status !== "found") return { status: "blocked", reason: canonical.status };
+  if (canonical.status !== "registered") return { status: "blocked", reason: canonical.status };
   if (!isAddress(token) || branches.length === 0) {
     return { status: "blocked", reason: "invalid-route" };
   }

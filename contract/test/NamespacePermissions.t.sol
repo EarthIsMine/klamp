@@ -26,17 +26,30 @@ contract NamespacePermissionsTest is NamespaceFixture {
         vm.expectRevert(); resolver.grantRootRoles(P.ROLE_SET_TEXT,address(this));
         seal(); // idempotent: no remaining roles are revoked twice
     }
-    function testHooksAdminIsIsolated() public {
+    /// @dev After seal the operator keeps only REGISTRAR(+ADMIN) for hooks.klamp.eth; it cannot touch tokens or klamp.eth.
+    function testKeptRegistrarCannotTouchTokens() public {
         seal();
-        vm.startPrank(hooksAdmin);
-        deployment.registry.setResolver(uint256(keccak256("hooks")),address(123));
-        deployment.registry.setSubregistry(uint256(keccak256("hooks")),IRegistry(address(456)));
-        vm.expectRevert(); deployment.registry.setResolver(uint256(keccak256("tokens")),address(123));
+        uint256 tokens = uint256(keccak256("tokens"));
+        assertEq(deployment.registry.roles(0,address(this)),Phase1Setup.KEPT_REG_ROLES);
+        vm.expectRevert(); deployment.registry.register("tokens",address(this),IRegistry(address(0)),address(1),0,type(uint64).max);
+        vm.expectRevert(); deployment.registry.setResolver(tokens,address(1));
+        vm.expectRevert(); deployment.registry.setSubregistry(tokens,IRegistry(address(1)));
+        vm.expectRevert(); deployment.registry.unregister(tokens);
         vm.expectRevert(); deployment.registry.setParent(IRegistry(address(1)),"x");
-        vm.expectRevert(); eth.setResolver(uint256(keccak256("klamp")),address(123));
-        vm.stopPrank();
+        vm.expectRevert(); eth.setSubregistry(uint256(keccak256("klamp")),IRegistry(address(1)));
+        vm.expectRevert(); eth.setResolver(uint256(keccak256("klamp")),address(1));
+        assertEq(deployment.registry.getResolver("tokens"),address(resolver));
     }
-    function sealWrongChain() external { Phase1Setup.seal(deployment,eth,universal,address(this),hooksAdmin,block.chainid+1,probe); }
+    function testFinalizeHooksRevokesLastRole() public {
+        seal();
+        Phase1Setup.finalizeHooks(deployment,address(this),IRegistry(address(0x4001)),address(0x4002));
+        assertEq(deployment.registry.getResolver("hooks"),address(0x4002));
+        assertEq(deployment.registry.roleCount(0),0);
+        assertEq(deployment.registry.roleCount(deployment.registry.getResource(uint256(keccak256("hooks")))),0);
+        vm.expectRevert(); deployment.registry.register("other",address(this),IRegistry(address(0)),address(0),0,type(uint64).max);
+        seal(); // still idempotent once every registry role is gone
+    }
+    function sealWrongChain() external { Phase1Setup.seal(deployment,eth,universal,address(this),block.chainid+1,probe); }
     function testWrongChainDoesNotSeal() public {
         vm.expectRevert("wrong chain");
         this.sealWrongChain();

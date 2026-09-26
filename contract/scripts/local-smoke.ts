@@ -6,9 +6,11 @@ const raw = JSON.parse(readFileSync('deployments/local.json','utf8')) as Network
 const config = { ...raw, chainId: BigInt(raw.chainId) };
 const client = createReader(process.env.RPC_URL ?? 'http://127.0.0.1:18545');
 const result = await getCanonicalPool(client,config,raw.token);
-assert.deepEqual(result,{ status:'found',source:'ens',chainId:31337n,poolManager:raw.poolManager,poolId:raw.poolId });
+assert.equal(result.status,'registered');
+if(result.status!=='registered') throw Error('Missing canonical pool');
+assert.deepEqual({...result,key:undefined},{ status:'registered',source:'ens',chainId:31337n,poolManager:raw.poolManager,poolId:raw.poolId,key:undefined });
 const missing = await getCanonicalPool(client,config,'0x0000000000000000000000000000000000000123');
-assert.deepEqual(missing,{status:'missing'});
+assert.deepEqual(missing,{status:'not_registered'});
 const broken = await getCanonicalPool(client,{...config,resolverImplementation:'0x0000000000000000000000000000000000000123'},raw.token);
-assert.deepEqual(broken,{status:'unavailable',reason:'namespace'});
-console.log(JSON.stringify({ name:tokenName(raw.token), poolId:raw.poolId, checks:['viem getEnsText -> found','empty wildcard record -> missing','implementation mismatch -> unavailable'] },null,2));
+assert.deepEqual(broken,{status:'lookup_failed',reason:'namespace'});
+console.log(JSON.stringify({ name:tokenName(raw.token), poolId:raw.poolId, checks:['viem getEnsText -> registered','empty wildcard record -> not_registered','implementation mismatch -> lookup_failed'] },null,2));

@@ -19,7 +19,7 @@ import {UERC20Factory} from "@uniswap/uerc20-factory/src/factories/UERC20Factory
 import {LiquidityLauncher} from "launcher/LiquidityLauncher.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {ProbeLauncher} from "./ProbeLauncher.sol";
-import {PoolKey, IStateView, IUERC20Factory} from "../src/CanonicalPoolRegistrar.sol";
+import {PoolKey, IPoolManager, IUERC20Factory} from "../src/CanonicalPoolRegistrar.sol";
 
 /// @dev Local-only fixture; never use this to replace public ENS infrastructure.
 contract LocalPhase1 is Script {
@@ -40,25 +40,24 @@ contract LocalPhase1 is Script {
         LabelStore labels = new LabelStore(IContractNamer(address(0)));
         root = new PermissionedRegistry(labels,operator,Phase1Setup.REG_ROLES);
         eth = new PermissionedRegistry(labels,operator,Phase1Setup.REG_ROLES);
-        root.register("eth",operator,eth,address(0),Phase1Setup.HOOK_ROLES,type(uint64).max);
+        root.register("eth",operator,eth,address(0),Phase1Setup.PARENT_ROLES,type(uint64).max);
         eth.setParent(root,"eth");
         c.factory = new VerifiableFactory(); c.registryImpl = new UserRegistry(labels,operator);
-        c.resolverImpl = new PermissionedResolver(operator); c.stateView = IStateView(address(state));
-        c.poolManager = address(manager); c.tokenFactory = IUERC20Factory(address(new UERC20Factory()));
+        c.resolverImpl = new PermissionedResolver(operator);
+        c.poolManager = IPoolManager(address(manager)); c.tokenFactory = IUERC20Factory(address(new UERC20Factory()));
         c.launchers = new address[](1); c.launchers[0] = address(new LiquidityLauncher(IAllowanceTransfer(address(0))));
-        c.operator = operator; c.hooksAdmin = operator;
+        c.operator = operator;
         d = Phase1Setup.deploy(c);
-        eth.register("klamp",operator,d.registry,address(0),Phase1Setup.HOOK_ROLES,type(uint64).max);
+        eth.register("klamp",operator,d.registry,address(0),Phase1Setup.PARENT_ROLES,type(uint64).max);
         d.registry.setParent(eth,"klamp");
         universal = new UniversalResolverV2(root,new GatewayProvider(operator,new string[](0)),IContractNamer(address(0)));
         ProbeLauncher deployer = new ProbeLauncher(operator,d.registrar);
         token = deployer.launch(0);
-        Phase1Setup.seal(d,eth,universal,operator,operator,31337,token);
+        Phase1Setup.seal(d,eth,universal,operator,31337,token);
         vm.stopBroadcast();
         string memory object = "local";
         vm.serializeUint(object,"chainId",31337);
         vm.serializeAddress(object,"operator",operator);
-        vm.serializeAddress(object,"hooksAdmin",operator);
         vm.serializeAddress(object,"create2Launcher",address(deployer));
         vm.serializeBytes32(object,"initCodeHash",deployer.initCodeHash());
         vm.serializeBytes32(object,"salt",bytes32(0));

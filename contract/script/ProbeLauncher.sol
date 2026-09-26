@@ -23,8 +23,8 @@ contract ProbeLauncher {
         if(token.code.length==0) new ProbeToken{salt:salt}(operator);
         PoolKey memory key=PoolKey(address(0),token,3000,60,address(0));
         bytes32 id=keccak256(abi.encode(key));
-        (uint160 price,,,)=registrar.stateView().getSlot0(id);
-        if(price==0) IPoolManager(registrar.poolManager()).initialize(V4Key(Currency.wrap(address(0)),Currency.wrap(token),3000,60,IHooks(address(0))),uint160(1<<96));
+        uint160 price=uint160(uint256(IPoolManager(address(registrar.poolManager())).extsload(keccak256(abi.encodePacked(id,registrar.POOLS_SLOT())))));
+        if(price==0) IPoolManager(address(registrar.poolManager())).initialize(V4Key(Currency.wrap(address(0)),Currency.wrap(token),3000,60,IHooks(address(0))),uint160(1<<96));
         if(registrar.canonicalPoolOf(token)==0) registrar.recordByCreate2(token,key,salt,initCodeHash(),operator);
         else require(registrar.canonicalPoolOf(token)==id,"existing pool differs");
     }

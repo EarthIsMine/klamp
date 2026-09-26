@@ -15,10 +15,10 @@
 | tokens 봉인·업그레이드 및 재위임 거절·hooks 분리 | 로컬 통과 | NamespacePermissionsTest |
 | 봉인 전 실제 조회, 봉인 후 두 등록 경로 계속 동작 | 로컬 통과 | CanonicalPoolEnsIntegrationTest |
 | 토큰별 이름 등록 없는 ENS text/data 일치 | 로컬 통과 | 실제 UniversalResolver 통합, viem E2E |
-| missing/invalid/unavailable/ambiguous 분리 | 로컬 통과 | SDK 테스트·local-smoke |
+| registered/not_registered/lookup_failed 분리 (C12) | 로컬 통과 | SDK 테스트·local-smoke |
 | 이벤트 emitter·키·초기화·reorg·충돌 처리 | 로컬 통과 | SDK의 ABI 기반 mock RPC 테스트. 실제 공개 strategy 로그 검증은 미실행 |
 | 체인·manager·pool과 모든 분할 branch 비교 | 로컬 통과 | compareRoutes.test.ts |
-| 조회·비교 데모의 HTTP 응답 | 로컬 통과 | C09 match/mismatch/missing/HTML 확인. 브라우저 육안 확인은 미실행 |
+| 조회·비교 데모의 HTTP 응답 | 로컬 통과 | C09 match/mismatch/not_registered/HTML 확인. 브라우저 육안 확인은 미실행 |
 | commit/wait/register/setParent, 재개·가격·잔액·이름 충돌 | 로컬 통과 | 실제 ETHRegistrar + fixture oracle/token의 RegistrationFlowTest |
 | 배포 재개·실제 ERC20 probe·권한 eth_call·공개 manifest | 로컬 통과 | ProbeLauncherTest, NamespacePermissionsTest, 전체 E2E |
 | Sepolia 주소·코드·버전·자금 preflight 실제 실행 | 미실행 | 후보값 미검증, 필요한 설정은 배포 문서 참조 |
@@ -37,7 +37,7 @@
 | `forge build` | 통과. 상위 VerifiableFactory의 receive 함수 부재 경고는 남음 |
 | `npm test` | 17 통과, 0 실패 |
 | `npm run typecheck` | 통과 |
-| `npm run test:e2e` / `./scripts/local-e2e.sh` | 새 체인 배포·등록·봉인·viem found/missing/namespace·권한 smoke 통과 |
+| `npm run test:e2e` / `./scripts/local-e2e.sh` | 새 체인 배포·등록·봉인·viem registered/not_registered/namespace·권한 smoke 통과 |
 | 기존 RPC 포트로 E2E 시작 | 배포 전에 명시적 거절 확인 |
 | 미기입 Sepolia 후보로 preflight 시작 | 설정 오류로 RPC 접근 전에 거절 확인. 실제 네트워크 preflight 통과를 의미하지 않음 |
 
@@ -50,4 +50,4 @@
 3. [데모 절차](phase1-deployment.md)로 화면에서 일치/다른 풀/미등록/RPC 실패 표시를 확인한다. 실제 거래 전송이 없는 비교 데모임을 확인한다.
 4. WORKLOG에 검증자 식별명, 날짜, 문서·명령, 실제 결과·증거 위치를 추가한다. 실제 받은 피드백만 FEEDBACK에 기록한다.
 
-Sepolia 재개에 필요한 입력은 RPC, 검증된 프로토콜 구현/코드 해시, 운영자·hooks 관리자, 등록비/가스 자금, 서명 수단과 로컬 보관 registration secret이다. 공개 배포 전 dry-run과 sender/gas를 확인하고, 배포 후 읽기 전용 smoke 및 ENS 앱 수동 검증을 별도로 수행한다.
+Sepolia 재개에 필요한 입력은 RPC, 검증된 프로토콜 구현/코드 해시, 운영자, 등록비/가스 자금, 서명 수단과 로컬 보관 registration secret이다. 공개 배포 전 dry-run과 sender/gas를 확인하고, 배포 후 읽기 전용 smoke 및 ENS 앱 수동 검증을 별도로 수행한다.

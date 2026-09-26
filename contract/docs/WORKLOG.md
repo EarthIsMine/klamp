@@ -552,3 +552,24 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/demo/` 계측기 상단과 페이지 metadata에 live/mock 실행 방식 표현이 없는지 확인한다.
 - 남은 문제: 현재 trace 데이터는 아직 실제 Sepolia 실행 artifact가 아니므로 README의 mock 고지는 유지된다. Phase 2 구현·배포 후 transaction hash, block number, event/read 결과가 포함된 recorded trace adapter로 교체해야 한다.
+
+## C12 — 최종 설계 문서에 기준 코드 정렬
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Foundry(기존 환경), Node, 로컬 Anvil / Claude Code (Opus 5.5)
+- AI 수행: `final_klamp_with_code.md`의 CanonicalPoolRegistrar 전체 코드로 registrar를 교체했다(5인자 경로 A, PoolKey 고정 경로 B, 일회용 컨트랙트 경유 경로, extsload POOLS_SLOT 초기화 검사, NotIssuer, issuer·creator 이벤트). 셋업은 hooks 선등록·hooksAdmin을 제거하고 봉인 후 운영자 REGISTRAR(+admin)만 남기며 `finalizeHooks`로 2단계에서 회수하게 했다. SDK에 data 레코드 교차 검증, `judge()`, 이벤트 대체의 런칭 풀 모양 제한과 ENS 충돌 경고를 추가했다. 배포·봉인·preflight·smoke 스크립트, `.env.example`, Sepolia 후보 파일, 관련 문서와 web의 결과 타입을 맞췄다. 세부 결정은 [C12 계획](plans/C12-design-doc-alignment.md).
+- 사람의 결정/수정: 새 설계 문서 2개에 기준 코드를 맞추도록 요청함. 계획 문서의 "문서와 다르게 둔 것"은 사람 검토 대기.
+- 참고 문서 및 버전: 기존 고정 버전(`deployments/versions.json`) 그대로. v4-core 59d3ecf StateLibrary.POOLS_SLOT = 6 확인.
+- AI 실행 검증: `forge test` 34 통과(0 실패, CREATE 주소 fuzz 4,096회 포함). `npm test` 24 통과. `npm run typecheck` 통과. `npm run test:e2e` 통과(새 Anvil 배포·등록·봉인·viem found/missing/namespace·editor/issuer 권한·덮어쓰기·봉인 역할 smoke).
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd contract && forge test && npm test && npm run typecheck && npm run test:e2e`.
+- 남은 문제: Robinhood 전략 주소의 code hash·시작 블록, Sepolia LiquidityLauncher·UERC20Factory 존재 여부 미검증. 2~4단계와 데모 런치패드·터미널 미구현. 실행 중인 로컬 데모 체인은 새 registrar로 재배포해야 한다.
+
+## C12 — 조회 상태 3개 전환과 공개 체인 확인
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Node, Foundry, cast, Sepolia 공개 RPC(publicnode), Robinhood Chain 공개 RPC, Blockscout PRO API / Claude Code (Opus 5.5)
+- 사람의 결정/수정: 조회 상태를 설계 문서대로 3개로 바꾸고 루트 AGENTS.md보다 우선하도록 결정함. Robinhood 전략 상수와 compareRoutes는 현 상태 유지. 설계 문서는 `final_klamp_with_code.md`만 커밋. Blockscout API 키 제공(저장소에 기록하지 않음).
+- AI 수행: SDK `CanonicalPoolResult`를 `registered | not_registered | lookup_failed`(+`reason`)로 바꾸고 `registered`에 PoolKey를 넣었다. fallback·compareRoutes·judge·smoke 스크립트·4173 데모 라벨·web 미러 타입과 mock·루트 AGENTS.md·README들을 맞췄다. Sepolia와 Robinhood Chain에서 LiquidityLauncher·UERC20Factory·InstantLaunchStrategy 코드를 읽기 전용으로 확인했다(결과는 [fallback 문서](phase1-fallback.md)와 Sepolia 후보 파일).
+- 확인 결과: LiquidityLauncher v3.0.0 `0x00004c4c…`(hash `0x6720…6ed6`)·v3.2.0 `0x0000FffF…`(hash `0x4a58…7d80`)는 Sepolia·Robinhood 모두 존재하고 해시 동일. Pools.trade가 쓰는 UERC20Factory는 `0x000000e2…ad49b`(양 체인 동일 해시 `0x9f04…6aeb`)이며, 실제 Robinhood 토큰 `0xd565…dead`에서 `getUERC20Address(name, symbol, decimals, launcher, graffiti) == token` 재현. uerc20-factory README의 `0x0cde87c1…`는 Robinhood에 코드가 없음. Robinhood InstantLaunchStrategy `0x23f8…`: code hash `0x29df…cffca`, 배포 블록 28,519,960, launcher = v3.2.0.
+- AI 실행 검증: 아래 WORKLOG 추가분의 명령 결과 참조.
+- 사람 직접 검증: 사람 검증 대기.
+- 남은 문제: 최근 30건 중 1건은 코드가 남은 중간 컨트랙트를 거쳐 어느 경로로도 등록할 수 없다. 공개 RPC가 트레이스·과거 상태를 제공하지 않아 해당 컨트랙트의 배포자는 확인하지 못했다.

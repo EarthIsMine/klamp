@@ -32,9 +32,9 @@ E2E는 새 Anvil에서 실제 ENSv2·PoolManager·StateView·ERC20 probe를 배�
 
 ## 조회 결과와 클라이언트 정책
 
-SDK 결과는 `found`, `missing`, `invalid`, `unavailable`, `ambiguous`로 나뉜다. 조회 실패를 미등록으로 표시하지 않는다. ENS의 실제 빈 레코드일 때만 이벤트 fallback을 시도한다. 기본 외부 이벤트 소스는 미설정이며 임의 런처 로그를 신뢰하지 않는다.
+SDK 결과는 설계 문서대로 `registered`(등록됨), `not_registered`(미등록), `lookup_failed`(조회 실패)로 나뉜다. 조회 실패의 세부 원인은 `reason`(rpc·resolution·namespace·format·chain·pool-uninitialized·record-mismatch·multiple-launch-pools)에 남긴다. 조회 실패를 미등록으로 표시하지 않는다. ENS의 실제 빈 레코드일 때만 이벤트 fallback을 시도하고, 신뢰한 런칭 이벤트로 얻은 풀은 등록됨과 같이 취급한다. 경로 판정은 `judge()`(allow·requote_canonical·requote_static·hold)가 담당한다. 기본 외부 이벤트 소스는 미설정이며 임의 런처 로그를 신뢰하지 않는다.
 
-대표 풀 검증 모드는 `found`이고 대상 토큰을 포함하는 모든 branch/hop의 체인·PoolManager·PoolId가 일치해야 한다. 공통 자산만 포함하는 hop에는 대표 풀을 강제하지 않는다. 화면의 경로 정보 일치는 불투명한 외부 calldata의 실행 풀을 보장하지 않으며 직접 컨트랙트 호출을 막지 않는다.
+대표 풀 검증 모드는 `registered`이고 대상 토큰을 포함하는 모든 branch/hop의 체인·PoolManager·PoolId가 일치해야 한다. 공통 자산만 포함하는 hop에는 대표 풀을 강제하지 않는다. 화면의 경로 정보 일치는 불투명한 외부 calldata의 실행 풀을 보장하지 않으며 직접 컨트랙트 호출을 막지 않는다.
 
 ## 보장과 제약
 

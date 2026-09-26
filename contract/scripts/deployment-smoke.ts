@@ -9,8 +9,8 @@ if(!process.env.RPC_URL) throw Error('RPC_URL is required');
 const client=createReader(process.env.RPC_URL);
 const block=await client.getBlockNumber();
 const result=await getCanonicalPool(client,config,raw.token);
-assert.equal(result.status,'found');
-if(result.status!=='found') throw Error('Missing canonical pool');
+assert.equal(result.status,'registered');
+if(result.status!=='registered') throw Error('Missing canonical pool');
 const resolverAbi=parseAbi([
  'function text(bytes32,string) view returns (string)','function data(bytes32,string) view returns (bytes)',
  'function setText(bytes32,string,string)','function setData(bytes32,string,bytes)',
@@ -33,20 +33,27 @@ async function rejected(call:Promise<unknown>,expected:string) {
 }
 await client.simulateContract({address:raw.resolver,abi:resolverAbi,functionName:'setText',args:[node,'description','smoke eth_call only'],account:raw.editor??raw.operator});
 await client.simulateContract({address:raw.resolver,abi:resolverAbi,functionName:'setText',args:[node,'url','https://example.com'],account:raw.editor??raw.operator});
+// The issuer contract gets no description/url rights.
+await rejected(client.simulateContract({address:raw.resolver,abi:resolverAbi,functionName:'setText',args:[node,'description','issuer'],account:raw.create2Launcher}),'EACUnauthorizedAccountRoles');
 await rejected(client.simulateContract({address:raw.resolver,abi:resolverAbi,functionName:'setText',args:[node,'pool','forged'],account:raw.operator}),'EACUnauthorizedAccountRoles');
 const registrarAbi=parseAbi([
- 'function recordByCreate2(address,(address currency0,address currency1,uint24 fee,int24 tickSpacing,address hooks),bytes32,bytes32)',
+ 'function recordByCreate2(address,(address currency0,address currency1,uint24 fee,int24 tickSpacing,address hooks),bytes32,bytes32,address)',
  'error AlreadyRecorded()',
 ]);
-await rejected(client.simulateContract({address:raw.registrar,abi:registrarAbi,functionName:'recordByCreate2',args:[raw.token,key,raw.salt,raw.initCodeHash],account:raw.create2Launcher}),'AlreadyRecorded');
+await rejected(client.simulateContract({address:raw.registrar,abi:registrarAbi,functionName:'recordByCreate2',args:[raw.token,key,raw.salt,raw.initCodeHash,raw.editor??raw.operator],account:raw.create2Launcher}),'AlreadyRecorded');
 const registryAbi=parseAbi([
- 'function roleCount(uint256) view returns (uint256)','function getResource(uint256) view returns (uint256)',
+ 'function roleCount(uint256) view returns (uint256)','function roles(uint256,address) view returns (uint256)','function getResource(uint256) view returns (uint256)',
  'function getState(uint256) view returns ((uint8 status,uint64 expiry,address latestOwner,uint256 tokenId,uint256 resource))',
  'function setResolver(uint256,address)','error EACUnauthorizedAccountRoles(uint256 resource,uint256 roleBitmap,address account)',
 ]);
+// Pinned RegistryRolesLib: ROLE_REGISTRAR = 1 << 0, ROLE_REGISTRAR_ADMIN = ROLE_REGISTRAR << 128.
+const KEPT_REGISTRY_ROLES=1n|(1n<<128n);
 const id=(label:string)=>BigInt(keccak256(new TextEncoder().encode(label)));
 const rootState=await client.readContract({address:raw.ethRegistry,abi:registryAbi,functionName:'getState',args:[id('klamp')],blockNumber:block});
-assert.equal(await client.readContract({address:raw.registry,abi:registryAbi,functionName:'roleCount',args:[0n],blockNumber:block}),0n);
+// Only REGISTRAR(+ADMIN) stays until hooks.klamp.eth is registered in stage 2.
+const keptRegistryRoles=await client.readContract({address:raw.registry,abi:registryAbi,functionName:'roles',args:[0n,raw.operator],blockNumber:block});
+assert.equal(await client.readContract({address:raw.registry,abi:registryAbi,functionName:'roleCount',args:[0n],blockNumber:block}),keptRegistryRoles);
+assert.ok(keptRegistryRoles===0n||keptRegistryRoles===KEPT_REGISTRY_ROLES,'Unexpected registry roles after seal');
 assert.equal(await client.readContract({address:raw.ethRegistry,abi:registryAbi,functionName:'roleCount',args:[rootState.resource],blockNumber:block}),0n);
 await rejected(client.simulateContract({address:raw.registry,abi:registryAbi,functionName:'setResolver',args:[id('tokens'),raw.operator],account:raw.operator}),'EACUnauthorizedAccountRoles');
 const observedCodeHashes:Record<string,Hex>={};
@@ -68,6 +75,6 @@ if(config.chainId===31337n) {
  }
 }
 if(config.chainId!==31337n) assert.ok(deploymentBlock!==null&&publicTransactions.length>0,'Missing public deployment evidence');
-const report={chainId:config.chainId.toString(),checkedBlock:block.toString(),root:'klamp.eth',token:raw.token,poolId:result.poolId,addresses:Object.fromEntries(Object.keys(observedCodeHashes).map(k=>[k,raw[k]])),expiry:rootState.expiry.toString(),sealed:true,observedCodeHashes,versions,deploymentBlock,publicTransactions:[...new Set(publicTransactions)],checks:['ENS viem text/data','editor description/url eth_call','operator pool/resolver denied','overwrite denied','sealed roles'],ensAppUi:'not checked',humanVerification:'pending'};
+const report={chainId:config.chainId.toString(),checkedBlock:block.toString(),root:'klamp.eth',token:raw.token,poolId:result.poolId,addresses:Object.fromEntries(Object.keys(observedCodeHashes).map(k=>[k,raw[k]])),expiry:rootState.expiry.toString(),sealed:true,observedCodeHashes,versions,deploymentBlock,publicTransactions:[...new Set(publicTransactions)],checks:['ENS viem text/data','editor description/url eth_call','issuer metadata denied','operator pool/resolver denied','overwrite denied','sealed roles (registry REGISTRAR kept for hooks)'],ensAppUi:'not checked',humanVerification:'pending'};
 writeFileSync(process.env.SMOKE_OUTPUT??'deployments/local.verification.json',JSON.stringify(report,null,2)+'\n');
 console.log('Deployment smoke passed: ENS text/data, editor, overwrite, operator denial, sealed roles.');

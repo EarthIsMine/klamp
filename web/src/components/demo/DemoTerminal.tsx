@@ -499,7 +499,7 @@ export function DemoTerminal() {
               : stage === "enforce" && busy
                 ? enforcePendingCopy
                 : copy[stage];
-  const found = canonical?.status === "found";
+  const found = canonical?.status === "registered";
   const matched = comparison?.status === "match";
   const hookVerified = attestation?.status === "verified";
   const hookCompliant = Boolean(
@@ -628,7 +628,7 @@ export function DemoTerminal() {
                   <GuardGate><Mark size={58} /></GuardGate>
                   <FilterColumn>
                     <h2>Guarded Router decision</h2>
-                    <FilterRow><div><strong>Canonical PoolId</strong><code>{poolId ? short(poolId) : "Resolving…"}</code></div><b>{found ? "FOUND" : "WAIT"}</b></FilterRow>
+                    <FilterRow><div><strong>Canonical PoolId</strong><code>{poolId ? short(poolId) : "Resolving…"}</code></div><b>{found ? "REGISTERED" : "WAIT"}</b></FilterRow>
                     <FilterRow><div><strong>Issuer pool</strong><code>Chain 11155111 · {manager}</code></div><b>{matched ? "ALLOW" : "WAIT"}</b></FilterRow>
                   </FilterColumn>
                 </FilterBoard>

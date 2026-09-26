@@ -92,7 +92,7 @@ export const useDemoStore = create<DemoState>((set, get) => ({
     if (state.stage === "candidates" && state.launch && state.proposal) {
       set({ stage: "verify", busy: true });
       const canonical = await client.resolveCanonicalPool(state.launch.token);
-      if (canonical.status !== "found") {
+      if (canonical.status !== "registered") {
         set({ canonical, stage: "complete", busy: false });
         return;
       }

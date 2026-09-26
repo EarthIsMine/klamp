@@ -21,8 +21,8 @@ contract CanonicalPoolEnsIntegrationTest is NamespaceFixture {
         seal();
         address a = deployer.deploy(bytes32(uint256(1))); initialize(keyFor(a));
         deployer.recordWithEditor(registrar,a,keyFor(a),bytes32(uint256(1)),creator);
-        address b = launchToken(); initialize(keyFor(b));
-        vm.prank(creator); registrar.recordByLiquidityLauncher(b,keyFor(b),address(launcher));
+        address b = launchToken(); initialize(launchKeyFor(b));
+        vm.prank(creator); registrar.recordByLiquidityLauncher(b,address(launcher));
         assertResolution(a); assertResolution(b);
     }
     function testPermissionDelegationFailureRollsBackBothRecords() public {

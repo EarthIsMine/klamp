@@ -4,11 +4,11 @@ export interface RouteHop { chainId: bigint; poolManager: Address; poolId: Hex; 
 export type RouteComparison =
  | { status: 'match'; source: 'ens' | 'launch-event'; checkedHops: number }
  | { status: 'mismatch'; branch: number; hop: number }
- | { status: 'blocked'; reason: 'invalid-route' | Exclude<CanonicalPoolResult['status'],'found'> };
+ | { status: 'blocked'; reason: 'invalid-route' | Exclude<CanonicalPoolResult['status'],'registered'> };
 const eq=(a:string,b:string)=>a.toLowerCase()===b.toLowerCase();
 /** Compares declared route information; does not verify opaque execution calldata. */
 export function compareRoutes(token: Address, canonical: CanonicalPoolResult, branches: readonly (readonly RouteHop[])[]): RouteComparison {
- if(canonical.status!=='found') return {status:'blocked',reason:canonical.status};
+ if(canonical.status!=='registered') return {status:'blocked',reason:canonical.status};
  if(!isAddress(token)||branches.length===0) return {status:'blocked',reason:'invalid-route'};
  let checkedHops=0;
  for(const [b,branch] of branches.entries()) {

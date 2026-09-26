@@ -16,21 +16,23 @@ contract MetadataEditorTest is RegistrarFixture {
         vm.stopPrank();
         assertEq(resolver.text(node, "description"), "hello");
     }
-    function testZeroEditorRejected() public {
+    function testZeroCreatorGrantsNoMetadataRights() public {
         address token = deployer.deploy(0); initialize(keyFor(token));
-        vm.expectRevert(CanonicalPoolRegistrar.InvalidEditor.selector);
         deployer.recordWithEditor(registrar, token, keyFor(token), 0, address(0));
+        assertTrue(registrar.canonicalPoolOf(token) != bytes32(0));
+        vm.prank(address(deployer)); vm.expectRevert(); resolver.setText(nodeFor(token), "description", "issuer");
+        vm.prank(creator); vm.expectRevert(); resolver.setText(nodeFor(token), "description", "creator");
     }
     function testEditorCannotBecomeRegistrationProver() public {
         address token = deployer.deploy(0); initialize(keyFor(token));
-        vm.prank(creator); vm.expectRevert(CanonicalPoolRegistrar.NotDeployer.selector);
+        vm.prank(creator); vm.expectRevert(CanonicalPoolRegistrar.NotIssuer.selector);
         registrar.recordByCreate2(token, keyFor(token), 0, 0, creator);
     }
-    function testLegacyEditorIsCreate2Executor() public {
+    function testIssuerContractHasNoMetadataRights() public {
         address token = deployer.deploy(0); initialize(keyFor(token));
-        deployer.record(registrar, token, keyFor(token), 0);
+        deployer.recordWithEditor(registrar, token, keyFor(token), 0, creator);
         bytes32 node = nodeFor(token);
-        vm.prank(address(deployer)); resolver.setText(node, "description", "executor");
-        vm.prank(creator); vm.expectRevert(); resolver.setText(node, "description", "creator");
+        vm.prank(address(deployer)); vm.expectRevert(); resolver.setText(node, "description", "issuer");
+        vm.prank(creator); resolver.setText(node, "description", "creator");
     }
 }

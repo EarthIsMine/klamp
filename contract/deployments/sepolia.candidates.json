@@ -11,11 +11,15 @@
   "paymentToken": "0xd3322b29a7bdee707d1684676f149bf41aa3422f",
   "poolManager": "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543",
   "stateView": "0xe1dd9c3fa50edb962e442f60dfbc432e24537e4c",
-  "tokenFactory": null,
-  "launcher": null,
+  "tokenFactory": "0x000000e200088d55c39a11f609e5f667729ad49b",
+  "launchers": [
+    "0x00004c4ccc709Ef590F7C81102C0689F0263D4e9",
+    "0x0000FffFBE8efE702c8703aE3477FF5dE3d319C0"
+  ],
+  "launchersSource": "LiquidityLauncher v3.0.0 and v3.2.0: code present on Sepolia with the same runtime hash as Robinhood Chain (checked 2026-09-26). Still needs independently reviewed expectedCodeHashes.",
   "operator": null,
-  "hooksAdmin": null,
   "registrationDuration": "31536000",
   "maxRegistrationPrice": null,
-  "expectedCodeHashes": {}
+  "expectedCodeHashes": {},
+  "tokenFactorySource": "UERC20Factory used by Pools.trade on Robinhood (graffiti proof reproduced on a real launch); same runtime hash on Sepolia. The uerc20-factory README address 0x0cde87c1... exists on Sepolia but NOT on Robinhood Chain."
 }

@@ -15,11 +15,10 @@ contract SealPhase1 is Script {
             CanonicalPoolRegistrar(vm.envAddress("REGISTRAR")));
         PermissionedRegistry parent = PermissionedRegistry(vm.envAddress("ETH_REGISTRY"));
         UniversalResolverV2 universal = UniversalResolverV2(vm.envAddress("UNIVERSAL_RESOLVER"));
-        address hooksAdmin = vm.envAddress("HOOKS_ADMIN");
         uint256 chainId = vm.envUint("CHAIN_ID");
         address probe = vm.envAddress("PROBE_TOKEN");
         vm.startBroadcast(operator);
-        Phase1Setup.seal(d,parent,universal,operator,hooksAdmin,chainId,probe);
+        Phase1Setup.seal(d,parent,universal,operator,chainId,probe);
         vm.stopBroadcast();
     }
 }

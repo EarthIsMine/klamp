@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 import {RegistrarFixture, FixtureToken} from "./fixtures/RegistrarFixture.sol";
-import {CanonicalPoolRegistrar, PoolKey, IPermissionedResolver, IUERC20Factory, IStateView} from "../src/CanonicalPoolRegistrar.sol";
+import {CanonicalPoolRegistrar, PoolKey} from "../src/CanonicalPoolRegistrar.sol";
+import {PoolManager} from "@uniswap/v4-core/src/PoolManager.sol";
+import {PoolKey as V4Key} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 contract PoolValidationTest is RegistrarFixture {
     function assertEmpty(address token) internal view {
         assertEq(registrar.canonicalPoolOf(token), bytes32(0));
@@ -21,13 +26,15 @@ contract PoolValidationTest is RegistrarFixture {
         deployer.record(registrar, token, keyFor(token), 0);
         assertEmpty(token);
     }
+    /// @dev PoolManager rejects unsorted keys at initialize, so their PoolId can never be initialized.
     function testRejectUnsortedOrIdenticalCurrencies() public {
         address token = deployer.deploy(0);
+        initialize(keyFor(token));
         PoolKey memory key = keyFor(token); key.currency0 = token; key.currency1 = address(0);
-        vm.expectRevert(CanonicalPoolRegistrar.InvalidCurrencyOrder.selector);
+        vm.expectRevert(CanonicalPoolRegistrar.PoolNotInitialized.selector);
         deployer.record(registrar, token, key, 0);
         key.currency1 = token;
-        vm.expectRevert(CanonicalPoolRegistrar.InvalidCurrencyOrder.selector);
+        vm.expectRevert(CanonicalPoolRegistrar.PoolNotInitialized.selector);
         deployer.record(registrar, token, key, 0);
         assertEmpty(token);
     }
@@ -44,8 +51,23 @@ contract PoolValidationTest is RegistrarFixture {
         deployer.record(registrar, token, keyFor(token), 0);
         assertEmpty(token);
     }
-    function testRejectWrongManager() public {
-        vm.expectRevert(CanonicalPoolRegistrar.InvalidStateView.selector);
-        new CanonicalPoolRegistrar(IPermissionedResolver(address(resolver)), tokensName, IUERC20Factory(address(factory)), new address[](0), IStateView(address(stateView)), address(factory));
+    function testRejectPoolInitializedOnAnotherManager() public {
+        address token = deployer.deploy(0);
+        PoolManager other = new PoolManager(address(this));
+        PoolKey memory key = keyFor(token);
+        other.initialize(V4Key(Currency.wrap(key.currency0), Currency.wrap(key.currency1), key.fee, key.tickSpacing, IHooks(key.hooks)), uint160(1 << 96));
+        vm.expectRevert(CanonicalPoolRegistrar.PoolNotInitialized.selector);
+        deployer.record(registrar, token, key, 0);
+        assertEmpty(token);
+    }
+    function testPoolsSlotReadsInitializedPrice() public {
+        address token = deployer.deploy(0);
+        PoolKey memory key = keyFor(token);
+        initialize(key);
+        bytes32 id = keccak256(abi.encode(key));
+        uint160 price = uint160(uint256(manager.extsload(keccak256(abi.encodePacked(id, registrar.POOLS_SLOT())))));
+        (uint160 viewPrice,,,) = stateView.getSlot0(PoolId.wrap(id));
+        assertEq(price, uint160(1 << 96));
+        assertEq(price, viewPrice);
     }
 }

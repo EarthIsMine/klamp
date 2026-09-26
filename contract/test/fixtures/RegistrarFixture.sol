@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 import {Test} from "forge-std/Test.sol";
-import {CanonicalPoolRegistrar, PoolKey, IPermissionedResolver, IUERC20Factory, IStateView} from "../../src/CanonicalPoolRegistrar.sol";
+import {CanonicalPoolRegistrar, PoolKey, IPermissionedResolver, IUERC20Factory, IPoolManager as IExtsloadManager} from "../../src/CanonicalPoolRegistrar.sol";
 import {PermissionedResolver} from "ens-v2/resolver/PermissionedResolver.sol";
 import {PermissionedResolverLib as Roles} from "ens-v2/resolver/libraries/PermissionedResolverLib.sol";
 import {VerifiableFactory} from "@ensdomains/verifiable-factory/VerifiableFactory.sol";
@@ -24,8 +24,9 @@ contract Create2Launcher {
     function recordWithEditor(CanonicalPoolRegistrar registrar, address token, PoolKey memory key, bytes32 salt, address editor) external {
         registrar.recordByCreate2(token, key, salt, keccak256(type(FixtureToken).creationCode), editor);
     }
+    /// @dev creator = 0: no description/url rights for anyone.
     function record(CanonicalPoolRegistrar registrar, address token, PoolKey memory key, bytes32 salt) external {
-        registrar.recordByCreate2(token, key, salt, keccak256(type(FixtureToken).creationCode));
+        registrar.recordByCreate2(token, key, salt, keccak256(type(FixtureToken).creationCode), address(0));
     }
 }
 abstract contract RegistrarFixture is Test {
@@ -48,7 +49,7 @@ abstract contract RegistrarFixture is Test {
         address[] memory launchers = new address[](1); launchers[0] = address(launcher);
         manager = new PoolManager(address(this));
         stateView = new StateView(manager);
-        registrar = new CanonicalPoolRegistrar(IPermissionedResolver(address(resolver)), tokensName, IUERC20Factory(address(factory)), launchers, IStateView(address(stateView)), address(manager));
+        registrar = new CanonicalPoolRegistrar(IPermissionedResolver(address(resolver)), tokensName, IExtsloadManager(address(manager)), IUERC20Factory(address(factory)), launchers);
         resolver.authorizeTextRoles(hex"00", "pool", address(registrar), true);
         resolver.authorizeDataRoles(hex"00", "pool", address(registrar), true);
         resolver.authorizeNameRoles(hex"00", Roles.ROLE_SET_TEXT_ADMIN, address(registrar), true);
@@ -59,6 +60,10 @@ abstract contract RegistrarFixture is Test {
     }
     function keyFor(address token) internal pure returns (PoolKey memory) {
         return PoolKey(address(0), token, 3000, 60, address(0));
+    }
+    /// @dev InstantLaunchStrategy pool that path B always records.
+    function launchKeyFor(address token) internal pure returns (PoolKey memory) {
+        return PoolKey(address(0), token, 2500, 25, address(0));
     }
     function nodeFor(address token) internal pure returns (bytes32) {
         return NameCoder.namehash(NameCoder.encode(string.concat(vm.toLowercase(vm.toString(token)), ".tokens.klamp.eth")),0);

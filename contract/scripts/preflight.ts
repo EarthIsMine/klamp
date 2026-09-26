@@ -4,15 +4,18 @@ import { createReader } from '../sdk/canonicalPool.js';
 
 // Read-only. Expected hashes must come from independently reviewed deployments/builds.
 const input=JSON.parse(readFileSync(process.env.DEPLOYMENT_CONFIG??'deployments/sepolia.candidates.json','utf8'));
-const fields=['rootRegistry','ethRegistry','ethRegistrar','universalResolver','verifiableFactory','registryImplementation','resolverImplementation','poolManager','stateView','paymentToken','tokenFactory','launcher'];
-for(const key of [...fields,'operator','hooksAdmin']) if(!isAddress(input[key]??'')||/^0x0{40}$/i.test(input[key])) throw Error(`Missing or invalid configuration: ${key}`);
+const fields=['rootRegistry','ethRegistry','ethRegistrar','universalResolver','verifiableFactory','registryImplementation','resolverImplementation','poolManager','stateView','paymentToken','tokenFactory'];
+for(const key of [...fields,'operator']) if(!isAddress(input[key]??'')||/^0x0{40}$/i.test(input[key])) throw Error(`Missing or invalid configuration: ${key}`);
+const launchers:string[]=input.launchers??[];
+if(launchers.length===0||!launchers.every(l=>isAddress(l)&&!/^0x0{40}$/i.test(l))) throw Error('Missing or invalid configuration: launchers');
+const codeChecks:[string,Address][]=[...fields.map(k=>[k,input[k]] as [string,Address]),...launchers.map((l,i)=>[`launchers.${i}`,l as Address] as [string,Address])];
 if(!process.env.RPC_URL) throw Error('RPC_URL is required');
 const client=createReader(process.env.RPC_URL);
 const chainId=BigInt(input.chainId);
 if(BigInt(await client.getChainId())!==chainId) throw Error('Wrong chain');
 const block=await client.getBlockNumber();
-for(const key of fields) {
- const code=await client.getCode({address:input[key],blockNumber:block});
+for(const [key,address] of codeChecks) {
+ const code=await client.getCode({address,blockNumber:block});
  if(!code||code==='0x') throw Error(`No contract code: ${key}`);
  const expected=input.expectedCodeHashes?.[key] as Hex|undefined;
  if(!expected||!/^0x[0-9a-fA-F]{64}$/.test(expected)||keccak256(code).toLowerCase()!==expected.toLowerCase()) throw Error(`Unverified protocol code hash: ${key}`);
