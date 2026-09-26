@@ -49,7 +49,7 @@ ENSv2: the official Sepolia ENSv2 Beta set ([ENS deployments](https://docs.ens.d
 | KHOOK — path A token, hooked canonical pool declared in the launch tx | `0x4cB41E85e1E16D7de576e2a262fF1b96eE948b96` |
 | KDEMO — path B token, Pools.trade-style disposable launch | `0x5a37301CD105B8C9C85505B28FBE6327bd495188` |
 | PoolSeeder (creates the undeclared pool used in the demo) | `0x3F4bE4f833BCcf3b2A4c243f8E6e02762613Fabc` |
-| QuoteAwareFeeHook (demo attack hook: quotes 0.05% to V4Quoter, charges 10% on swaps; CREATE2-predicted, deployed with `script/DeployQuoteAwareHook.s.sol`) | `0x0795D625a3A6D17c073e889e6a2EEE0E1c728080` |
+| QuoteAwareFeeHook (demo attack hook: quotes 0.05% to V4Quoter, charges 10% on swaps; deployed with `script/DeployQuoteAwareHook.s.sol`, tx [`0x20e2efa6…`](https://sepolia.etherscan.io/tx/0x20e2efa6c53bb837172468b59ea5818d98c798f7d1d6e59fc540cc1312e20575)) | [`0x0795D625a3A6D17c073e889e6a2EEE0E1c728080`](https://sepolia.etherscan.io/address/0x0795D625a3A6D17c073e889e6a2EEE0E1c728080) |
 
 Explorer: [klamp.eth](https://explorer.ens.dev/klamp.eth) · [tokens.klamp.eth](https://explorer.ens.dev/tokens.klamp.eth) (Protocol ENSv2, role holders 0).
 
