@@ -277,7 +277,15 @@ export function DemoTerminal() {
   const caption = {
     ...captions[stage],
     ...(only("lookup") && launch && canonical && { line: `${short(launch.token.toLowerCase())}.tokens.klamp.eth → ${canonical.status}` }),
-    ...(only("judge") && judgement && { line: `verdict · ${judgement.verdict}` }),
+    ...(only("judge") && judgement && {
+      title: {
+        requote_canonical: "Undeclared hook pool: rejected",
+        allow: "Declared or static pool: allowed",
+        requote_static: "Nothing declared: static pools only",
+        hold: "ENS lookup failed: hold",
+      }[judgement.verdict],
+      line: `verdict · ${judgement.verdict}`,
+    }),
   };
 
   return (
@@ -294,7 +302,7 @@ export function DemoTerminal() {
           </div>
           {only("outcome") && <Tag>Naive side simulated</Tag>}
           {!busy && evidence && (
-            <Tag live={evidence.kind === "live"} title={evidence.kind === "live" ? "Read from Sepolia in this browser" : "Recorded demo snapshot"}>
+            <Tag live={evidence.kind === "live"} title={evidence.kind === "live" ? "Read from Sepolia in this browser" : evidence.reason ?? "Recorded demo snapshot"}>
               {evidence.kind === "live" ? `Live · Sepolia #${evidence.blockNumber}` : "Recorded snapshot"}
             </Tag>
           )}

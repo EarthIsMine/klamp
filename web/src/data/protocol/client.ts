@@ -286,6 +286,9 @@ async function paced<T>(ms: number, read: Promise<T>): Promise<T> {
  * read that fails falls back to the recorded value and is labelled as such. A failed ENS lookup stays
  * `lookup_failed`, as in the SDK: it is never replaced by a recorded `registered`.
  */
+/** Whether the last quote board was read live; the requote follows it. */
+let quotesAreLive = true;
+
 export const sepoliaProtocolClient: ProtocolClient = {
   async launchToken() {
     try {
@@ -313,14 +316,23 @@ export const sepoliaProtocolClient: ProtocolClient = {
   },
   async quoteCandidates() {
     // Candidate discovery is the router's job; the two KHOOK/ETH pools are fixed, their quotes are live.
-    const read = async () => {
+    const read = async (): Promise<QuoteBoard> => {
       const blockNumber = await sepoliaClient.getBlockNumber();
       const pools = candidates();
       const quotes = await Promise.all(pools.map((pool) => quoteExactIn(pool.key, AMOUNT_IN_WEI, blockNumber)));
       if (quotes.some((quote) => quote === null)) return quoteBoard();
-      return { ...quoteBoard(), candidates: pools.map((pool, index) => ({ ...pool, quotedOut: quotes[index]! })), evidence: live(blockNumber) };
+      const board = { ...quoteBoard(), candidates: pools.map((pool, index) => ({ ...pool, quotedOut: quotes[index]! })), evidence: live(blockNumber) };
+      // The trace is about a look-alike that quotes more. Swaps can move either pool's price; when the look-alike no
+      // longer quotes more at this block, replay the recorded quotes (labelled) instead of telling a different story.
+      const [declared, undeclared] = ["canonical", "undeclared"].map((id) => board.candidates.find((candidate) => candidate.id === id)!);
+      if (undeclared.quotedOut <= declared.quotedOut) {
+        return { ...quoteBoard(), evidence: { kind: "recorded", reason: `At block ${blockNumber} the look-alike no longer quotes more (${Math.round(undeclared.quotedOut)} vs ${Math.round(declared.quotedOut)} KHOOK); showing the recorded quotes.` } };
+      }
+      return board;
     };
-    return paced(DEMO_DELAY_MS.quotes, read().catch(() => quoteBoard()));
+    const board = await paced(DEMO_DELAY_MS.quotes, read().catch(() => quoteBoard()));
+    quotesAreLive = board.evidence?.kind === "live";
+    return board;
   },
   async naivePick(board) {
     await wait(DEMO_DELAY_MS.naive);
@@ -338,6 +350,8 @@ export const sepoliaProtocolClient: ProtocolClient = {
     return paced(DEMO_DELAY_MS.seal, read().catch(() => recordedSeal()));
   },
   async requoteCanonical(key, poolId) {
+    // Keep the requote on the same footing as the quotes it replaces.
+    if (!quotesAreLive) return paced(DEMO_DELAY_MS.requote, Promise.resolve({ ...requote(), evidence: { kind: "recorded" as const, reason: "Recorded, like the quotes it replaces." } }));
     const read = async () => {
       const blockNumber = await sepoliaClient.getBlockNumber();
       const quotedOut = await quoteExactIn(key, AMOUNT_IN_WEI, blockNumber);

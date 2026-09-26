@@ -763,3 +763,12 @@ Implementation status and human verification status are tracked separately; each
 - AI-run verification: `pnpm build` passed. Layout checked at 1440 px and 390 px with two test records injected into localStorage in the headless browser (not committed). Real wallet swaps were not run.
 - Finding: at block time of the check, KHOOK's undeclared pool no longer won the 0.0005 ETH quote (declared 196,041.85, undeclared 195,204.54), so Klamp's verdict was `allow`; recent swaps moved its price.
 - Human verification: Pending human verification.
+
+## WEB39 — Keep the trace coherent when live prices move
+
+- Date / environment / tools: 2026-09-27 / Next.js 15.5, Sepolia public RPC, headless Chromium / Claude Code (Opus 5.5)
+- Human decisions/changes: None; found while checking DEX9 and fixed because the live demo link is part of the submission.
+- Finding: on klamp.kro.kr/demo at block 11788129 the declared pool quoted more than the undeclared one (196,041.85 vs 195,204.54 KHOOK for 0.0005 ETH), so the naive pick was the declared pool, the verdict `allow`, step 6 still read "Undeclared hook pool: rejected", and → no longer advanced past it.
+- AI work: `sepoliaProtocolClient.quoteCandidates` replays the recorded quote board when the look-alike no longer quotes more, labelled `Recorded snapshot` with the block and live values in its tooltip; the requote follows the quotes (recorded if they were). Step 6's title follows the verdict (`allow`, `requote_static`, `hold` get their own). web README notes the fallback.
+- AI-run verification: `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm build`. Local build stepped through all nine steps against Sepolia at block 11788141: steps 2, 3 and 7 recorded with the reason, the rest live, verdict `requote_canonical`, the outcome reached.
+- Human verification: Pending human verification.

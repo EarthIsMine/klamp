@@ -9,7 +9,7 @@ export type PoolKey = {
 };
 
 /** Where a step's values came from: read from Sepolia in this browser session, or the recorded demo snapshot. */
-export type Evidence = { kind: "live"; blockNumber: number } | { kind: "recorded" };
+export type Evidence = { kind: "live"; blockNumber: number } | { kind: "recorded"; reason?: string };
 
 export type IssuerProof = "create2" | "liquidity_launcher" | "liquidity_launcher_via";
 
