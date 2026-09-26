@@ -1,5 +1,5 @@
-// 데모 2: Klamp 코드 없이, 표준 ENS 도구(viem)만으로 토큰의 대표 풀을 읽는다.
-// 실행: node read-pool.mjs [토큰주소]
+// Demo 2: reads a token's canonical pool using only standard ENS tooling (viem), without Klamp code.
+// Usage: node read-pool.mjs [tokenAddress]
 import { createPublicClient, http } from 'viem'
 import { sepolia } from 'viem/chains'
 
