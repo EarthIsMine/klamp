@@ -23,6 +23,18 @@ const launchPendingCopy = {
   detail: "The launcher is deploying the token, initializing its pool, and writing the ENS record.",
 };
 
+const routePendingCopy = {
+  state: "Step 2 of 5",
+  title: "Verifying the proposed route",
+  detail: "Klamp is resolving the canonical pool and comparing every declared field.",
+};
+
+const hookPendingCopy = {
+  state: "Step 3 of 5",
+  title: "Resolving the hook cap",
+  detail: "Klamp is checking the hook identity, code hash, and recorded maximum fee.",
+};
+
 const steps = [
   { stage: "launch" as const, index: "1", title: "Launch", detail: "ENS record" },
   { stage: "verify" as const, index: "2", title: "Verify route", detail: "Canonical pool" },
@@ -150,10 +162,10 @@ const HookIdentity = styled.div`
   h2 { margin: 0 0 8px; font-size: 23px; }
   p { margin: 0; color: ${colors.textSecondary}; font: 500 13px/1.5 ${mono}; overflow-wrap: anywhere; }
 `;
-const HookCap = styled.div`
+const HookCap = styled.div<{ verified: boolean }>`
   padding-left: 34px; border-left: 1px solid ${colors.borderStrong}; text-align: right;
   span { display: block; color: ${colors.textMuted}; font-size: 13px; margin-bottom: 9px; }
-  strong { font: 500 clamp(52px, 6vw, 76px)/1 ${mono}; letter-spacing: -.07em; color: ${colors.primaryHover}; animation: capReveal .42s cubic-bezier(.2,.8,.3,1) both; }
+  strong { font: 500 clamp(52px, 6vw, 76px)/1 ${mono}; letter-spacing: -.07em; color: ${colors.primaryHover}; animation: ${({ verified }) => verified ? "capReveal .42s cubic-bezier(.2,.8,.3,1) both" : "none"}; }
   @keyframes capReveal { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: scale(1); } }
   @media (max-width: 700px) { border-left: 0; border-top: 1px solid ${colors.borderStrong}; padding: 20px 0 0; text-align: left; }
 `;
@@ -327,7 +339,13 @@ function feeCapStatus(stage: DemoStage, verified: boolean, enforced: boolean) {
 export function DemoTerminal() {
   const { stage, busy, launch, canonical, comparison, attestation, enforcement, advance, reset } = useDemoStore();
   const current = stageIndex(stage);
-  const view = stage === "launch" && busy ? launchPendingCopy : copy[stage];
+  const view = stage === "launch" && busy
+    ? launchPendingCopy
+    : stage === "verify" && busy
+      ? routePendingCopy
+      : stage === "attest" && busy
+        ? hookPendingCopy
+        : copy[stage];
   const found = canonical?.status === "found";
   const matched = comparison?.status === "match";
   const hookVerified = attestation?.status === "verified";
@@ -339,9 +357,13 @@ export function DemoTerminal() {
   const manager = found ? short(canonical.poolManager) : "Resolving after declaration";
   const sceneKey = stage === "idle" || stage === "launch"
     ? "launch-flow"
+    : stage === "verify"
+      ? "route-verification"
+      : stage === "attest"
+        ? "hook-verification"
     : stage === "enforce" || stage === "complete"
       ? "fee-enforcement"
-      : `${stage}-${busy ? "busy" : "ready"}`;
+      : stage;
 
   return (
     <ReducedMotion>
@@ -414,7 +436,7 @@ export function DemoTerminal() {
                       <p>{attestation?.ensName ?? `${record?.key.hooks.toLowerCase()}.hooks.klamp.eth`}</p>
                     </div>
                   </HookIdentity>
-                  <HookCap><span>Maximum fee</span><strong>{hookVerified ? `${capPercent}%` : "…"}</strong></HookCap>
+                  <HookCap verified={hookVerified}><span>Maximum fee</span><strong>{hookVerified ? `${capPercent}%` : "…"}</strong></HookCap>
                   <HookChecks>
                     <div><span>ENS identity</span><strong>{hookVerified ? "Verified" : "Checking"}</strong></div>
                     <div><span>Code hash</span><strong>{attestation ? short(attestation.codeHash) : "Checking"}</strong></div>

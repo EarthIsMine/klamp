@@ -420,3 +420,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/demo/` 헤더에 Klamp와 `Project overview`만 남았는지, Step 1의 세 행이 좌우 경계에서 떨어져 정렬되는지 확인한다.
 - 남은 문제: 실제 GitHub Pages 배포 환경과 모바일 실기기 검증은 미실행이다.
+
+## WEB20 — Route·Hook 장면의 이중 전환 제거
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 검증 / Codex, `frontend-design` skill
+- AI 수행: Step 2와 Step 3의 `busy → ready` 전환마다 Scene key가 바뀌어 화면 전체가 다시 마운트되던 구조를 각각 `route-verification`, `hook-verification` 고정 장면으로 변경했다. route는 결과 도착 시 clamp 결합만, hook은 검증 완료 시 1% cap 수치만 애니메이션되도록 분리했다. 진행 중에는 완료 문구 대신 `Verifying the proposed route`, `Resolving the hook cap`을 표시한다. mock 응답 지연은 Launch 1,250ms, route 1,150ms, hook 1,150ms, cap 1,350ms로 늘렸다.
+- 사람의 결정/수정: 전체 대기 시간을 더 늘리고 Step 2와 Step 3 중간의 화면 깜빡임을 제거하도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, React 19, Emotion 11.14.1, `frontend-design` skill.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 Step 2와 Step 3의 진행 제목이 각각 표시되고 같은 구조 안에서 완료 데이터로 갱신되는 것을 확인했다. 클릭부터 다음 동작 가능 시점까지 route와 hook은 각각 1,296ms, cap은 1,497ms였고 document/viewport 높이는 모두 756px였다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 Step 2와 3을 실행해 장면 전체가 다시 나타나지 않고, 진행 문구 뒤 route clamp와 1% cap 값만 한 번 애니메이션되는지 확인한다.
+- 남은 문제: 실제 GitHub Pages 배포 환경과 모바일 실기기의 전환 검증은 미실행이다.
