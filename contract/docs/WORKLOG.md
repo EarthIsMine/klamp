@@ -442,3 +442,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/demo/` Step 2를 실행해 검증 중에는 중앙 주황선이 없고, 완료 문구와 함께 선이 양옆으로 펼쳐지는지 확인한다.
 - 남은 문제: 실제 GitHub Pages 배포 환경과 모바일 실기기의 애니메이션 검증은 미실행이다.
+
+## WEB22 — 데모 인과 순서와 결과 노출 동기화
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 1470×756 로컬 검증 / Codex, `frontend-design`, `browser` skills
+- AI 수행: Step 1에 `deploying → initializing → recording → complete` 시각 상태를 추가해 토큰 배포, 풀 초기화, ENS 기록이 동시에 진행되는 것처럼 보이지 않도록 했다. Step 4의 30% 공격 시퀀스가 재생되는 900ms 동안 다음 동작과 Reset을 잠그고 진행 문구를 분리했다. Step 5의 applied fee와 settlement proof는 mock 실행 결과가 도착하기 전에는 값과 영역을 숨기고, 결과가 상태에 기록된 뒤 1.00%와 실제 quoted/received output을 표시하도록 변경했다. 비동기 작업 중 Reset을 비활성화해 진행 중 요청과 초기화가 경합하지 않게 했다.
+- 사람의 결정/수정: 앞선 전체 애니메이션 점검 결과에 따라 시나리오의 인과관계가 더 명확해지도록 후속 수정을 계속 진행하도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, React 19, Emotion 11.14.1, Zustand 5.0.8, `frontend-design` skill, Browser skill.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 Step 1이 `Deploying/Waiting/Waiting` → `Complete/Initializing/Waiting` → `Complete/Complete/Writing` → 실제 기록값 순서로 바뀌는 것을 확인했다. Step 4 입력 직후 `Sending request…` 버튼이 비활성이고 950ms 뒤 `Apply 1% cap`이 활성화되는 것을 확인했다. Step 5 입력 후 1,000ms 시점까지 applied/result 영역의 opacity가 0이고 값이 비어 있으며, mock 결과 후 `1.00%`, `41,842.17`이 표시되는 것을 확인했다. 콘솔 오류가 없고 document/viewport 높이는 모두 756px였다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/demo/`에서 Step 1의 세 작업이 순서대로 바뀌는지, Step 4 공격 모션 중 다음 버튼을 누를 수 없는지, Step 5 결과가 cap 실행 완료 후에만 나타나는지 확인한다.
+- 남은 문제: 실제 컨트랙트/RPC 응답과 연결된 pending·실패·재시도 상태, GitHub Pages 배포 환경, 모바일 실기기 검증은 미실행이다.

@@ -10,10 +10,12 @@ import {
 import { mockProtocolClient, type ProtocolClient } from "@/data/protocol/client";
 
 export type DemoStage = "idle" | "launch" | "verify" | "attest" | "request" | "enforce" | "complete";
+export type LaunchVisualStep = "idle" | "deploying" | "initializing" | "recording" | "complete";
 
 type DemoState = {
   stage: DemoStage;
   busy: boolean;
+  launchStep: LaunchVisualStep;
   launch: LaunchReceipt | null;
   canonical: CanonicalPoolResult | null;
   comparison: RouteComparison | null;
@@ -26,12 +28,17 @@ type DemoState = {
 const initial = {
   stage: "idle" as DemoStage,
   busy: false,
+  launchStep: "idle" as LaunchVisualStep,
   launch: null,
   canonical: null,
   comparison: null,
   attestation: null,
   enforcement: null,
 };
+
+const wait = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+const LAUNCH_SEQUENCE_INTERVAL_MS = 360;
+const ATTACK_SEQUENCE_MS = 900;
 
 export const useDemoStore = create<DemoState>((set, get) => ({
   ...initial,
@@ -40,9 +47,18 @@ export const useDemoStore = create<DemoState>((set, get) => ({
     if (state.busy) return;
 
     if (state.stage === "idle") {
-      set({ ...initial, stage: "launch", busy: true });
-      const launch = await client.launchToken();
-      set({ launch, stage: "launch", busy: false });
+      set({ ...initial, stage: "launch", busy: true, launchStep: "deploying" });
+      const launchRequest = client.launchToken();
+
+      await wait(LAUNCH_SEQUENCE_INTERVAL_MS);
+      if (get().stage === "launch" && get().busy) set({ launchStep: "initializing" });
+
+      await wait(LAUNCH_SEQUENCE_INTERVAL_MS);
+      if (get().stage === "launch" && get().busy) set({ launchStep: "recording" });
+
+      const launch = await launchRequest;
+      if (get().stage !== "launch" || !get().busy) return;
+      set({ launch, launchStep: "complete", stage: "launch", busy: false });
       return;
     }
 
@@ -72,7 +88,9 @@ export const useDemoStore = create<DemoState>((set, get) => ({
     }
 
     if (state.stage === "attest") {
-      set({ stage: "request" });
+      set({ stage: "request", busy: true });
+      await wait(ATTACK_SEQUENCE_MS);
+      if (get().stage === "request" && get().busy) set({ busy: false });
       return;
     }
 

@@ -35,6 +35,12 @@ const hookPendingCopy = {
   detail: "Klamp is checking the hook identity, code hash, and recorded maximum fee.",
 };
 
+const attackPendingCopy = {
+  state: "Step 4 of 5",
+  title: "Sending the 30% request",
+  detail: "Malicious logic inside the verified proxy is sending a 3,000 bps request.",
+};
+
 const steps = [
   { stage: "launch" as const, index: "1", title: "Launch", detail: "ENS record" },
   { stage: "verify" as const, index: "2", title: "Verify route", detail: "Canonical pool" },
@@ -264,14 +270,16 @@ const Cap = styled.div`
   @keyframes stopForce { 0% { opacity: 0; transform: scale(.15); } 45% { opacity: 1; transform: scale(1.18); } 100% { opacity: 1; transform: scale(1); } }
   @keyframes capSet { 0% { transform: translateX(22px) scale(1.22); } 55% { transform: translateX(-5px) scale(.9); } 78% { transform: translateX(3px) scale(1.04); } 100% { transform: translateX(0) scale(1); } }
 `;
-const AppliedFee = styled(FeeSide)`
-  animation: appliedReveal .38s ease-out .58s both;
+const AppliedFee = styled(FeeSide)<{ revealed: boolean }>`
+  opacity: ${({ revealed }) => revealed ? 1 : 0};
+  animation: ${({ revealed }) => revealed ? "appliedReveal .38s ease-out both" : "none"};
   strong { color: ${colors.primaryHover}; }
   @keyframes appliedReveal { from { opacity: 0; transform: translateX(-26px) scale(.84); } to { opacity: 1; transform: translateX(0) scale(1); } }
 `;
-const SettlementProof = styled.div`
+const SettlementProof = styled.div<{ revealed: boolean }>`
   grid-column: 1 / -1; width: min(560px, 100%); margin: 28px auto 0; display: grid; grid-template-columns: 1fr 1fr;
-  border-top: 1px solid ${colors.borderStrong}; animation: resultIn .28s ease-out .72s both;
+  border-top: 1px solid ${colors.borderStrong}; opacity: ${({ revealed }) => revealed ? 1 : 0};
+  animation: ${({ revealed }) => revealed ? "resultIn .28s ease-out .14s both" : "none"};
   div { padding: 12px 18px 0; }
   div + div { border-left: 1px solid ${colors.border}; }
   span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 4px; }
@@ -298,7 +306,8 @@ const Next = styled.button`
 `;
 const Reset = styled.button`
   border: 1px solid ${colors.borderStrong}; padding: 12px 15px; background: transparent; color: ${colors.textSecondary}; cursor: pointer; font-weight: 600; font-size: 13px;
-  &:hover { color: ${colors.textPrimary}; border-color: ${colors.textPrimary}; }
+  &:not(:disabled):hover { color: ${colors.textPrimary}; border-color: ${colors.textPrimary}; }
+  &:disabled { cursor: wait; opacity: .45; }
 `;
 
 const ReducedMotion = styled.div`
@@ -310,6 +319,7 @@ function actionLabel(stage: DemoStage, busy: boolean) {
   if (busy && stage === "launch") return "Launching…";
   if (busy && stage === "verify") return "Verifying route…";
   if (busy && stage === "attest") return "Verifying hook…";
+  if (busy && stage === "request") return "Sending request…";
   if (busy && stage === "enforce") return "Applying cap…";
   if (stage === "idle") return "Launch token and record pool";
   if (stage === "launch") return "Verify proposed route";
@@ -337,7 +347,7 @@ function feeCapStatus(stage: DemoStage, verified: boolean, enforced: boolean) {
 }
 
 export function DemoTerminal() {
-  const { stage, busy, launch, canonical, comparison, attestation, enforcement, advance, reset } = useDemoStore();
+  const { stage, busy, launchStep, launch, canonical, comparison, attestation, enforcement, advance, reset } = useDemoStore();
   const current = stageIndex(stage);
   const view = stage === "launch" && busy
     ? launchPendingCopy
@@ -345,6 +355,8 @@ export function DemoTerminal() {
       ? routePendingCopy
       : stage === "attest" && busy
         ? hookPendingCopy
+        : stage === "request" && busy
+          ? attackPendingCopy
         : copy[stage];
   const found = canonical?.status === "found";
   const matched = comparison?.status === "match";
@@ -355,6 +367,11 @@ export function DemoTerminal() {
   const capPercent = (capBps / 100).toFixed(2);
   const poolId = found ? canonical.poolId : record?.poolId;
   const manager = found ? short(canonical.poolManager) : "Resolving after declaration";
+  const tokenReady = Boolean(record) || launchStep === "initializing" || launchStep === "recording" || launchStep === "complete";
+  const poolReady = Boolean(record) || launchStep === "recording" || launchStep === "complete";
+  const tokenValue = record ? short(record.token) : launchStep === "deploying" ? "Deploying…" : tokenReady ? "Complete" : "Waiting";
+  const poolValue = record ? short(record.poolId) : launchStep === "initializing" ? "Initializing…" : poolReady ? "Complete" : "Waiting";
+  const ensValue = record?.ensName ?? (launchStep === "recording" ? "Writing…" : launchStep === "idle" ? "0x<token>.tokens.klamp.eth" : "Waiting");
   const sceneKey = stage === "idle" || stage === "launch"
     ? "launch-flow"
     : stage === "verify"
@@ -401,9 +418,9 @@ export function DemoTerminal() {
                   </LaunchActor>
                   <LaunchBridge active={stage === "launch"}><Mark size={62} /></LaunchBridge>
                   <LaunchReceipt>
-                    <dt>Token deployed</dt><dd data-complete={Boolean(record)}>{record ? short(record.token) : busy ? "Deploying…" : "Waiting"}</dd>
-                    <dt>Pool initialized</dt><dd data-complete={Boolean(record)}>{record ? short(record.poolId) : busy ? "Initializing…" : "Waiting"}</dd>
-                    <dt>ENS record written</dt><dd data-complete={Boolean(record)}>{record?.ensName ?? (busy ? "Writing…" : "0x<token>.tokens.klamp.eth")}</dd>
+                    <dt>Token deployed</dt><dd data-complete={tokenReady}>{tokenValue}</dd>
+                    <dt>Pool initialized</dt><dd data-complete={poolReady}>{poolValue}</dd>
+                    <dt>ENS record written</dt><dd data-complete={Boolean(record)}>{ensValue}</dd>
                   </LaunchReceipt>
                 </LaunchFlow>
               </Scene>
@@ -461,10 +478,10 @@ export function DemoTerminal() {
                 <Enforcement>
                   <IncomingFee><span>Incoming</span><strong style={{ color: colors.danger }}>30.00%</strong></IncomingFee>
                   <Cap><Mark size={76} /><span>ENS maximum {capPercent}%</span></Cap>
-                  <AppliedFee><span>Applied</span><strong>{enforced ? `${(enforcement.appliedBps / 100).toFixed(2)}%` : "…"}</strong></AppliedFee>
-                  <SettlementProof>
-                    <div><span>Quoted output</span><strong>{amount(enforcement?.quotedOut ?? 41842.17)}</strong></div>
-                    <div><span>Received output</span><strong>{enforced ? amount(enforcement.receivedOut) : "…"}</strong></div>
+                  <AppliedFee revealed={enforced}><span>Applied</span><strong>{enforced ? `${(enforcement.appliedBps / 100).toFixed(2)}%` : ""}</strong></AppliedFee>
+                  <SettlementProof revealed={enforced}>
+                    <div><span>Quoted output</span><strong>{enforced ? amount(enforcement.quotedOut) : ""}</strong></div>
+                    <div><span>Received output</span><strong>{enforced ? amount(enforcement.receivedOut) : ""}</strong></div>
                   </SettlementProof>
                 </Enforcement>
               </Scene>
@@ -477,7 +494,7 @@ export function DemoTerminal() {
                 <Status><span>Hook cap</span><strong>{feeCapStatus(stage, hookVerified, enforced)}</strong></Status>
               </Statuses>
               <Actions>
-                {stage !== "idle" && <Reset onClick={reset}>Reset</Reset>}
+                {stage !== "idle" && <Reset onClick={reset} disabled={busy}>Reset</Reset>}
                 <Next onClick={() => advance()} disabled={busy}>{actionLabel(stage, busy)}</Next>
               </Actions>
             </Bottom>
