@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { Address } from "viem";
 import { LaunchPanel } from "./components/LaunchPanel";
 import { LookAlikePanel } from "./components/LookAlikePanel";
+import { SealBadge } from "./components/SealBadge";
 import { SwapPanel } from "./components/SwapPanel";
 import { short } from "./lib/chain";
 import { CONTRACTS, EXPLORER, KNOWN_TOKENS, NETWORK } from "./lib/config";
@@ -29,7 +30,7 @@ export function App() {
   return (
     <div className="app">
       <header className="top">
-        <div className="brand"><span className="mark" />Klamp <em>DEX · Sepolia</em></div>
+        <div className="brand"><span className="mark" />Klamp <em>DEX · Sepolia</em><SealBadge /></div>
         <nav className="tabs" aria-label="Sections">
           {tabs.map((item) => (
             <button key={item.id} className={`tab ${tab === item.id ? "tab-on" : ""}`} onClick={() => setTab(item.id)}>

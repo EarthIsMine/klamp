@@ -8,6 +8,8 @@ A small working DEX on Sepolia that shows Klamp as if a launchpad and a router h
 | Look-alike pool | third party | `PoolSeeder.seed` opens another ETH/token pool (0.01%, 0.05% or 0.1% LP fee, with the same hook or none) priced about 3% above the declared pool, so it wins on quote. Declaring it is simulated (`eth_call`) and reverts with `NotIssuer`. |
 | Swap | trader | Every ETH pool of the token is found from PoolManager `Initialize` events and quoted with V4Quoter. With Klamp routing off the best quote wins. With it on, the app resolves the canonical pool from ENSv2, runs `judge` and `compareRoutes`, requotes on the allowed pools, checks the Universal Router `V4_SWAP` calldata against the judged PoolKey, and only then asks the wallet to sign. |
 
+The header badge answers "who can change a canonical pool?" from live ENSv2 role counts: registrar-only writers for `pool`, `description` and `url`, no resolver admin or upgrade role, no roles on `tokens.klamp.eth` or `klamp.eth`, and the one REGISTRAR role kept on the `klamp.eth` registry for `hooks.klamp.eth` (shown as a warning, not hidden).
+
 ## Code it reuses
 
 Nothing is copied. `vite.config.ts` aliases the repo's own code:
