@@ -687,3 +687,13 @@ Implementation status and human verification status are tracked separately; each
 - AI-run verification: dex built from a clean `git archive` checkout with no `contract/node_modules`; `pnpm install --frozen-lockfile` and `pnpm build` pass with pnpm 12.6.0; web `pnpm lint` and `pnpm build` pass. The combined `web/out` served locally: `/dex/` 200 (`/dex` 301 to `/dex/`), landing → "Try it with your wallet" → dex loads live KHOOK quotes and the seal badge → "Klamp home" returns to `/`.
 - Human verification: Pending (check the Pages run after pushing).
 
+
+## ATK1 — Reproduce the quote/swap fee divergence attack on v4-core
+
+- Date / environment / tools: 2026-09-27 / Foundry 1.7.1, solc 0.8.26, v4-core `59d3ecf5`, v4-periphery `ad04c9f` (both under `lib/liquidity-launcher/lib`) / Claude Code (Opus 5.5)
+- Human decisions/changes: After a judge-style review of the submission, the team asked for the attack reproduction the design doc describes to be in the repository (it was not: no test used dynamic fees or `OVERRIDE_FEE_FLAG`).
+- AI work: `test/QuoteDivergenceAttack.t.sol`. Real `PoolManager`, `PoolSwapTest`, `PoolModifyLiquidityTest` and v4-periphery `V4Quoter`. Same pair, same price and depth: a static 0.25% pool (what an issuer would declare) and a dynamic-fee look-alike whose `QuoteAwareFeeHook` (beforeSwap flag only) returns 0.05% when `sender` is the quoter and 10% or 30% otherwise. A router wrapper reverts below `quote × (1 − slippage)`. Tests: the look-alike wins the quote; the static pool pays exactly its quote; at 10% swap-time fee the swap reverts at 0.5/1/5% slippage and executes at 10/20/30% losing 9.95%; at 30% it reverts up to 20% and loses 29.96% at 30%. The log prints these as percentages for the demo video. v4-core's `Deployers` is not used: its solmate `MockERC20` makes `EnsDeploy`'s `vm.deployCode("MockERC20.sol:MockERC20")` ambiguous and broke `RegistrationFlowTest.setUp`.
+- AI-run verification: `forge test --match-contract QuoteDivergenceAttack -vv` 4/4 pass. `forge clean && forge build && forge test`: 9 suites, 38 passed, 0 failed. Found while checking: after `forge clean`, `forge test` alone fails 8 suites with `vm.deployCode: no matching artifact found`, because the ENS artifacts come from `script/EnsArtifacts.sol`, which `forge test` does not compile. The root and contract READMEs now run `forge build` before `forge test`. The README's Uniswap table points to the test.
+- Correction to an earlier record: the design doc's table shows −9.94%; this test measures −9.95% (fee gap 9.95 points on a 1e18 trade in 1e24 liquidity). The doc was not edited.
+- Human verification: Pending human verification (`forge build && forge test --match-contract QuoteDivergenceAttack -vv`).
+

@@ -10,6 +10,7 @@ This directory is the project root. From the Git repository root, run `cd contra
 
 ```sh
 ./scripts/setup-dependencies.sh
+forge build      # also compiles script/EnsArtifacts.sol, which the tests deploy by name
 forge test
 npm test
 npm run typecheck

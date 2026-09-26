@@ -74,6 +74,7 @@ The repository build of `CanonicalPoolRegistrar` matches the deployed bytecode (
 | What | Code |
 |---|---|
 | Launchpad: CREATE2 token, `PoolManager.initialize` of a hooked pool, locked single-sided liquidity, canonical record, all in the launch tx | [`DemoLaunchpad.sol:102-142`](contract/src/demo/DemoLaunchpad.sol#L102-L142) |
+| The attack Klamp routes around, on v4-core and v4-periphery's V4Quoter: a look-alike hook quotes 0.05% and charges 10% or 30% at swap time; the swap reverts or the trader loses the gap, up to their slippage (`forge test --match-contract QuoteDivergenceAttack -vv`) | [`QuoteDivergenceAttack.t.sol`](contract/test/QuoteDivergenceAttack.t.sol) |
 | Delta-fee hook (`afterSwap` + `afterSwapReturnDelta`) | [`DeltaFeeHook.sol:32-46`](contract/src/demo/DeltaFeeHook.sol#L32-L46) |
 | Registrar checks the pool is initialized with `PoolManager.extsload` | [`CanonicalPoolRegistrar.sol:147-156`](contract/src/CanonicalPoolRegistrar.sol#L147-L156) |
 | Pools.trade issuer proof via Uniswap LiquidityLauncher / UERC20Factory graffiti | [`CanonicalPoolRegistrar.sol:120-145`](contract/src/CanonicalPoolRegistrar.sol#L120-L145) |
@@ -101,6 +102,7 @@ The contract workspace uses npm and Foundry. Run its commands from `contract/`:
 ```sh
 cd contract
 ./scripts/setup-dependencies.sh
+forge build      # also compiles script/EnsArtifacts.sol, which the tests deploy by name
 forge test
 npm test
 npm run typecheck
