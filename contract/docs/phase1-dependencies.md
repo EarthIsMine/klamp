@@ -16,9 +16,9 @@
 
 ## 확인한 실제 ABI와 제약
 
-- PermissionedResolver `initialize(address,uint256,bytes[])`, `authorizeNameRoles(bytes,uint256,address,bool)`, `authorizeTextRoles(bytes,string,address,bool)`, `authorizeDataRoles(bytes,string,address,bool)`는 원문과 호환된다. 뒤의 세 함수는 bool을 반환한다.
-- `authorizeTextRoles`는 키 resource의 admin이 아니라 이름 resource의 TEXT_ADMIN을 검사한다. C05는 명세가 허용한 root TEXT_ADMIN 경로를 사용하며, registrar의 위임 코드를 description/url로 제한한다.
-- UserRegistry는 `constructor(ILabelStore,address)` 및 `initialize(address,uint256)`, `register(string,address,IRegistry,address,uint256,uint64)`를 사용한다. VerifiableFactory `deployProxy` salt는 uint256이다.
+- (C14, Beta `f2f0a05`) PermissionedResolver는 `initialize(Grant[],bytes[])`, 이름 기반 setter `setText(bytes name,string,string)`·`setData(bytes name,string,bytes)`, 키 단위 권한 `grantSetterRoles(bytes setter,address)`를 쓴다. 이름 단위 위임(`authorize*Roles`)은 없다. 레코드는 `resolve(name, data)`로만 읽힌다. 구현은 `=0.8.25`이고 생성자는 0 주소 namer를 거절한다.
+- 그래서 description·url은 registrar가 `creatorOf`로 크리에이터를 확인한 뒤 `setTokenText`로 대신 쓴다. registrar가 가진 권한은 `pool`(text·data)·`description`·`url` 키의 setter 역할뿐이다.
+- UserRegistry는 `constructor(ILabelStore,address)` 및 `initialize(Grant[])`, `register(string,address,IRegistry,address,uint256,uint64)`를 사용한다. VerifiableFactory `deployProxy` salt는 uint256이다.
 - ETHRegistrar는 `makeCommitment(string,address,bytes32,IRegistry,address,uint64,bytes32)`, `commit(bytes32)`, `register(string,address,bytes32,IRegistry,address,uint64,IERC20,bytes32)`, `renew(string,uint64,IERC20,bytes32)`를 제공한다.
 - UniversalResolverV2는 root registry, gateway provider, contract namer를 생성자 인자로 받고 AbstractUniversalResolver의 resolve 경로를 사용한다.
 - StateView `poolManager()` getter로 연결을 확인할 수 있다. `getSlot0(bytes32)` 반환은 uint160,int24,uint24,uint24이다.

@@ -45,7 +45,7 @@
 
 ## 사람이 직접 확인할 항목
 
-1. [viem getEnsText 공식 문서](https://viem.sh/docs/ens/actions/getEnsText)와 고정 버전 2.56.9의 strict 옵션·UniversalResolver 주소 처리를 읽는다. [고정 ENSv2 소스](https://github.com/ensdomains/contracts-v2/tree/48b3e2d39513b9dd32ef1850877a29009bc807b9)에서 권한·와일드카드 경로를 대조한다.
+1. [viem getEnsText 공식 문서](https://viem.sh/docs/ens/actions/getEnsText)와 고정 버전 2.56.9의 strict 옵션·UniversalResolver 주소 처리를 읽는다. [고정 ENSv2 소스](https://github.com/ensdomains/contracts-v2/tree/f2f0a05e6c1711134b73204a1e37f8e6c1aea6ab)에서 권한·와일드카드 경로를 대조한다.
 2. 위 명령을 직접 실행해 결과를 확인한다. AI 실행 기록을 복사해 사람 검증으로 바꾸지 않는다.
 3. [데모 절차](phase1-deployment.md)로 화면에서 일치/다른 풀/미등록/RPC 실패 표시를 확인한다. 실제 거래 전송이 없는 비교 데모임을 확인한다.
 4. WORKLOG에 검증자 식별명, 날짜, 문서·명령, 실제 결과·증거 위치를 추가한다. 실제 받은 피드백만 FEEDBACK에 기록한다.
