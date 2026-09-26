@@ -29,9 +29,10 @@ export interface ProtocolClient {
 }
 
 /*
- * Sepolia values from the team deployment (contract/deployments/sepolia.phase1.json, demo-pathA.json)
- * and the read-only demo CLI run for 0.0005 ETH. The replica pool and its swap-time fee are simulated:
- * the attack pool is not deployed yet.
+ * Sepolia values: team deployment (contract/deployments/sepolia.phase1.json, demo-pathA.json), the
+ * read-only demo CLI run for 0.0005 ETH (quotes, verdict, requote) and the team's Klamp-mode swap tx.
+ * The undeclared pool is real (PoolSeeder, same honest hook). Only the final outcome is simulated: it
+ * assumes that pool's hook charged 10% at swap time, because the attack pool is not deployed yet.
  */
 const ZERO: HexAddress = "0x0000000000000000000000000000000000000000";
 const KHOOK: HexAddress = "0x4cB41E85e1E16D7de576e2a262fF1b96eE948b96";
@@ -42,19 +43,21 @@ const TOKENS_RESOLVER: HexAddress = "0xa783344Fa423AC738D99cdfcaF1cB2Bc6B5ddC18"
 const POOL_MANAGER: HexAddress = "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543";
 const CREATOR: HexAddress = "0xFdE8F95394e7C4ae5d7D6667EE6582587494a9e1";
 const CANONICAL_POOL_ID: HexAddress = "0xcd973bc92799db8b453d1b4d897a44b6fd35f1990f153c3ff0a05e140cce95f6";
-const REPLICA_POOL_ID: HexAddress = "0x93e858d08aafd523583e476f5ba44490f4d14a7cb7ac91cdb8a5bed452ea6da1";
-const REPLICA_HOOK: HexAddress = "0xB665A4B5C889DA8ACF911378a9DB3497792C00C0";
+const UNDECLARED_POOL_ID: HexAddress = "0x84dd01cd1ef705c5a832af11a957284febdab0d2d8e318112c16a15d979f35e4";
+const V4_QUOTER: HexAddress = "0x61b3f2011a92d183c7dbadbda940a7555ccf9227";
+const UNIVERSAL_ROUTER: HexAddress = "0x3A9D48AB9751398BbFa63ad67599Bb04e4BdF98b";
 const CHAIN_ID = 11155111;
 
 export const CANONICAL_KEY: PoolKey = { currency0: ZERO, currency1: KHOOK, fee: 3000, tickSpacing: 60, hooks: DELTA_FEE_HOOK };
-const REPLICA_KEY: PoolKey = { currency0: ZERO, currency1: KHOOK, fee: 0x800000, tickSpacing: 60, hooks: REPLICA_HOOK };
+const UNDECLARED_KEY: PoolKey = { currency0: ZERO, currency1: KHOOK, fee: 500, tickSpacing: 10, hooks: DELTA_FEE_HOOK };
 
 const AMOUNT_IN = "0.0005 ETH";
-const SLIPPAGE_BPS = 1500; // A meme trader's wide tolerance: the replica's 10% fee still executes.
+const SLIPPAGE_BPS = 500; // demo CLI default
+const WIDE_SLIPPAGE_BPS = 1500; // a meme trader's wide tolerance
 const CANONICAL_OUT = 196_119.71;
-const REPLICA_QUOTE_OUT = 198_597.46;
-const REPLICA_RECEIVED_OUT = 178_827.13;
-const minOut = (quoted: number) => Math.round(quoted * (1 - SLIPPAGE_BPS / 10_000) * 100) / 100;
+const UNDECLARED_OUT = 196_739.12;
+const ATTACKED_OUT = 178_853.75; // UNDECLARED_OUT × 0.90 / 0.99: the 1% delta fee replaced by 10%
+const minOut = (quoted: number, bps = SLIPPAGE_BPS) => Math.round(quoted * (1 - bps / 10_000) * 100) / 100;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -101,18 +104,18 @@ const candidates = (): CandidatePool[] => [
     poolId: CANONICAL_POOL_ID,
     quotedFeeBps: 130,
     quotedOut: CANONICAL_OUT,
-    hookBehavior: "0.30% LP + 1% delta fee, same at quote and swap",
+    hookBehavior: "0.30% LP + 1% delta fee",
     simulated: false,
   },
   {
-    id: "replica",
-    label: "Look-alike hook pool",
-    key: REPLICA_KEY,
-    poolId: REPLICA_POOL_ID,
-    quotedFeeBps: 5,
-    quotedOut: REPLICA_QUOTE_OUT,
-    hookBehavior: "0.05% when quoted, 10% when swapped",
-    simulated: true,
+    id: "undeclared",
+    label: "Undeclared hook pool",
+    key: UNDECLARED_KEY,
+    poolId: UNDECLARED_POOL_ID,
+    quotedFeeBps: 105,
+    quotedOut: UNDECLARED_OUT,
+    hookBehavior: "0.05% LP + 1% delta fee, created by a third party",
+    simulated: false,
   },
 ];
 
@@ -121,14 +124,15 @@ const quoteBoard = (): QuoteBoard => ({
   tokenIn: "ETH",
   tokenOut: "KHOOK",
   quoter: "V4Quoter",
+  quoterAddress: V4_QUOTER,
   candidates: candidates(),
 });
 
 const naiveSelection = (): NaiveSelection => ({
-  chosen: "replica",
-  quotedOut: REPLICA_QUOTE_OUT,
+  chosen: "undeclared",
+  quotedOut: UNDECLARED_OUT,
   slippageBps: SLIPPAGE_BPS,
-  minOut: minOut(REPLICA_QUOTE_OUT),
+  minOut: minOut(UNDECLARED_OUT),
 });
 
 const canonicalResult = (): Extract<CanonicalPoolResult, { status: "registered" }> => ({
@@ -151,17 +155,25 @@ const requote = (): Requote => ({
 
 const execution = (): SwapExecution => ({
   router: "Universal Router",
+  routerAddress: UNIVERSAL_ROUTER,
   actions: ["SWAP_EXACT_IN_SINGLE", "SETTLE_ALL", "TAKE_ALL"],
   calldataVerified: true,
-  receivedOut: CANONICAL_OUT,
+  amountIn: AMOUNT_IN,
+  receivedOut: 196_197.61,
+  hookFeeOut: 1_981.79,
+  txHash: "0x1cf6fddea42c635071e039f954659c1e5422ac33def47925e039f2e0f39ce04e",
+  blockNumber: 11786159,
 });
 
 const naiveOutcome = (): NaiveOutcome => ({
-  quotedOut: REPLICA_QUOTE_OUT,
+  quotedOut: UNDECLARED_OUT,
   executedFeeBps: 1000,
-  minOut: minOut(REPLICA_QUOTE_OUT),
-  receivedOut: REPLICA_RECEIVED_OUT,
-  lossBps: Math.round((1 - REPLICA_RECEIVED_OUT / REPLICA_QUOTE_OUT) * 10_000),
+  receivedOut: ATTACKED_OUT,
+  lossBps: Math.round((1 - ATTACKED_OUT / UNDECLARED_OUT) * 10_000),
+  traderSlippageBps: SLIPPAGE_BPS,
+  traderMinOut: minOut(UNDECLARED_OUT),
+  wideSlippageBps: WIDE_SLIPPAGE_BPS,
+  wideMinOut: minOut(UNDECLARED_OUT, WIDE_SLIPPAGE_BPS),
   simulated: true,
 });
 
@@ -198,7 +210,7 @@ export const mockProtocolClient: ProtocolClient = {
     const launch = launchReceipt();
     const board = quoteBoard();
     const canonical = canonicalResult();
-    const replica = board.candidates.find((candidate) => candidate.id === "replica")!;
+    const undeclared = board.candidates.find((candidate) => candidate.id === "undeclared")!;
     return {
       launch,
       board,
@@ -207,7 +219,7 @@ export const mockProtocolClient: ProtocolClient = {
       judgement: {
         verdict: "requote_canonical",
         comparison: { status: "mismatch", branch: 0, hop: 0 },
-        judgedPoolId: replica.poolId,
+        judgedPoolId: undeclared.poolId,
       },
       requote: requote(),
       execution: execution(),

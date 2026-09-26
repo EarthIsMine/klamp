@@ -181,7 +181,7 @@ export default function Home() {
               <TuiChecks><div><span>static</span><strong>no</strong></div><div><span>declared</span><strong>no</strong></div><div><span>verdict</span><strong>requote</strong></div></TuiChecks>
               <TuiRows><TuiRow><span>requote</span><code>declared pool · 196,119.71</code><span>[verify ok]</span></TuiRow></TuiRows>
             </TuiSection>
-            <TuiStatus><strong>REQUOTE</strong><span>look-alike pool skipped</span><span>exit 0</span></TuiStatus>
+            <TuiStatus><strong>REQUOTE</strong><span>undeclared pool skipped</span><span>exit 0</span></TuiStatus>
           </ProtocolTerminal>
         </HeroGrid>
       </Hero>

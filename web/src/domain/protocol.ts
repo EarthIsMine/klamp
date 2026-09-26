@@ -79,7 +79,7 @@ export type LaunchReceipt = {
 
 /** A candidate v4 pool as a quoting router sees it. `simulated` marks data that is not a live Sepolia pool. */
 export type CandidatePool = {
-  id: "canonical" | "replica";
+  id: "canonical" | "undeclared";
   label: string;
   key: PoolKey;
   poolId: HexAddress;
@@ -94,6 +94,7 @@ export type QuoteBoard = {
   tokenIn: string;
   tokenOut: string;
   quoter: string;
+  quoterAddress: HexAddress;
   candidates: CandidatePool[];
 };
 
@@ -122,20 +123,32 @@ export type Requote = {
   minOut: number;
 };
 
+/** A Klamp-mode swap the team executed on Sepolia through the Universal Router. */
 export type SwapExecution = {
   router: string;
+  routerAddress: HexAddress;
   actions: string[];
   calldataVerified: boolean;
+  amountIn: string;
   receivedOut: number;
+  hookFeeOut: number;
+  txHash: HexAddress;
+  blockNumber: number;
 };
 
-/** Execution of the naive pick against a replica hook that charges more at swap time than at quote time. */
+/**
+ * Simulated: what the naive pick would do if the undeclared pool's hook quoted 0.05% and charged 10% at swap time.
+ * With the trader's slippage the swap reverts; with a wide tolerance it executes at a loss.
+ */
 export type NaiveOutcome = {
   quotedOut: number;
   executedFeeBps: number;
-  minOut: number;
   receivedOut: number;
   lossBps: number;
+  traderSlippageBps: number;
+  traderMinOut: number;
+  wideSlippageBps: number;
+  wideMinOut: number;
   simulated: true;
 };
 

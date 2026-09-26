@@ -11,13 +11,13 @@ type Copy = { state: string; title: string; detail: string };
 const copy: Record<DemoStage, Copy> = {
   idle: { state: "Step 1 of 8", title: "Launch and declare the canonical pool", detail: "A CREATE2 launchpad deploys the token, creates its hooked pool with locked liquidity and declares that pool in the same transaction." },
   launch: { state: "Step 1 complete", title: "Canonical pool declared once", detail: "The registrar proved the launchpad deployed KHOOK and wrote the pool to ENSv2. Nobody, including us, can change it." },
-  quotes: { state: "Step 2 complete", title: "Two pools quote for the same pair", detail: "A look-alike hook pool quotes 0.05% and beats the declared pool on paper. Anyone can create it; the token issuer did not." },
-  naive: { state: "Step 3 complete", title: "A naive router takes the best quote", detail: "Quoting every pool and picking the largest output sends the trader to the look-alike pool." },
+  quotes: { state: "Step 2 complete", title: "Two hook pools quote for the same pair", detail: "A third party created a second KHOOK pool with a lower LP fee. It quotes more output than the declared pool. The token issuer did not create it." },
+  naive: { state: "Step 3 complete", title: "A naive router takes the best quote", detail: "Quoting every pool and picking the largest output sends the trader to the undeclared hook pool, whose hook the router cannot vouch for." },
   lookup: { state: "Step 4 complete", title: "Klamp reads the declared pool from ENS", detail: "Standard ENS resolution through UniversalResolverV2 answers the wildcard name. No Klamp ABI is needed to read it." },
-  judge: { state: "Step 5 complete", title: "The picked hook pool fails the verdict", detail: "It is neither the declared pool nor a static pool, so its quote cannot be trusted. The verdict is requote_canonical." },
+  judge: { state: "Step 5 complete", title: "The picked hook pool fails the verdict", detail: "It has a hook and is not the declared pool, so its quote cannot be trusted. The verdict is requote_canonical." },
   requote: { state: "Step 6 complete", title: "Requoted on the declared pool", detail: "V4Quoter prices the declared pool directly. The minimum output is set from this quote and the trader's slippage." },
-  execute: { state: "Step 7 complete", title: "Calldata checked, then swapped", detail: "The Universal Router calldata is decoded again before signing and must name the judged PoolKey. The trader received what was quoted." },
-  outcome: { state: "Trace complete", title: "The quoted fee is the fee paid", detail: "The naive route loses almost 10% to a swap-time fee. The Klamp route receives its quote. Traders did nothing extra." },
+  execute: { state: "Step 7 complete", title: "Calldata checked, then swapped", detail: "The Universal Router calldata is decoded again before signing and must name the judged PoolKey. Shown: the team's Klamp-mode swap on Sepolia." },
+  outcome: { state: "Trace complete", title: "The quoted fee is the fee paid", detail: "Had the undeclared hook charged 10% at swap time, the naive route would revert at 5% slippage or lose 9% at a wide one. The Klamp route never touches it." },
 };
 
 const pendingCopy: Partial<Record<DemoStage, Copy>> = {
@@ -28,12 +28,12 @@ const pendingCopy: Partial<Record<DemoStage, Copy>> = {
   judge: { state: "Step 5 of 8", title: "Judging the proposed route", detail: "Only pools that contain the token are judged: declared or static pools pass, other hook pools are requoted." },
   requote: { state: "Step 6 of 8", title: "Requoting on the declared pool", detail: "V4Quoter quoteExactInputSingle on the canonical PoolKey." },
   execute: { state: "Step 7 of 8", title: "Building and verifying the swap", detail: "V4_SWAP with SWAP_EXACT_IN_SINGLE, SETTLE_ALL, TAKE_ALL, checked against the judged route before signing." },
-  outcome: { state: "Step 8 of 8", title: "Comparing both executions", detail: "The naive pick executes against the look-alike hook's swap-time fee." },
+  outcome: { state: "Step 8 of 8", title: "Comparing both routes", detail: "Simulating the undeclared hook as an attack hook: 0.05% at quote time, 10% at swap time." },
 };
 
 const steps = [
   { stage: "launch" as const, index: "1", title: "Launch", detail: "Declared in ENS" },
-  { stage: "quotes" as const, index: "2", title: "Quotes", detail: "Declared + look-alike" },
+  { stage: "quotes" as const, index: "2", title: "Quotes", detail: "Declared + undeclared" },
   { stage: "naive" as const, index: "3", title: "Naive pick", detail: "Best quote wins" },
   { stage: "lookup" as const, index: "4", title: "Lookup", detail: "tokens.klamp.eth" },
   { stage: "judge" as const, index: "5", title: "Judge", detail: "requote_canonical" },
@@ -159,13 +159,13 @@ const ForkRail = styled.div`
   @media (max-width: 720px) { display: none; }
 `;
 const CandidateList = styled.div`display: grid; gap: 12px;`;
-const CandidatePool = styled.div<{ replica?: boolean }>`
+const CandidatePool = styled.div<{ undeclared?: boolean }>`
   position: relative; padding: 15px 18px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center;
-  border: 1px solid ${({ replica }) => replica ? colors.danger : colors.borderStrong}; background: ${({ replica }) => replica ? colors.dangerSoft : colors.surface};
-  animation: candidateIn .46s ease-out ${({ replica }) => replica ? ".38s" : ".22s"} both;
+  border: 1px solid ${({ undeclared }) => undeclared ? colors.danger : colors.borderStrong}; background: ${({ undeclared }) => undeclared ? colors.dangerSoft : colors.surface};
+  animation: candidateIn .46s ease-out ${({ undeclared }) => undeclared ? ".38s" : ".22s"} both;
   h2 { margin: 0 0 5px; font-size: 17px; }
   p { margin: 0; color: ${colors.textSecondary}; font: 500 12px/1.35 ${mono}; }
-  strong { font: 500 24px/1 ${mono}; color: ${({ replica }) => replica ? colors.danger : colors.textPrimary}; }
+  strong { font: 500 24px/1 ${mono}; color: ${({ undeclared }) => undeclared ? colors.danger : colors.textPrimary}; }
   span { display: block; margin-top: 4px; color: ${colors.textMuted}; font-size: 11px; text-align: right; }
   @keyframes candidateIn { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: translateX(0); } }
 `;
@@ -341,7 +341,7 @@ export function DemoTerminal() {
   const view = (busy && pendingCopy[stage]) || copy[stage];
   const record = launch?.canonicalPool ?? null;
   const declared = board?.candidates.find((candidate) => candidate.id === "canonical") ?? null;
-  const replica = board?.candidates.find((candidate) => candidate.id === "replica") ?? null;
+  const undeclared = board?.candidates.find((candidate) => candidate.id === "undeclared") ?? null;
   const registered = canonical?.status === "registered" ? canonical : null;
   const tokenReady = Boolean(record) || launchStep === "initializing" || launchStep === "recording" || launchStep === "complete";
   const poolReady = Boolean(record) || launchStep === "recording" || launchStep === "complete";
@@ -350,7 +350,7 @@ export function DemoTerminal() {
   const ensValue = record?.ensName ?? (launchStep === "recording" ? "recordByCreate2…" : launchStep === "idle" ? "0x<token>.tokens.klamp.eth" : "Waiting");
   const sceneKey = stage === "idle" ? "launch" : stage;
   const recordStatus = record ? "Declared once" : "Not declared";
-  const routeStatus = execution ? "Declared pool" : requote ? "Requoted" : judgement ? judgement.verdict : naive ? "Naive pick: look-alike" : board ? "Two candidates" : "Not started";
+  const routeStatus = execution ? "Declared pool" : requote ? "Requoted" : judgement ? judgement.verdict : naive ? "Naive pick: undeclared" : board ? "Two candidates" : "Not started";
   const executionStatus = naiveOutcome ? "Compared" : execution ? "Received = quote" : "Not started";
 
   return (
@@ -359,7 +359,7 @@ export function DemoTerminal() {
         <Instrument>
           <InstrumentHead>
             <TraceName><TraceMark complete={stage === "outcome" && !busy} />Klamp routing trace · Path A (KHOOK, Sepolia)</TraceName>
-            <TraceNote>Presentation trace: canonical values from Sepolia, look-alike pool simulated</TraceNote>
+            <TraceNote>Sepolia data (deployment, demo CLI, team swap tx); step 8 attack is simulated</TraceNote>
           </InstrumentHead>
           <Progress aria-label="Trace progress">
             {steps.map((item) => {
@@ -404,16 +404,16 @@ export function DemoTerminal() {
             {stage === "quotes" && (
               <Scene key={sceneKey}>
                 <CandidateBoard>
-                  <CandidateSource><Image src="/aggregator.svg" width={54} height={54} alt="" aria-hidden /><strong>{board?.quoter ?? "V4Quoter"}</strong><span>{board ? `${board.amountIn} → ${board.tokenOut}` : "Quoting…"}</span></CandidateSource>
+                  <CandidateSource><Image src="/aggregator.svg" width={54} height={54} alt="" aria-hidden /><strong>{board?.quoter ?? "V4Quoter"}</strong><span>{board ? `${short(board.quoterAddress)} · ${board.amountIn} → ${board.tokenOut}` : "Quoting…"}</span></CandidateSource>
                   <ForkRail aria-hidden="true"><i /><i /></ForkRail>
                   <CandidateList>
                     <CandidatePool>
                       <div><h2>{declared?.label ?? "Declared pool"}</h2><p>{declared ? `${short(declared.poolId)} · ${declared.hookBehavior}` : "Quoting…"}</p></div>
                       <div><strong>{declared ? amount(declared.quotedOut) : "…"}</strong><span>{declared ? `quoted ${percent(declared.quotedFeeBps)}` : ""}</span></div>
                     </CandidatePool>
-                    <CandidatePool replica>
-                      <div><h2>{replica?.label ?? "Look-alike pool"}{replica?.simulated && <Simulated>Simulated</Simulated>}</h2><p>{replica ? `${short(replica.poolId)} · ${replica.hookBehavior}` : "Quoting…"}</p></div>
-                      <div><strong>{replica ? amount(replica.quotedOut) : "…"}</strong><span>{replica ? `quoted ${percent(replica.quotedFeeBps)}` : ""}</span></div>
+                    <CandidatePool undeclared>
+                      <div><h2>{undeclared?.label ?? "Undeclared pool"}</h2><p>{undeclared ? `${short(undeclared.poolId)} · ${undeclared.hookBehavior}` : "Quoting…"}</p></div>
+                      <div><strong>{undeclared ? amount(undeclared.quotedOut) : "…"}</strong><span>{undeclared ? `quoted ${percent(undeclared.quotedFeeBps)}` : ""}</span></div>
                     </CandidatePool>
                   </CandidateList>
                 </CandidateBoard>
@@ -426,7 +426,7 @@ export function DemoTerminal() {
                   <DecisionColumn>
                     <h2>Quoted output (KHOOK)</h2>
                     <DecisionRow struck={Boolean(naive)}><div><strong>Declared pool</strong><code>{declared ? amount(declared.quotedOut) : "…"}</code></div><b>{naive ? "SKIPPED" : "…"}</b></DecisionRow>
-                    <DecisionRow tone={naive ? "pick" : undefined}><div><strong>Look-alike pool</strong><code>{replica ? amount(replica.quotedOut) : "…"}</code></div><b>{naive ? "CHOSEN" : "…"}</b></DecisionRow>
+                    <DecisionRow tone={naive ? "pick" : undefined}><div><strong>Undeclared hook pool</strong><code>{undeclared ? amount(undeclared.quotedOut) : "…"}</code></div><b>{naive ? "CHOSEN" : "…"}</b></DecisionRow>
                   </DecisionColumn>
                   <DecisionGate><Image src="/router.svg" width={54} height={54} alt="" aria-hidden /></DecisionGate>
                   <DecisionColumn>
@@ -467,9 +467,9 @@ export function DemoTerminal() {
               <Scene key={sceneKey}>
                 <DecisionBoard>
                   <DecisionColumn>
-                    <h2>Naive route · look-alike hop</h2>
-                    <DecisionRow tone={judgement ? "fail" : undefined}><div><strong>Static pool?</strong><code>{replica ? `hooks ${short(replica.key.hooks)} · dynamic fee` : "…"}</code></div><b>{judgement ? "NO" : "…"}</b></DecisionRow>
-                    <DecisionRow tone={judgement ? "fail" : undefined}><div><strong>Declared pool?</strong><code>{replica && registered ? `${short(replica.poolId)} ≠ ${short(registered.poolId)}` : "…"}</code></div><b>{judgement ? judgement.comparison.status.toUpperCase() : "…"}</b></DecisionRow>
+                    <h2>Naive route · undeclared hop</h2>
+                    <DecisionRow tone={judgement ? "fail" : undefined}><div><strong>Static pool?</strong><code>{undeclared ? `hooks ${short(undeclared.key.hooks)} · fee ${undeclared.key.fee}` : "…"}</code></div><b>{judgement ? "NO" : "…"}</b></DecisionRow>
+                    <DecisionRow tone={judgement ? "fail" : undefined}><div><strong>Declared pool?</strong><code>{undeclared && registered ? `${short(undeclared.poolId)} ≠ ${short(registered.poolId)}` : "…"}</code></div><b>{judgement ? judgement.comparison.status.toUpperCase() : "…"}</b></DecisionRow>
                   </DecisionColumn>
                   <DecisionGate><Mark size={58} /></DecisionGate>
                   <DecisionColumn>
@@ -498,7 +498,7 @@ export function DemoTerminal() {
                   </Metrics>
                   <Checks>
                     <div><span>Naive quote</span><strong>{naive ? amount(naive.quotedOut) : "…"}</strong></div>
-                    <div><span>Why lower</span><strong>Real fee, not bait</strong></div>
+                    <div><span>Why lower</span><strong>Declared, not cheapest</strong></div>
                     <div><span>Trader action</span><strong>None</strong></div>
                     <div><span>Pool</span><strong>{requote ? short(requote.poolId) : "…"}</strong></div>
                   </Checks>
@@ -512,14 +512,14 @@ export function DemoTerminal() {
                   <RoutePipeline aria-label="Klamp SDK to Universal Router to PoolManager">
                     <RouteActor><Mark size={44} /><div><span>Klamp SDK</span><strong>buildSwap · verifySwapCalldata</strong></div></RouteActor>
                     <RouteRail delay={0.22} aria-hidden="true" />
-                    <RouteActor delay={0.42}><Image src="/router.svg" width={44} height={44} alt="" aria-hidden /><div><span>{execution?.router ?? "Universal Router"}</span><strong>{execution ? "V4_SWAP executed" : "Encoding V4_SWAP"}</strong></div></RouteActor>
+                    <RouteActor delay={0.42}><Image src="/router.svg" width={44} height={44} alt="" aria-hidden /><div><span>{execution ? `${execution.router} ${short(execution.routerAddress)}` : "Universal Router"}</span><strong>{execution ? "V4_SWAP executed" : "Encoding V4_SWAP"}</strong></div></RouteActor>
                     <RouteRail delay={0.65} aria-hidden="true" />
                     <RouteEndpoint delay={0.86}><Image src="/pool-manager.svg" width={38} height={38} alt="" aria-hidden /><div><span>PoolManager</span><strong>{execution ? "Declared pool swapped" : "Waiting"}</strong></div></RouteEndpoint>
                   </RoutePipeline>
                   <RouteHandoff>
-                    <div><span>Actions</span><strong>{execution ? execution.actions.join(" → ") : "…"}</strong></div>
-                    <div><span>Calldata PoolKey</span><strong>{execution?.calldataVerified ? "= judged route" : "Checking…"}</strong></div>
-                    <div><span>Received</span><strong>{execution ? `${amount(execution.receivedOut)} KHOOK` : "…"}</strong></div>
+                    <div><span>Calldata PoolKey</span><strong>{execution?.calldataVerified ? `= judged route · ${execution.actions.join(" → ")}` : "Checking…"}</strong></div>
+                    <div><span>{execution ? `Received for ${execution.amountIn}` : "Received"}</span><strong>{execution ? `${amount(execution.receivedOut)} KHOOK (+${amount(execution.hookFeeOut)} hook fee)` : "…"}</strong></div>
+                    <div><span>{execution ? `Sepolia block ${execution.blockNumber}` : "Transaction"}</span><strong>{execution ? short(execution.txHash) : "…"}</strong></div>
                   </RouteHandoff>
                 </RouteJourney>
               </Scene>
@@ -530,13 +530,13 @@ export function DemoTerminal() {
                 <OutcomeComparison>
                   <Outcome guarded>
                     <h2>Klamp route · declared pool</h2>
-                    <dl><dt>Quoted</dt><dd>{requote ? amount(requote.quotedOut) : "…"}</dd><dt>Fee at swap</dt><dd>same as quoted</dd><dt>Minimum</dt><dd>{requote ? amount(requote.minOut) : "…"}</dd></dl>
-                    <strong>{execution ? amount(execution.receivedOut) : "—"}</strong><p>Received exactly the quote.</p>
+                    <dl><dt>Pool</dt><dd>declared</dd><dt>Fee at swap</dt><dd>same as quoted</dd><dt>Minimum</dt><dd>{requote ? amount(requote.minOut) : "…"}</dd></dl>
+                    <strong>{requote ? amount(requote.quotedOut) : "—"}</strong><p>Current quote on the declared pool; the undeclared hook is never called.</p>
                   </Outcome>
                   <Outcome>
-                    <h2>Naive route · look-alike pool<Simulated>Simulated</Simulated></h2>
-                    <dl><dt>Quoted</dt><dd>{naiveOutcome ? amount(naiveOutcome.quotedOut) : "…"}</dd><dt>Fee at swap</dt><dd>{naiveOutcome ? percent(naiveOutcome.executedFeeBps) : "…"}</dd><dt>Minimum</dt><dd>{naiveOutcome ? amount(naiveOutcome.minOut) : "…"}</dd></dl>
-                    <strong>{naiveOutcome ? amount(naiveOutcome.receivedOut) : "—"}</strong><p>{naiveOutcome ? `−${percent(naiveOutcome.lossBps)} versus its quote, still above the slippage floor.` : "Executing…"}</p>
+                    <h2>Naive route · if its hook attacked<Simulated>Simulated</Simulated></h2>
+                    <dl><dt>Quoted</dt><dd>{naiveOutcome ? amount(naiveOutcome.quotedOut) : "…"}</dd><dt>Fee at swap</dt><dd>{naiveOutcome ? percent(naiveOutcome.executedFeeBps) : "…"}</dd><dt>{naiveOutcome ? `At ${percent(naiveOutcome.traderSlippageBps)} slippage` : "Trader slippage"}</dt><dd>{naiveOutcome ? `reverts (min ${amount(naiveOutcome.traderMinOut)})` : "…"}</dd></dl>
+                    <strong>{naiveOutcome ? amount(naiveOutcome.receivedOut) : "—"}</strong><p>{naiveOutcome ? `At ${percent(naiveOutcome.wideSlippageBps)} slippage it executes: −${percent(naiveOutcome.lossBps)} versus its quote.` : "Executing…"}</p>
                   </Outcome>
                 </OutcomeComparison>
               </Scene>
