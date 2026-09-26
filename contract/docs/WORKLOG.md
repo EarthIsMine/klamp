@@ -619,3 +619,4 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 6) 팀원 Sepolia 실행 로그 `docs/evidence/sepolia-broadcast/`(Commit 5, Finish 11, DemoLaunch 2, DemoPathA 4 트랜잭션, 영수증 전부 성공): `broadcast/`는 무시 대상이라 증거 폴더에 `run-latest.json`만 복사(타임스탬프 파일과 동일 내용). 키 필드 없음.
 - 7) Uniswap 제출용 `FEEDBACK.md`를 저장소 루트에 원본 그대로 추가(초안, Trading API 절은 팀 TODO). `contract/docs/FEEDBACK.md`는 팀원·멘토 피드백 기록용으로 별개.
 - 8) 루트 README에 인계 README의 소개·발행자 증명 표·Sepolia 배포 주소·알려진 한계·AI 사용 명시를 합치고 실행 경로를 이 저장소 구조(`contract/`, `demo/sepolia`, fork 프로파일)로 바꿈. 원문의 "all admin roles are revoked"는 체인 상태(klamp 레지스트리에 hooks용 REGISTRAR 잔존)와 달라 정확한 문장으로 수정. AI 사용은 WORKLOG 기록대로 Codex와 Claude Code를 구분.
+- 9) 인계 폴더의 `reference/`(Pools.trade 실제 런칭 Uptober 분석, 일회용 컨트랙트 경유 흐름; 공개 주소·tx만, 키 없음)를 발표 근거로 `docs/evidence/pools-trade/`에 원본 그대로 추가. `HANDOFF.md`는 별도 저장소를 공개한다는 전제의 작업 지시라 병합하지 않음.

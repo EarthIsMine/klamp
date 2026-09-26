@@ -1,0 +1,634 @@
+{
+  "id": "case-4fcd0f70",
+  "name": "0x4fcd0f70… — Uniswap Instant Launch of Uptober (UPTOBER) on Robinhood Chain",
+  "schemaVersion": 1,
+  "nodes": [
+    {
+      "id": "crt01",
+      "address": "0x0224e37d9fbd646b1462fa52dff6ffa761ae9cb5",
+      "chainid": 4663,
+      "label": "Creator (tx sender)",
+      "subLabel": null,
+      "role": "unknown_eoa",
+      "hop": 0,
+      "balance": null,
+      "notes": "EOA (eth_getCode=0x). Sent the launch tx with 2 ETH; received UPTOBER from initial buy and Fee Beneficiary NFT.",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "eph01",
+      "address": "0x965ef99c303be75ee3e1dad28aef47af93b3cd39",
+      "chainid": 4663,
+      "label": "Launch deployer (ephemeral)",
+      "subLabel": "self-destructed",
+      "role": "unknown_contract",
+      "hop": 1,
+      "balance": null,
+      "notes": "Created by this tx (receipt contractAddress); its constructor called LiquidityLauncher 3x then self-destructed. graffiti = keccak256(abi.encode(this)).",
+      "x": 360,
+      "y": 0
+    },
+    {
+      "id": "ll01",
+      "address": "0x0000ffffbe8efe702c8703ae3477ff5de3d319c0",
+      "chainid": 4663,
+      "label": "LiquidityLauncher",
+      "subLabel": "v3.2.0",
+      "role": "unknown_contract",
+      "hop": 2,
+      "balance": null,
+      "notes": "Verified ContractName LiquidityLauncher. createToken / distributeToken / distributeWithNative.",
+      "x": 720,
+      "y": 0
+    },
+    {
+      "id": "zero",
+      "address": "0x0000000000000000000000000000000000000000",
+      "chainid": 4663,
+      "label": "Zero address (mint)",
+      "subLabel": null,
+      "role": "unknown_contract",
+      "hop": 2,
+      "balance": null,
+      "notes": "Mint source for ERC-20 and ERC-721 Transfer logs.",
+      "x": 720,
+      "y": 180
+    },
+    {
+      "id": "str01",
+      "address": "0x23f8209572b4a1c2ad88a42749e830791fb027f1",
+      "chainid": 4663,
+      "label": "InstantLaunchStrategy",
+      "subLabel": null,
+      "role": "unknown_contract",
+      "hop": 3,
+      "balance": null,
+      "notes": "Unverified source. Emitted TokenLaunched and DistributionInitialized; label from user-supplied fixed info.",
+      "x": 1080,
+      "y": 0
+    },
+    {
+      "id": "fac01",
+      "address": "0x000000e200088d55c39a11f609e5f667729ad49b",
+      "chainid": 4663,
+      "label": "UERC20Factory",
+      "subLabel": null,
+      "role": "unknown_contract",
+      "hop": 3,
+      "balance": null,
+      "notes": "Verified ContractName UERC20Factory. CREATE2-deployed the token.",
+      "x": 1080,
+      "y": 180
+    },
+    {
+      "id": "nat01",
+      "address": "0x1242c9439d589cae85e121b1f79f2af51e91dcee",
+      "chainid": 4663,
+      "label": "Native buy strategy",
+      "subLabel": null,
+      "role": "unknown_contract",
+      "hop": 3,
+      "balance": null,
+      "notes": "Unverified. INativeStrategy target of distributeWithNative; forwarded 2 ETH to UniversalRouter. Role inferred.",
+      "x": 1080,
+      "y": 360
+    },
+    {
+      "id": "posm01",
+      "address": "0x58daec3116aae6d93017baaea7749052e8a04fa7",
+      "chainid": 4663,
+      "label": "Uniswap v4 PositionManager",
+      "subLabel": "Uniswap v4 Positions NFT",
+      "role": "nft_contract",
+      "hop": 4,
+      "balance": null,
+      "notes": "name() = Uniswap v4 Positions NFT. Minted LP position tokenId 3263881.",
+      "x": 1440,
+      "y": 0
+    },
+    {
+      "id": "pm01",
+      "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+      "chainid": 4663,
+      "label": "PoolManager",
+      "subLabel": "Uniswap v4",
+      "role": "defi_pool",
+      "hop": 4,
+      "balance": null,
+      "notes": "PoolKey: currency0 0x0 (ETH), currency1 UPTOBER, fee 2500, tickSpacing 25, hooks 0x0. PoolId 0x7cdbb6d6e904920c…. Initialize/ModifyLiquidity/Swap logs.",
+      "x": 1440,
+      "y": 180
+    },
+    {
+      "id": "dead",
+      "address": "0x000000000000000000000000000000000000dead",
+      "chainid": 4663,
+      "label": "0x…dead (burn)",
+      "subLabel": null,
+      "role": "unknown_eoa",
+      "hop": 4,
+      "balance": null,
+      "notes": "Received leftover token dust from the strategy.",
+      "x": 1440,
+      "y": 360
+    },
+    {
+      "id": "fs01",
+      "address": "0xeff166aaf189323c58dc27ed1206eb2c37faacdf",
+      "chainid": 4663,
+      "label": "FeeSplitter",
+      "subLabel": null,
+      "role": "unknown_contract",
+      "hop": 4,
+      "balance": null,
+      "notes": "Verified ContractName FeeSplitter. Receives LP position NFT (TokenLaunched topic3).",
+      "x": 1440,
+      "y": 540
+    },
+    {
+      "id": "tok01",
+      "address": "0x70be15b7f21e78e5c62fab6becc8ea089183a0f6",
+      "chainid": 4663,
+      "label": "Uptober",
+      "subLabel": "UPTOBER · UERC20",
+      "role": "erc20_token",
+      "hop": 4,
+      "balance": null,
+      "notes": "UERC20, 18 decimals, supply 1e9 to LiquidityLauncher. graffiti() = 0x4b0905bcad82f48bc7fe64878d665975872d6665d3f1ece7779d421bb6dbedfa = keccak256(abi.encode(0x965ef99c…))",
+      "x": 1440,
+      "y": 720
+    },
+    {
+      "id": "ur01",
+      "address": "0x8876789976decbfcbbbe364623c63652db8c0904",
+      "chainid": 4663,
+      "label": "UniversalRouter",
+      "subLabel": null,
+      "role": "unknown_contract",
+      "hop": 4,
+      "balance": null,
+      "notes": "Verified ContractName UniversalRouter. Swap sender for the initial buy.",
+      "x": 1440,
+      "y": 900
+    },
+    {
+      "id": "fbn01",
+      "address": "0xd35e9ca72f64c7f93be30fad67524323396b36d7",
+      "chainid": 4663,
+      "label": "Fee Beneficiary NFT",
+      "subLabel": null,
+      "role": "nft_contract",
+      "hop": 4,
+      "balance": null,
+      "notes": "name() = Fee Beneficiary. Minted tokenId 3263881 (same id as LP position) to creator. Link to FeeSplitter inferred.",
+      "x": 1440,
+      "y": 1080
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_tx",
+      "source": "crt01",
+      "target": "eph01",
+      "amount": "2",
+      "token": "ETH",
+      "token_address": null,
+      "txcount": 1,
+      "type": "contract_call",
+      "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+      "txhashes": [
+        "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      ],
+      "chainid": 4663,
+      "block": 72222806,
+      "transaction_index": 3,
+      "timestamp": "2026-09-25T12:21:50Z"
+    },
+    {
+      "id": "e_mint",
+      "source": "zero",
+      "target": "ll01",
+      "amount": "1000000000",
+      "token": "UPTOBER",
+      "token_address": "0x70be15b7f21e78e5c62fab6becc8ea089183a0f6",
+      "txcount": 1,
+      "type": "mint",
+      "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+      "txhashes": [
+        "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      ],
+      "chainid": 4663,
+      "block": 72222806,
+      "transaction_index": 3,
+      "timestamp": "2026-09-25T12:21:50Z",
+      "log_index": 2
+    },
+    {
+      "id": "e_appr",
+      "source": "ll01",
+      "target": "str01",
+      "amount": "1000000000",
+      "token": "UPTOBER",
+      "token_address": "0x70be15b7f21e78e5c62fab6becc8ea089183a0f6",
+      "txcount": 1,
+      "type": "approve",
+      "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+      "txhashes": [
+        "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      ],
+      "chainid": 4663,
+      "block": 72222806,
+      "transaction_index": 3,
+      "timestamp": "2026-09-25T12:21:50Z",
+      "log_index": 5
+    },
+    {
+      "id": "e_pull",
+      "source": "ll01",
+      "target": "str01",
+      "amount": "1000000000",
+      "token": "UPTOBER",
+      "token_address": "0x70be15b7f21e78e5c62fab6becc8ea089183a0f6",
+      "txcount": 1,
+      "type": "token_transfer",
+      "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+      "txhashes": [
+        "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      ],
+      "chainid": 4663,
+      "block": 72222806,
+      "transaction_index": 3,
+      "timestamp": "2026-09-25T12:21:50Z",
+      "log_index": 6
+    },
+    {
+      "id": "e_toposm",
+      "source": "str01",
+      "target": "posm01",
+      "amount": "1000000000",
+      "token": "UPTOBER",
+      "token_address": "0x70be15b7f21e78e5c62fab6becc8ea089183a0f6",
+      "txcount": 1,
+      "type": "token_transfer",
+      "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+      "txhashes": [
+        "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      ],
+      "chainid": 4663,
+      "block": 72222806,
+      "transaction_index": 3,
+      "timestamp": "2026-09-25T12:21:50Z",
+      "log_index": 8
+    },
+    {
+      "id": "e_lpnft",
+      "source": "zero",
+      "target": "str01",
+      "amount": "1",
+      "token": null,
+      "token_address": "0x58daec3116aae6d93017baaea7749052e8a04fa7",
+      "txcount": 1,
+      "type": "nft",
+      "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+      "txhashes": [
+        "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      ],
+      "chainid": 4663,
+      "block": 72222806,
+      "transaction_index": 3,
+      "timestamp": "2026-09-25T12:21:50Z",
+      "log_index": 9
+    },
+    {
+      "id": "e_liq",
+      "source": "posm01",
+      "target": "pm01",
+      "amount": "1000000000",
+      "token": "UPTOBER",
+      "token_address": "0x70be15b7f21e78e5c62fab6becc8ea089183a0f6",
+      "txcount": 1,
+      "type": "liquidity_add",
+      "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+      "txhashes": [
+        "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      ],
+      "chainid": 4663,
+      "block": 72222806,
+      "transaction_index": 3,
+      "timestamp": "2026-09-25T12:21:50Z",
+      "log_index": 11
+    },
+    {
+      "id": "e_dust",
+      "source": "pm01",
+      "target": "str01",
+      "amount": "0.000000000000017786",
+      "token": "UPTOBER",
+      "token_address": "0x70be15b7f21e78e5c62fab6becc8ea089183a0f6",
+      "txcount": 1,
+      "type": "token_transfer",
+      "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+      "txhashes": [
+        "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      ],
+      "chainid": 4663,
+      "block": 72222806,
+      "transaction_index": 3,
+      "timestamp": "2026-09-25T12:21:50Z",
+      "log_index": 12
+    },
+    {
+      "id": "e_burn",
+      "source": "str01",
+      "target": "dead",
+      "amount": "0.000000000000017786",
+      "token": "UPTOBER",
+      "token_address": "0x70be15b7f21e78e5c62fab6becc8ea089183a0f6",
+      "txcount": 1,
+      "type": "token_transfer",
+      "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+      "txhashes": [
+        "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      ],
+      "chainid": 4663,
+      "block": 72222806,
+      "transaction_index": 3,
+      "timestamp": "2026-09-25T12:21:50Z",
+      "log_index": 13
+    },
+    {
+      "id": "e_fbnft",
+      "source": "zero",
+      "target": "crt01",
+      "amount": "1",
+      "token": null,
+      "token_address": "0xd35e9ca72f64c7f93be30fad67524323396b36d7",
+      "txcount": 1,
+      "type": "nft",
+      "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+      "txhashes": [
+        "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      ],
+      "chainid": 4663,
+      "block": 72222806,
+      "transaction_index": 3,
+      "timestamp": "2026-09-25T12:21:50Z",
+      "log_index": 16
+    },
+    {
+      "id": "e_tofs",
+      "source": "str01",
+      "target": "fs01",
+      "amount": "1",
+      "token": null,
+      "token_address": "0x58daec3116aae6d93017baaea7749052e8a04fa7",
+      "txcount": 1,
+      "type": "nft",
+      "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+      "txhashes": [
+        "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      ],
+      "chainid": 4663,
+      "block": 72222806,
+      "transaction_index": 3,
+      "timestamp": "2026-09-25T12:21:50Z",
+      "log_index": 17
+    },
+    {
+      "id": "e_buy",
+      "source": "pm01",
+      "target": "crt01",
+      "amount": "443094634.183417276686474675",
+      "token": "UPTOBER",
+      "token_address": "0x70be15b7f21e78e5c62fab6becc8ea089183a0f6",
+      "txcount": 1,
+      "type": "dex_swap",
+      "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+      "txhashes": [
+        "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      ],
+      "chainid": 4663,
+      "block": 72222806,
+      "transaction_index": 3,
+      "timestamp": "2026-09-25T12:21:50Z",
+      "log_index": 20
+    },
+    {
+      "id": "e_i_ll",
+      "source": "eph01",
+      "target": "ll01",
+      "amount": "2",
+      "token": "ETH",
+      "token_address": null,
+      "txcount": 1,
+      "type": "contract_call",
+      "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+      "txhashes": [
+        "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      ],
+      "chainid": 4663,
+      "block": 72222806,
+      "transaction_index": 3,
+      "timestamp": "2026-09-25T12:21:50Z",
+      "trace_id": "0"
+    },
+    {
+      "id": "e_create",
+      "source": "fac01",
+      "target": "tok01",
+      "amount": "0",
+      "token": "ETH",
+      "token_address": null,
+      "txcount": 1,
+      "type": "contract_call",
+      "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+      "txhashes": [
+        "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      ],
+      "chainid": 4663,
+      "block": 72222806,
+      "transaction_index": 3,
+      "timestamp": "2026-09-25T12:21:50Z",
+      "trace_id": "1"
+    },
+    {
+      "id": "e_i_nat",
+      "source": "ll01",
+      "target": "nat01",
+      "amount": "2",
+      "token": "ETH",
+      "token_address": null,
+      "txcount": 1,
+      "type": "contract_call",
+      "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+      "txhashes": [
+        "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      ],
+      "chainid": 4663,
+      "block": 72222806,
+      "transaction_index": 3,
+      "timestamp": "2026-09-25T12:21:50Z",
+      "trace_id": "2"
+    },
+    {
+      "id": "e_i_ur",
+      "source": "nat01",
+      "target": "ur01",
+      "amount": "2",
+      "token": "ETH",
+      "token_address": null,
+      "txcount": 1,
+      "type": "contract_call",
+      "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+      "txhashes": [
+        "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      ],
+      "chainid": 4663,
+      "block": 72222806,
+      "transaction_index": 3,
+      "timestamp": "2026-09-25T12:21:50Z",
+      "trace_id": "3"
+    },
+    {
+      "id": "e_i_pm",
+      "source": "ur01",
+      "target": "pm01",
+      "amount": "2",
+      "token": "ETH",
+      "token_address": null,
+      "txcount": 1,
+      "type": "dex_swap",
+      "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+      "txhashes": [
+        "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      ],
+      "chainid": 4663,
+      "block": 72222806,
+      "transaction_index": 3,
+      "timestamp": "2026-09-25T12:21:50Z",
+      "trace_id": "4"
+    }
+  ],
+  "_meta": {
+    "created_at": "2026-09-25T13:00:35Z",
+    "mode": "strict_trace",
+    "chain": "robinhood",
+    "chainid": 4663,
+    "chains": [
+      {
+        "chain": "robinhood",
+        "chainid": 4663
+      }
+    ],
+    "seed_txhashes": [
+      "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+    ],
+    "seed_addresses": [
+      "0x0224e37d9fbd646b1462fa52dff6ffa761ae9cb5"
+    ],
+    "hops_traced": 4,
+    "trace_window": {
+      "startblock": 72222806,
+      "endblock": 72222806,
+      "start_timestamp": "2026-09-25T12:21:50Z",
+      "end_timestamp": "2026-09-25T12:21:50Z",
+      "days": 0,
+      "source": "seed_tx"
+    },
+    "financials": {
+      "initial_buy_eth": "2",
+      "initial_buy_tokens_received": "443094634.183417276686474675",
+      "token_total_supply": "1000000000",
+      "lp_liquidity_tokens": "1000000000",
+      "note": "Single-tx launch: create token, seed full supply as single-sided v4 liquidity, creator initial buy of 2 ETH."
+    },
+    "analysis": null,
+    "business_profile": null,
+    "timeline": [
+      "[Block #72222806 | 2026-09-25 12:21 UTC] TX: 0x4fcd0f70… | Creator 0x0224e37d… deploys ephemeral 0x965ef99c… with 2 ETH",
+      "createToken: LiquidityLauncher -> UERC20Factory CREATE2 Uptober 0x70be15b7…, 1,000,000,000 UPTOBER minted to LiquidityLauncher (log 2-4)",
+      "distributeToken: LiquidityLauncher approves and InstantLaunchStrategy pulls 1,000,000,000 UPTOBER (log 5-6)",
+      "PoolManager Initialize pool 0x7cdbb6d6…: ETH/UPTOBER fee 2500 tickSpacing 25 hooks 0x0 tick 198050 (log 7)",
+      "PoolKey {currency0: 0x0000000000000000000000000000000000000000, currency1: 0x70be15b7f21e78e5c62fab6becc8ea089183a0f6, fee: 2500, tickSpacing: 25, hooks: 0x0000000000000000000000000000000000000000}",
+      "PositionManager mints LP tokenId 3263881, 1e9 UPTOBER single-sided liquidity ticks -160100..198050 (log 8-11)",
+      "Dust 17786 wei-units of UPTOBER returned to strategy and sent to 0x…dead (log 12-13)",
+      "DistributionInitialized + TokenLaunched emitted by strategy; Fee Beneficiary NFT 3263881 minted to creator; LP NFT sent to FeeSplitter (log 14-17)",
+      "distributeWithNative: 2 ETH -> native strategy 0x1242c943… -> UniversalRouter -> PoolManager swap; creator receives 443,094,634.18 UPTOBER (log 19-22)",
+      "Ephemeral deployer self-destructs to creator (internal row, value 0)"
+    ],
+    "patterns": [
+      {
+        "pattern": "single_tx_launch_with_creator_initial_buy",
+        "evidence_txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      },
+      {
+        "pattern": "ephemeral_constructor_deployer_selfdestruct",
+        "evidence_txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1"
+      }
+    ],
+    "candidates": [
+      {
+        "txhash": "0x4fcd0f70f06bdce192f844958726b54acb7d62611cebeacd9c20ed70886fe3d1",
+        "token": "0x70be15b7f21e78e5c62fab6becc8ea089183a0f6",
+        "strategy": "0x23f8209572b4a1c2ad88a42749e830791fb027f1",
+        "pool_swaps_seen": ">=1000 (getLogs page cap)",
+        "reason": "Most recent 0x23f8 TokenLaunched at least 20000 blocks old with pool Swap logs"
+      }
+    ],
+    "gaps": [
+      {
+        "type": "nametag_unavailable",
+        "detail": "Nametag lookup failed; labels come from verified ContractName, name() calls, and user-supplied fixed info.",
+        "endpoint": "nametag/getaddresstag",
+        "error": "Error! Missing Or invalid Action name"
+      },
+      {
+        "type": "mechanism_uncertainty",
+        "detail": "Etherscan API exposes no call trace; zero-value internal calls (createToken, distributeToken, initialize, modifyLiquidities) are inferred from events and embedded calldata, not observed."
+      },
+      {
+        "type": "source_unavailable",
+        "detail": "getsourcecode returned empty source (unverified) for InstantLaunchStrategy, native strategy 0x1242c943, PositionManager 0x58daec31, Fee Beneficiary 0xd35e9ca7.",
+        "endpoint": "contract/getsourcecode"
+      },
+      {
+        "type": "scope_limited",
+        "detail": "Case covers the seed launch tx only; post-launch swaps and fee collection not traced."
+      }
+    ],
+    "performance": {
+      "profile": "standard",
+      "new_api_calls": 29,
+      "network_attempts": 29,
+      "cache_hits": 0,
+      "fetchlog_hits": 0,
+      "retries": 0,
+      "rate_limit_responses": 0,
+      "pages_fetched": 29,
+      "pages_reused": 0,
+      "soft_call_target": 40,
+      "hard_call_limit": 100,
+      "elapsed_ms": 36587,
+      "stage_elapsed_ms": {
+        "seed": 0,
+        "classification": 0,
+        "trace": 0,
+        "totals": 0,
+        "analysis": 0,
+        "validation": 0
+      },
+      "soft_budget_overrun_reason": null
+    },
+    "disclaimer": "Roles, labels and notes are AI inference over public Etherscan API data — not Etherscan verdicts, accusations, or legal findings.",
+    "layout": {
+      "algorithm": "chronological_hops_v1",
+      "direction": "left_to_right_top_to_bottom",
+      "edge_order": "timestamp",
+      "same_transaction_order": "transaction_edge_then_log_index_then_trace_id",
+      "node_order": "hop_then_first_edge",
+      "x_spacing": 360,
+      "y_spacing": 180
+    }
+  }
+}
