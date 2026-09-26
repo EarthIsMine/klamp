@@ -36,7 +36,7 @@ type DemoState = {
   revocation: HookRevocation | null;
   advance: (client?: ProtocolClient) => Promise<void>;
   goBack: () => void;
-  goToStage: (stage: DemoStage) => void;
+  goToStage: (stage: DemoStage, client?: ProtocolClient) => void;
   reset: () => void;
 };
 
@@ -188,15 +188,43 @@ export const useDemoStore = create<DemoState>((set, get) => ({
       set({ stage: "enforce" });
     }
   },
-  goToStage: (target) => {
+  goToStage: (target, client = mockProtocolClient) => {
     const state = get();
     if (state.busy) return;
-    if (demoStageOrder.indexOf(target) > demoStageOrder.indexOf(state.furthestStage)) return;
-    if (target === "revoke" && state.revocation) {
-      set({ stage: "complete" });
+
+    const targetIndex = demoStageOrder.indexOf(target);
+    if (targetIndex <= demoStageOrder.indexOf(state.furthestStage)) {
+      if (target === "revoke" && state.revocation) {
+        set({ stage: "complete" });
+        return;
+      }
+      set({ stage: target });
       return;
     }
-    set({ stage: target });
+
+    const snapshot = client.getPresentationSnapshot?.();
+    if (!snapshot) return;
+
+    const reached = (stage: DemoStage) => targetIndex >= demoStageOrder.indexOf(stage);
+    const official = snapshot.proposal.candidates.find((candidate) => candidate.id === "official");
+    const comparison = compareRoutes(snapshot.launch.token, snapshot.canonical, official ? [official.route] : []);
+    const isRevocation = target === "revoke" || target === "complete";
+
+    set({
+      stage: isRevocation ? "complete" : target,
+      furthestStage: isRevocation ? "complete" : target,
+      busy: false,
+      launchStep: "complete",
+      launch: snapshot.launch,
+      proposal: reached("candidates") ? snapshot.proposal : null,
+      canonical: reached("verify") ? snapshot.canonical : null,
+      comparison: reached("verify") ? comparison : null,
+      attestation: reached("attest") ? snapshot.attestation : null,
+      quote: reached("attest") ? snapshot.quote : null,
+      forwarding: reached("forward") ? snapshot.forwarding : null,
+      enforcement: reached("enforce") ? snapshot.enforcement : null,
+      revocation: isRevocation ? snapshot.revocation : null,
+    });
   },
   reset: () => set(initial),
 }));

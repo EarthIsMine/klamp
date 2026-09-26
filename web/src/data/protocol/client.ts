@@ -7,6 +7,7 @@ import type {
   HookRevocation,
   HexAddress,
   LaunchReceipt,
+  PresentationSnapshot,
   PoolKey,
   ProposedRoute,
   RouteForwarding,
@@ -26,6 +27,7 @@ export interface ProtocolClient {
   forwardVerifiedRoute(route: RouteHop): Promise<RouteForwarding>;
   simulateFeeRequest(requestedBps: number, quotedOut: number): Promise<FeeEnforcement>;
   revokeHook(hook: HexAddress): Promise<HookRevocation>;
+  getPresentationSnapshot?(): PresentationSnapshot;
 }
 
 export const DEMO_POOL_KEY: PoolKey = {
@@ -70,78 +72,106 @@ const DEMO_CANONICAL: CanonicalPoolRecord = {
   dataVerified: true,
 };
 
+const launchReceipt = (): LaunchReceipt => ({
+  txHash: "0x7c093f9c52a4b974d8ca3c2491fe0446b68b92aef32f7640d3133cf96b8ab47e",
+  blockNumber: 9241851,
+  token: DEMO_POOL_KEY.currency1,
+  canonicalPool: DEMO_CANONICAL,
+  hookRegistration: {
+    ensName: `${DEMO_POOL_KEY.hooks.toLowerCase()}.hooks.klamp.eth`,
+    capBps: 100,
+    codeHash: HOOK_CODE_HASH,
+  },
+});
+
+const proposedRoute = (token: HexAddress): ProposedRoute => ({
+  aggregator: "Mock route aggregator",
+  router: "Universal Router",
+  candidates: [
+    {
+      id: "official",
+      label: "Issuer pool",
+      advertisedFeeBps: 25,
+      hook: DEMO_POOL_KEY.hooks,
+      route: [{
+        chainId: 11155111n,
+        poolManager: "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543",
+        poolId: DEMO_POOL_ID,
+        tokenIn: DEMO_POOL_KEY.currency0,
+        tokenOut: token,
+      }],
+    },
+    {
+      id: "replica",
+      label: "Replica pool",
+      advertisedFeeBps: 5,
+      hook: REPLICA_HOOK,
+      route: [{
+        chainId: 11155111n,
+        poolManager: "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543",
+        poolId: REPLICA_POOL_ID,
+        tokenIn: DEMO_POOL_KEY.currency0,
+        tokenOut: token,
+      }],
+    },
+  ],
+});
+
+const canonicalResult = (): Extract<CanonicalPoolResult, { status: "found" }> => ({
+  status: "found",
+  source: "ens",
+  chainId: 11155111n,
+  poolManager: "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543",
+  poolId: DEMO_POOL_ID,
+});
+
+const hookAttestation = (hook: string): HookAttestation => ({
+  ensName: `${hook.toLowerCase()}.hooks.klamp.eth`,
+  hook: hook as HookAttestation["hook"],
+  capBps: 100,
+  capMode: "immutable",
+  codeHash: HOOK_CODE_HASH,
+  beforeSwapReturnDelta: false,
+  afterSwapReturnDelta: false,
+  status: "verified",
+});
+
+const feeEnforcement = (requestedBps: number, quotedOut: number): FeeEnforcement => {
+  const appliedBps = Math.min(requestedBps, 100);
+  return {
+    requestedBps,
+    appliedBps,
+    capped: appliedBps < requestedBps,
+    quotedOut,
+    receivedOut: quotedOut,
+    unguardedAppliedBps: requestedBps,
+    unguardedReceivedOut: quotedOut * 0.7,
+  };
+};
+
+const hookRevocation = (hook: HexAddress): HookRevocation => ({
+  ensName: `${hook.toLowerCase()}.hooks.klamp.eth`,
+  resolver: null,
+  attestationStatus: "revoked",
+  routeStatus: "blocked",
+});
+
 export const mockProtocolClient: ProtocolClient = {
   async launchToken() {
     await wait(DEMO_DELAY_MS.launch);
-    return {
-      txHash: "0x7c093f9c52a4b974d8ca3c2491fe0446b68b92aef32f7640d3133cf96b8ab47e",
-      blockNumber: 9241851,
-      token: DEMO_POOL_KEY.currency1,
-      canonicalPool: DEMO_CANONICAL,
-      hookRegistration: {
-        ensName: `${DEMO_POOL_KEY.hooks.toLowerCase()}.hooks.klamp.eth`,
-        capBps: 100,
-        codeHash: HOOK_CODE_HASH,
-      },
-    };
+    return launchReceipt();
   },
   async buildRoute(token) {
     await wait(DEMO_DELAY_MS.routeBuild);
-    return {
-      aggregator: "Mock route aggregator",
-      router: "Universal Router",
-      candidates: [
-        {
-          id: "official",
-          label: "Issuer pool",
-          advertisedFeeBps: 25,
-          hook: DEMO_POOL_KEY.hooks,
-          route: [{
-            chainId: 11155111n,
-            poolManager: "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543",
-            poolId: DEMO_POOL_ID,
-            tokenIn: DEMO_POOL_KEY.currency0,
-            tokenOut: token,
-          }],
-        },
-        {
-          id: "replica",
-          label: "Replica pool",
-          advertisedFeeBps: 5,
-          hook: REPLICA_HOOK,
-          route: [{
-            chainId: 11155111n,
-            poolManager: "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543",
-            poolId: REPLICA_POOL_ID,
-            tokenIn: DEMO_POOL_KEY.currency0,
-            tokenOut: token,
-          }],
-        },
-      ],
-    };
+    return proposedRoute(token);
   },
   async resolveCanonicalPool() {
     await wait(DEMO_DELAY_MS.canonicalVerification);
-    return {
-      status: "found",
-      source: "ens",
-      chainId: 11155111n,
-      poolManager: "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543",
-      poolId: DEMO_POOL_ID,
-    };
+    return canonicalResult();
   },
   async resolveHookAttestation(hook) {
     await wait(DEMO_DELAY_MS.hookVerification);
-    return {
-      ensName: `${hook.toLowerCase()}.hooks.klamp.eth`,
-      hook: hook as HookAttestation["hook"],
-      capBps: 100,
-      capMode: "immutable",
-      codeHash: HOOK_CODE_HASH,
-      beforeSwapReturnDelta: false,
-      afterSwapReturnDelta: false,
-      status: "verified",
-    };
+    return hookAttestation(hook);
   },
   async quoteAtCap(poolId, advertisedBps, capBps) {
     await wait(DEMO_DELAY_MS.capQuote);
@@ -153,24 +183,27 @@ export const mockProtocolClient: ProtocolClient = {
   },
   async simulateFeeRequest(requestedBps, quotedOut) {
     await wait(DEMO_DELAY_MS.feeEnforcement);
-    const appliedBps = Math.min(requestedBps, 100);
-    return {
-      requestedBps,
-      appliedBps,
-      capped: appliedBps < requestedBps,
-      quotedOut,
-      receivedOut: quotedOut,
-      unguardedAppliedBps: requestedBps,
-      unguardedReceivedOut: quotedOut * 0.7,
-    };
+    return feeEnforcement(requestedBps, quotedOut);
   },
   async revokeHook(hook) {
     await wait(DEMO_DELAY_MS.guardianRevocation);
+    return hookRevocation(hook);
+  },
+  getPresentationSnapshot() {
+    const launch = launchReceipt();
+    const proposal = proposedRoute(launch.token);
+    const canonical = canonicalResult();
+    const attestation = hookAttestation(launch.canonicalPool.key.hooks);
+    const official = proposal.candidates[0].route[0];
     return {
-      ensName: `${hook.toLowerCase()}.hooks.klamp.eth`,
-      resolver: null,
-      attestationStatus: "revoked",
-      routeStatus: "blocked",
+      launch,
+      proposal,
+      canonical,
+      attestation,
+      quote: { basis: "registered-cap", poolId: canonical.poolId, advertisedBps: 25, pricedBps: attestation.capBps },
+      forwarding: { poolId: official.poolId, poolManager: official.poolManager, status: "accepted" },
+      enforcement: feeEnforcement(3000, 41842.17),
+      revocation: hookRevocation(launch.canonicalPool.key.hooks),
     };
   },
 };

@@ -123,6 +123,18 @@ export type LaunchReceipt = {
   hookRegistration: HookRegistration;
 };
 
+/** Optional presentation-only state used to seek through the local mock trace. */
+export type PresentationSnapshot = {
+  launch: LaunchReceipt;
+  proposal: ProposedRoute;
+  canonical: Extract<CanonicalPoolResult, { status: "found" }>;
+  attestation: HookAttestation;
+  quote: CapQuote;
+  forwarding: RouteForwarding;
+  enforcement: FeeEnforcement;
+  revocation: HookRevocation;
+};
+
 const sameAddress = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 const isAddress = (value: string) => /^0x[0-9a-fA-F]{40}$/.test(value);
 const isPoolId = (value: string) => /^0x[0-9a-fA-F]{64}$/.test(value);

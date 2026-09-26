@@ -479,9 +479,8 @@ function feeCapStatus(stage: DemoStage, verified: boolean, enforced: boolean) {
 }
 
 export function DemoTerminal() {
-  const { stage, furthestStage, busy, launchStep, launch, proposal, canonical, comparison, attestation, quote, forwarding, enforcement, revocation, advance, goBack, goToStage, reset } = useDemoStore();
+  const { stage, busy, launchStep, launch, proposal, canonical, comparison, attestation, quote, forwarding, enforcement, revocation, advance, goBack, goToStage, reset } = useDemoStore();
   const current = stageIndex(stage);
-  const furthest = stageIndex(furthestStage);
   const view = stage === "launch" && busy
     ? launchPendingCopy
     : stage === "candidates" && busy
@@ -557,14 +556,12 @@ export function DemoTerminal() {
               const index = stageIndex(item.stage);
               const active = stage === "idle" ? item.stage === "launch" : stage === "complete" ? item.stage === "revoke" : stage === item.stage;
               const done = stage === "complete" || current > index || (current === index && !busy);
-              const canVisit = index <= furthest;
-              const isNext = index === current + 1;
               return (
                 <ProgressItem key={item.stage} active={active} done={done} aria-current={active ? "step" : undefined}>
                   <ProgressButton
                     type="button"
-                    disabled={busy || (!canVisit && !isNext)}
-                    onClick={() => canVisit ? goToStage(item.stage) : advance()}
+                    disabled={busy}
+                    onClick={() => goToStage(item.stage)}
                     aria-label={`Go to step ${item.index}: ${item.title}`}
                   >
                     <StepNumber>{item.index}</StepNumber><StepTitle>{item.title}</StepTitle><StepDetail>{item.detail}</StepDetail>

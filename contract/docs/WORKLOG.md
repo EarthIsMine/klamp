@@ -519,3 +519,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; 상단 Step 1부터 Step 8까지 순서대로 클릭한 뒤 임의의 완료 단계를 클릭해 즉시 이동하고, `Previous`로 한 단계 돌아간 다음 데이터와 하단 상태가 해당 장면에 맞는지 확인한다.
 - 남은 문제: 실제 온체인 트랜잭션 연결 후에는 이미 확정된 체인 상태를 UI의 이전 단계 이동이 되돌리는 것으로 오해하지 않도록 presentation mode와 live mode를 구분해야 한다.
+
+## WEB29 — 미방문 단계 직접 탐색
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26, Chrome 데스크톱·모바일 반응형 검증 / Codex, `frontend-design`, Browser skills
+- AI 수행: 상단 8단계 진행표에서 아직 실행하지 않은 미래 단계도 즉시 열 수 있도록 변경했다. `ProtocolClient`에는 선택적인 presentation snapshot 포트를 추가하고, local mock adapter만 완성된 결정론적 스냅샷을 제공한다. 직접 이동 시 선택한 장면까지 필요한 데이터만 Zustand에 채우고 이후 단계 결과는 비워, Step 4에서 Step 7 결과가 미리 노출되는 식의 상태 누출을 막았다. Step 8 직접 이동은 회수 완료 장면을 표시한다. 하단 CTA의 순차 실행과 지연 애니메이션, `Previous` 동작은 그대로 유지했다.
+- 사람의 결정/수정: 발표 중에는 방문 여부와 관계없이 미래 단계도 상단 진행표에서 자유롭게 이동할 수 있도록 요청함.
+- 참고 문서 및 버전: Next.js 15.5.26, Emotion 11.14.1, Zustand 5.0.8, `frontend-design`, Browser skills.
+- AI 실행 검증: `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` 통과. Chrome 초기 화면에서 8개 진행 버튼의 disabled 수가 0임을 확인했다. Step 4 직접 이동 시 immutable 1% quote가 보이고 Step 7 결과는 노출되지 않았으며, Step 7 직접 이동 후 `Previous`로 Step 6에 돌아가면 하단의 `Applied at 1%` 결과가 숨겨졌다. 초기화 직후 Step 8 직접 이동에서도 revoked·blocked 완료 장면이 즉시 표시됐다. 390×844에서 document width와 viewport width가 모두 390px였다. localhost 관련 콘솔 오류는 없었고 자동 번역 확장이 `html lang`을 변경해 만든 기존 hydration 경고와 지갑 확장 경고만 확인됐다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; 초기 화면에서 Step 4·Step 7·Step 8을 각각 직접 클릭해 해당 장면과 필요한 선행 데이터가 즉시 나타나는지 확인한다. Step 7에서 `Previous`로 Step 6에 돌아갔을 때 상한 적용 결과가 하단 상태에 남아 보이지 않는지도 확인한다.
+- 남은 문제: presentation snapshot이 없는 실제 온체인 adapter에서는 미확정 미래 상태를 만들어낼 수 없으므로, live mode 도입 시 상단 미래 단계의 직접 탐색 정책을 별도로 표시하거나 제한해야 한다.
