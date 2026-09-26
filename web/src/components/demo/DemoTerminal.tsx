@@ -91,8 +91,7 @@ const InstrumentHead = styled.div`
   border-bottom: 1px solid ${colors.border}; font-size: 13px;
 `;
 const TraceName = styled.div`display: flex; align-items: center; gap: 9px; font-weight: 650;`;
-const LiveMark = styled.span<{ complete: boolean }>`width: 8px; height: 8px; background: ${({ complete }) => complete ? colors.primary : colors.textPrimary};`;
-const Network = styled.div`color: ${colors.textMuted}; font-size: 12px;`;
+const TraceMark = styled.span<{ complete: boolean }>`width: 8px; height: 8px; background: ${({ complete }) => complete ? colors.primary : colors.textPrimary};`;
 
 const Progress = styled.ol`
   list-style: none; margin: 0; padding: 0 16px; display: grid; grid-template-columns: repeat(8, 1fr); border-bottom: 1px solid ${colors.border}; overflow-x: auto;
@@ -552,8 +551,7 @@ export function DemoTerminal() {
       <Shell>
         <Instrument>
           <InstrumentHead>
-            <TraceName><LiveMark complete={stage === "complete"} />Verification trace 01</TraceName>
-            <Network>Local mock</Network>
+            <TraceName><TraceMark complete={stage === "complete"} />Verification trace 01</TraceName>
           </InstrumentHead>
           <Progress aria-label="Trace progress">
             {steps.map((item) => {

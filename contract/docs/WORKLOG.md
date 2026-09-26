@@ -541,3 +541,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/demo/` Step 4로 직접 이동해 0.25% 현재 견적과 1% 상한 순서를 확인하고, Step 6에서 공격 주체·탈취 키·공식 풀 대상·30% 요청이 한 흐름으로 읽히는지 확인한다. Step 7에서 0.25% 견적과 1% 적용 결과가 동일하다고 표현되지 않는지도 확인한다.
 - 남은 문제: 2단계 CappedHookProxy, strategy 공격, fee enforcement와 output 비교는 여전히 typed mock이다. 실제 컨트랙트 연결 시 quote 시점과 execution 시점의 상태 차이, `amountOutMinimum`에 따른 revert를 실제 RPC 결과로 대체해야 한다.
+
+## WEB31 — 데모 실행 방식 표기 제거
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 / Codex
+- AI 수행: 데모는 시스템을 현장에서 실행하는 DApp이 아니라 준비된 사건 기록을 탐색하는 trace viewer라는 발표 방향에 맞춰 계측기 헤더의 `Local mock` 표기를 제거했다. metadata에서도 `mocked`라는 실행 방식 표현을 제거하고 protocol trace라는 목적만 남겼다. 내부 typed mock adapter와 README의 현재 구현 한계 표시는 실제 온체인 기록으로 교체되기 전까지 유지한다.
+- 사람의 결정/수정: 데모는 항상 기존 기록을 trace하므로 화면에서 live/mock 구분을 말하지 않도록 결정함.
+- 참고 문서 및 버전: 루트 `AGENTS.md`, Next.js 15.5.26, Emotion 11.14.1.
+- AI 실행 검증: `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` 통과. `web/src`의 사용자 노출 문자열에서 `Local mock`과 `mocked`가 제거되고 trace 명칭만 남은 것을 정적 확인했다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/demo/` 계측기 상단과 페이지 metadata에 live/mock 실행 방식 표현이 없는지 확인한다.
+- 남은 문제: 현재 trace 데이터는 아직 실제 Sepolia 실행 artifact가 아니므로 README의 mock 고지는 유지된다. Phase 2 구현·배포 후 transaction hash, block number, event/read 결과가 포함된 recorded trace adapter로 교체해야 한다.
