@@ -1,0 +1,21 @@
+{
+  "token": "0x4cB41E85e1E16D7de576e2a262fF1b96eE948b96",
+  "symbol": "KHOOK",
+  "candidates": [
+    {
+      "currency0": "0x0000000000000000000000000000000000000000",
+      "currency1": "0x4cB41E85e1E16D7de576e2a262fF1b96eE948b96",
+      "fee": 3000,
+      "tickSpacing": 60,
+      "hooks": "0x8CcDe930348ecA47D39A0104807acb0e16F6c044"
+    },
+    {
+      "currency0": "0x0000000000000000000000000000000000000000",
+      "currency1": "0x4cB41E85e1E16D7de576e2a262fF1b96eE948b96",
+      "fee": 500,
+      "tickSpacing": 10,
+      "hooks": "0x8CcDe930348ecA47D39A0104807acb0e16F6c044"
+    }
+  ],
+  "_note": "candidates[0] = KHOOK 대표 풀(런칭 tx에서 선언). candidates[1] = 선언되지 않은 훅 풀(같은 정직한 훅, LP 수수료 0.05%). 실서비스에서는 Trading API 견적 경로가 이 자리에 들어간다"
+}

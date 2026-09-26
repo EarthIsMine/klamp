@@ -1,0 +1,16 @@
+{
+  "name": "klamp-demo",
+  "version": "1.0.0",
+  "description": "Klamp demo scripts: ENSv2 canonical pool lookup, judge, requote and Universal Router swap on Sepolia",
+  "scripts": {
+    "read-pool": "node read-pool.mjs",
+    "naive": "node klamp-swap.mjs --mode naive",
+    "klamp": "node klamp-swap.mjs --mode klamp"
+  },
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "viem": "^2.56.9"
+  },
+  "private": true
+}
