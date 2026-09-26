@@ -3,8 +3,21 @@
 **The fee you're quoted is the fee you pay.** Klamp lets a token's issuer declare its canonical Uniswap v4 pool **once**, records it in **ENSv2**, and lets any router or terminal read it with standard ENS tools to route around look-alike pools.
 
 - Only the address a token's address cryptographically points to (its **issuer**) can declare. Nobody can declare for someone else's token.
-- A declaration is permanent. Registrar is not upgradeable, and every role over `klamp.eth`, `tokens.klamp.eth` and the resolver is revoked after setup, including ours. One registry role (REGISTRAR) remains only to add `hooks.klamp.eth` in stage 2 and cannot touch `tokens`.
+- A declaration is permanent and nobody, us included, can rewrite it. The registrar is not upgradeable. After setup every role on the `tokens.klamp.eth` resolver, on `tokens.klamp.eth` and on `klamp.eth` itself was revoked, ours included. The `klamp.eth` registry keeps one role, REGISTRAR, only to add `hooks.klamp.eth` in stage 2; `tokens` is registered without expiry, so that role cannot replace it. Both demos read these role counts live from Sepolia.
 - The record lives at `<token>.tokens.klamp.eth` (`text("pool")` = `eip155:<chainId>:<poolId>`, `data("pool")` = `abi.encode(chainId, PoolKey)`), readable with `viem.getEnsText`, no Klamp ABI needed.
+
+## Why ENSv2
+
+- **Data-only subnames.** Token names are never registered. `<token>.tokens.klamp.eth` exists only as records on the `tokens.klamp.eth` resolver (wildcard resolution), so a declaration is one resolver write, not a registration.
+- **Per-record roles.** ENSv2 roles can be scoped to a single record key. One contract, the registrar, holds the setter role for exactly `pool` (text and data), `description` and `url`. Nobody holds a role for any other key.
+- **A name nobody controls.** `klamp.eth` is registered for 1,000 years (until 3026) and holds no roles, `tokens.klamp.eth` never expires and holds no roles, and the resolver has no admin and no upgrade role.
+- **Standard reads.** Any router, wallet or agent reads the record with `getEnsText` through UniversalResolverV2. A mapping in our own contract would only protect clients that know our ABI.
+
+## For Uniswap and for agents
+
+Today each router decides on its own which hooked pools to trust. Klamp adds an onchain answer that every router, API client or agent can check before signing: the pool the token's issuer declared, once. It changes no Uniswap contract and already plugs into Uniswap's live launch stack, since the Pools.trade entry points prove the creator with LiquidityLauncher's UERC20Factory graffiti. If a launch strategy recorded the pool at launch and a router read the record, every v4 launch would have a canonical pool from birth.
+
+Trading agents that buy new tokens automatically are the easiest targets for look-alike pools. For them the check is one `getEnsText` read before signing.
 
 Built for ETHGlobal Tokyo 2026 (ENS · Uniswap). Stage 1 (launch + canonical pool record) and the Klamp routing mode are deployed and exercised on Sepolia.
 
@@ -50,7 +63,8 @@ The repository build of `CanonicalPoolRegistrar` matches the deployed bytecode (
 | Registrar writes `text("pool")` and `data("pool")` on the PermissionedResolver of `tokens.klamp.eth` after the issuer proof | [`CanonicalPoolRegistrar.sol:147-165`](contract/src/CanonicalPoolRegistrar.sol#L147-L165) |
 | Issuer-only `description` / `url` updates | [`CanonicalPoolRegistrar.sol:169-175`](contract/src/CanonicalPoolRegistrar.sol#L169-L175) |
 | `klamp.eth` UserRegistry creates `tokens`; Enhanced Access Control grants the registrar `ROLE_SET_TEXT` / `ROLE_SET_DATA` scoped per record key (`pool`, `description`, `url`) | [`Phase1Setup.sol:52-76`](contract/script/Phase1Setup.sol#L52-L76) |
-| Seal: every root role on the resolver, the registry and `klamp.eth` is revoked, so no one (us included) can rewrite a record | [`Phase1Setup.sol:98-133`](contract/script/Phase1Setup.sol#L98-L133) |
+| Seal: root roles on the resolver, roles on `tokens.klamp.eth` and our roles on `klamp.eth` are revoked, so no one (us included) can rewrite a record; the registry keeps only REGISTRAR for `hooks.klamp.eth` (stage 2) | [`Phase1Setup.sol:98-133`](contract/script/Phase1Setup.sol#L98-L133) |
+| The same role counts, read live in both demos | [`web/src/data/protocol/sepolia.ts`](web/src/data/protocol/sepolia.ts) `readSeal`, [`dex/src/lib/seal.ts`](dex/src/lib/seal.ts) |
 | Token names are wildcard under `tokens.klamp.eth`; lookup via UniversalResolverV2 with namespace, text/data and pool checks (SDK) | [`contract/sdk/canonicalPool.ts:54`](contract/sdk/canonicalPool.ts#L54) |
 | The same lookup, in the browser | [`web/src/data/protocol/sepolia.ts:105`](web/src/data/protocol/sepolia.ts#L105), UI in [`LiveLookup.tsx`](web/src/components/lookup/LiveLookup.tsx#L114) |
 | Plain `viem.getEnsText`, no Klamp code | [`read-pool.mjs:12`](contract/demo/sepolia/read-pool.mjs#L12) |
@@ -126,9 +140,9 @@ pnpm build
 
 The web workspace is statically exported and deployed from `main` to GitHub Pages through `.github/workflows/deploy-pages.yml`. Its intended custom domain is `https://klamp.kro.kr`; complete the repository Pages and DNS settings described in [`web/README.md`](web/README.md) before the first production deployment.
 
-The UI models the Phase 1 SDK results as `registered`, `not_registered`, or `lookup_failed`, route comparisons as `match`, `mismatch`, or `blocked`, and route verdicts as `allow`, `requote_canonical`, `requote_static`, or `hold`. The trace follows the path A demo on Sepolia (launch, naive quote, ENS lookup, verdict, requote, verified swap) and reads each step from Sepolia in the browser: the launch tx's `CanonicalRecorded` and `Initialize` events, V4Quoter quotes for both pools, the ENSv2 lookup, and the team's Klamp-mode swap tx, whose Universal Router calldata is decoded and checked against the judged PoolKey. Each step is labelled `Live · Sepolia #<block>`, or `Recorded snapshot` if a read fails and the recorded value is shown instead; a failed ENS lookup stays `lookup_failed`. Only the final attack outcome is simulated and labelled in the UI. Capped hooks (stage 2) are roadmap only.
+The UI models the Phase 1 SDK results as `registered`, `not_registered`, or `lookup_failed`, route comparisons as `match`, `mismatch`, or `blocked`, and route verdicts as `allow`, `requote_canonical`, `requote_static`, or `hold`. The trace follows the path A demo on Sepolia (launch, naive quote, ENS lookup, who can still change the record, verdict, requote, verified swap) and reads each step from Sepolia in the browser: the launch tx's `CanonicalRecorded` and `Initialize` events, V4Quoter quotes for both pools, the ENSv2 lookup, the ENSv2 role counts on the namespace, and the team's Klamp-mode swap tx, whose Universal Router calldata is decoded and checked against the judged PoolKey. Each step is labelled `Live · Sepolia #<block>`, or `Recorded snapshot` if a read fails and the recorded value is shown instead; a failed ENS lookup stays `lookup_failed`. Only the final attack outcome is simulated and labelled in the UI. Capped hooks (stage 2) are roadmap only.
 
-For presentations, the demo is an animated node diagram with a one-line caption per step. `Play` autoplays all eight steps; `→`/Space, `←`, `P` (play) and `R` (reset) drive it from the keyboard, and the progress dots seek to any step using a deterministic recorded snapshot (labelled as such).
+For presentations, the demo is an animated node diagram with a one-line caption per step. `Play` autoplays all nine steps; `→`/Space, `←`, `P` (play) and `R` (reset) drive it from the keyboard, and the progress dots seek to any step using a deterministic recorded snapshot (labelled as such).
 
 ## DEX workspace
 
