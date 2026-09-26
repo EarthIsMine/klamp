@@ -431,3 +431,14 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람 직접 검증: 사람 검증 대기.
 - 사람 재현: `cd web && pnpm dev`; `/demo/`에서 Step 2와 3을 실행해 장면 전체가 다시 나타나지 않고, 진행 문구 뒤 route clamp와 1% cap 값만 한 번 애니메이션되는지 확인한다.
 - 남은 문제: 실제 GitHub Pages 배포 환경과 모바일 실기기의 전환 검증은 미실행이다.
+
+## WEB21 — Route 검증 완료 후 연결선 표시
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Next.js 15.5.26 static export, Chrome 로컬 검증 / Codex, `frontend-design` skill
+- AI 수행: Step 2의 중앙 clamp 양옆 주황선이 route 검증 전부터 보이던 원인을 수정했다. unmatched 상태의 선을 `scaleX(0)`으로 숨기고, `Canonical route verified` 결과가 도착해 matched가 true가 될 때 중앙에서 양옆으로 확장되는 420ms 애니메이션을 한 번 실행한 뒤 완성 상태를 유지한다.
+- 사람의 결정/수정: Step 2의 주황 연결선 애니메이션은 `Canonical route verified` 이후에 진행되어야 한다고 지적함.
+- 참고 문서 및 버전: Next.js 15.5.26, React 19, Emotion 11.14.1, `frontend-design` skill.
+- AI 실행 검증: `pnpm lint`, `pnpm build` 통과. Chrome에서 진행 중 제목이 `Verifying the proposed route`일 때 pseudo-element transform이 `matrix(0, 0, 0, 1, 0, 0)`, 완료 제목이 `Canonical route verified`일 때 `matrix(1, 0, 0, 1, 0, 0)`인지 확인했다.
+- 사람 직접 검증: 사람 검증 대기.
+- 사람 재현: `cd web && pnpm dev`; `/demo/` Step 2를 실행해 검증 중에는 중앙 주황선이 없고, 완료 문구와 함께 선이 양옆으로 펼쳐지는지 확인한다.
+- 남은 문제: 실제 GitHub Pages 배포 환경과 모바일 실기기의 애니메이션 검증은 미실행이다.

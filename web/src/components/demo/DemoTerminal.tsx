@@ -139,7 +139,7 @@ const CompareSide = styled.div`
 const CompareSideRight = styled(CompareSide)`text-align: right;`;
 const AnimatedClamp = styled.div<{ matched: boolean }>`
   position: relative; display: grid; place-items: center;
-  &::before { content: ""; position: absolute; left: 0; right: 0; height: 2px; background: ${colors.primary}; transform-origin: center; animation: ${({ matched }) => matched ? "join .42s ease-out" : "none"}; }
+  &::before { content: ""; position: absolute; left: 0; right: 0; height: 2px; background: ${colors.primary}; transform: scaleX(0); transform-origin: center; animation: ${({ matched }) => matched ? "join .42s ease-out both" : "none"}; }
   img { position: relative; z-index: 1; background: white; padding: 10px; animation: ${({ matched }) => matched ? "clamp .42s ease-out" : "none"}; }
   @keyframes join { from { transform: scaleX(0); } to { transform: scaleX(1); } }
   @keyframes clamp { 0% { transform: scale(1.16); } 65% { transform: scale(.94); } 100% { transform: scale(1); } }
