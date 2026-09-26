@@ -772,3 +772,11 @@ Implementation status and human verification status are tracked separately; each
 - AI work: `sepoliaProtocolClient.quoteCandidates` replays the recorded quote board when the look-alike no longer quotes more, labelled `Recorded snapshot` with the block and live values in its tooltip; the requote follows the quotes (recorded if they were). Step 6's title follows the verdict (`allow`, `requote_static`, `hold` get their own). web README notes the fallback.
 - AI-run verification: `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm build`. Local build stepped through all nine steps against Sepolia at block 11788141: steps 2, 3 and 7 recorded with the reason, the rest live, verdict `requote_canonical`, the outcome reached.
 - Human verification: Pending human verification.
+
+## DEX10 — Show where ENSv2 and Uniswap come in; explain the new pool screen
+
+- Date / environment / tools: 2026-09-27 / Vite 8, Sepolia public RPC, headless Chromium / Claude Code (Opus 5.5)
+- Human decisions/changes: Judges should see exactly what ENS and Uniswap contribute; the right side of the new pool tab (two cards and the declare button) was not self-explanatory.
+- AI work: "Contracts used here" groups rows by protocol with one line each: Klamp (proves the issuer, records once), ENSv2 (holds the record at `<token>.tokens.klamp.eth`, readable by any ENS client), Uniswap v4 (pools, quotes, swaps, unchanged), demo contracts, token. Launch also lists the tokens.klamp.eth resolver write inside the launch. The new pool tab's right side reads as a story: "What a Klamp router sees for <token>" (declared · in ENS, with its ENS name, vs your pool · not in ENS), then "Could your pool become the declared one?" with the declare attempt. The declared pool is now read through ENSv2 (`getCanonicalPool`) instead of the registrar's `canonicalPoolOf`, so "in ENS" is literally where it comes from.
+- AI-run verification: `pnpm build`; headless Chromium on the built app: declared card shows `0x4cb4…8b96.tokens.klamp.eth → this pool`, `NotIssuer` without a wallet, grouped contracts on all tabs.
+- Human verification: Pending human verification.

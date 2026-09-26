@@ -192,11 +192,12 @@ export function LaunchPanel({ wallet, onLaunched, goSwap, goLookAlike }: {
           </div>
         )}
         <Contracts items={[
-          { name: "DemoLaunchpad", address: CONTRACTS.launchpad, use: "launch(name, ticker): the whole launch", kind: "tx" },
-          { name: "PoolManager", address: NETWORK.poolManager, use: "initialize the ETH pool, inside the launch", kind: "inner" },
-          { name: "DeltaFeeHook", address: CONTRACTS.hook, use: "the pool's hook, 1% of each swap", kind: "inner" },
-          { name: "CanonicalPoolRegistrar", address: CONTRACTS.registrar, use: "recordByCreate2 inside the launch; setTokenText after", kind: "tx" },
-          { name: "UniversalResolverV2", address: NETWORK.universalResolver, use: "reads the record back like any router", kind: "read" },
+          { name: "DemoLaunchpad", address: CONTRACTS.launchpad, use: "launch(name, ticker): the whole launch", kind: "tx", protocol: "demo" },
+          { name: "PoolManager", address: NETWORK.poolManager, use: "initialize the ETH pool, inside the launch", kind: "inner", protocol: "uniswap" },
+          { name: "DeltaFeeHook", address: CONTRACTS.hook, use: "the pool's hook, 1% of each swap", kind: "inner", protocol: "demo" },
+          { name: "CanonicalPoolRegistrar", address: CONTRACTS.registrar, use: "recordByCreate2 inside the launch; setTokenText after", kind: "tx", protocol: "klamp" },
+          { name: "tokens.klamp.eth resolver", address: NETWORK.resolver, use: "text/data pool written for <token>.tokens.klamp.eth, inside the launch", kind: "inner", protocol: "ens" },
+          { name: "UniversalResolverV2", address: NETWORK.universalResolver, use: "reads the record back like any router", kind: "read", protocol: "ens" },
         ]} />
       </section>
     </div>

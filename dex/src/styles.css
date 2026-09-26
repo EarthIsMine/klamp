@@ -369,3 +369,15 @@ main { padding: clamp(18px, 3vw, 36px) clamp(16px, 3vw, 32px); max-width: 1180px
 .receipt-list span:not(.kind) { color: var(--text-2); }
 .receipt-list a { margin-left: auto; color: var(--text-2); }
 @media (max-width: 560px) { .receipt-pair { grid-template-columns: 1fr; } }
+
+/* grouped contracts, new pool story */
+.contract-group + .contract-group { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border); }
+.contract-group h4 { margin: 0 0 8px; font-size: 13px; }
+.contract-group h4 span { font-weight: 400; color: var(--text-2); }
+.group-klamp h4 { color: var(--primary-hover); }
+.group-ens h4 { color: #3b5bdb; }
+.group-uniswap h4 { color: #a61e4d; }
+.stage-title { margin: 0; justify-self: start; font-size: 17px; }
+.declare-box { display: grid; gap: 8px; justify-items: center; text-align: center; width: 100%; padding: 16px; border-radius: 14px; background: var(--surface-2); }
+.declare-box > strong { font-size: 16px; }
+.declare-box > span { font-size: 13px; color: var(--text-2); max-width: 480px; }

@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { formatUnits, keccak256, parseUnits, toHex, zeroHash, type Address, type Hex } from "viem";
+import { getCanonicalPool } from "@klamp/sdk/canonicalPool";
 import { hashPoolKey, type PoolKey } from "@klamp/sdk/poolKey";
 import { registrarAbi, seederAbi, stateViewAbi, tokenAbi } from "../lib/abis";
 import { ensureSepolia, errorText, publicClient, sendTx, short, walletClient, type TxState } from "../lib/chain";
@@ -73,8 +74,10 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
     let live = true;
     setDeclared(undefined);
     (async () => {
-      const id = await publicClient.readContract({ address: CONTRACTS.registrar, abi: registrarAbi, functionName: "canonicalPoolOf", args: [token] });
-      if (/^0x0+$/.test(id)) return live && setDeclared(null);
+      // Read it the way a router would: ENSv2 through UniversalResolverV2, with the SDK checks.
+      const canonical = await getCanonicalPool(publicClient, NETWORK, token);
+      if (canonical.status !== "registered") return live && setDeclared(null);
+      const id = canonical.poolId;
       const [, tick] = await publicClient.readContract({ address: NETWORK.stateView, abi: stateViewAbi, functionName: "getSlot0", args: [id] });
       if (live) setDeclared({ poolId: id, tick });
     })().catch(() => live && setDeclared(null));
@@ -227,19 +230,22 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
 
       <section className="stage">
         <div className="lookalike">
+          <h3 className="stage-title">What a Klamp router sees for {symbol || "this token"}</h3>
           <div className="pair">
             <motion.div className="pool-card declared" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-              <span className="badge ok">declared</span>
+              <span className="badge ok">declared · in ENS</span>
               <strong>{declared ? <Ext tx={declaredIn ?? undefined} title="Transaction that declared this pool">{short(declared.poolId)}</Ext> : declared === null ? "none" : "…"}</strong>
-              <span>{declared ? `tick ${declared.tick} · declared by the issuer` : declared === null ? "this token has no declared pool" : "reading registrar"}</span>
+              <span>{declared ? <>{short(token.toLowerCase(), 6, 4)}.tokens.klamp.eth → this pool. Chosen by the issuer at launch.</> : declared === null ? "This token has no declared pool." : "Reading the registrar…"}</span>
             </motion.div>
             <motion.div key={poolId} className={`pool-card ${exists ? "live" : "draft"}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-              <span className={`badge ${withHook ? "bad" : ""}`}>{withHook ? "not declared · hook" : "static"}</span>
+              <span className={`badge ${withHook ? "bad" : ""}`}>{withHook ? "your pool · not in ENS" : "your pool · static"}</span>
               <strong>{feeLabel(tier.fee)} · {withHook ? <Ext address={CONTRACTS.hook}>DeltaFeeHook</Ext> : "no hook"}</strong>
-              <span>{exists ? "live on PoolManager" : "your pool, not created yet"}</span>
+              <span>{exists ? "Live on PoolManager." : "Not created yet."} {withHook ? "A best-quote router may pick it; Klamp requotes on the declared pool." : "Fixed fee: quoted = paid, so Klamp lets it through."}</span>
             </motion.div>
           </div>
-          <div className="declare">
+          <div className="declare-box">
+            <strong>Could your pool become the declared one?</strong>
+            <span>That record decides where Klamp routes, so a look-alike would want it. The registrar only accepts the launchpad that deployed the token, and only once.</span>
             <button className="ghost" onClick={onDeclare}>Try to declare it as canonical</button>
             {declare && (
               <motion.div className="stamp" initial={{ scale: 1.8, rotate: -12, opacity: 0 }} animate={{ scale: 1, rotate: -6, opacity: 1 }} transition={{ type: "spring", stiffness: 300, damping: 16 }}>
@@ -253,19 +259,15 @@ export function LookAlikePanel({ wallet, token, setToken, tokens, addToken, goSw
               See how routers treat it →
             </motion.button>
           )}
-          <p className="caption">
-            {withHook
-              ? "Same pair, a different pool. Its hook can quote one fee and charge another at swap time. A best-quote router may pick it; Klamp requotes on the declared pool."
-              : "A pool with no hook has a fixed fee. Klamp lets it through."}
-          </p>
         </div>
         <Contracts items={[
-          ...(needsApproval || ("label" in tx && tx.label.startsWith("Approve")) ? [{ name: symbol || "Token", address: token, use: "approve PoolSeeder to take the liquidity", kind: "tx" as const }] : []),
-          { name: "PoolSeeder", address: CONTRACTS.poolSeeder, use: "seed: initialize the pool and add one-sided liquidity", kind: "tx" },
-          { name: "PoolManager", address: NETWORK.poolManager, use: "initialize, inside the seed transaction", kind: "inner" },
-          ...(withHook ? [{ name: "DeltaFeeHook", address: CONTRACTS.hook, use: "the hook in this PoolKey", kind: "inner" as const }] : []),
-          { name: "StateView", address: NETWORK.stateView, use: "declared pool's price, to set the starting price", kind: "read" },
-          { name: "CanonicalPoolRegistrar", address: CONTRACTS.registrar, use: "canonicalPoolOf; recordByCreate2 simulated", kind: "sim" },
+          ...(needsApproval || ("label" in tx && tx.label.startsWith("Approve")) ? [{ name: symbol || "Token", address: token, use: "approve PoolSeeder to take the liquidity", kind: "tx" as const, protocol: "token" as const }] : []),
+          { name: "PoolSeeder", address: CONTRACTS.poolSeeder, use: "seed: initialize the pool and add one-sided liquidity", kind: "tx", protocol: "demo" },
+          { name: "PoolManager", address: NETWORK.poolManager, use: "initialize, inside the seed transaction", kind: "inner", protocol: "uniswap" },
+          ...(withHook ? [{ name: "DeltaFeeHook", address: CONTRACTS.hook, use: "the hook in this PoolKey", kind: "inner" as const, protocol: "demo" as const }] : []),
+          { name: "UniversalResolverV2", address: NETWORK.universalResolver, use: "reads the declared pool from ENS", kind: "read", protocol: "ens" },
+          { name: "StateView", address: NETWORK.stateView, use: "declared pool's price, to set the starting price", kind: "read", protocol: "uniswap" },
+          { name: "CanonicalPoolRegistrar", address: CONTRACTS.registrar, use: "recordByCreate2 simulated: who may declare", kind: "sim", protocol: "klamp" },
         ]} />
       </section>
     </div>

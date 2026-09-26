@@ -202,13 +202,13 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
         <SwapReceipts swaps={history.swaps} token={token} />
         <RiskNote plan={plan} klampOn={klampOn} minOut={swap?.minOut ?? null} slippage={slippage} symbol={symbol} />
         <Contracts items={[
-          { name: "PoolManager", address: NETWORK.poolManager, use: "Initialize events: every ETH pool of this token", kind: "read" },
-          { name: "V4Quoter", address: CONTRACTS.quoter, use: "quoteExactInputSingle for each pool", kind: "sim" },
+          { name: "PoolManager", address: NETWORK.poolManager, use: "Initialize events: every ETH pool of this token", kind: "read", protocol: "uniswap" },
+          { name: "V4Quoter", address: CONTRACTS.quoter, use: "quoteExactInputSingle for each pool", kind: "sim", protocol: "uniswap" },
           ...(klampOn ? [
-            { name: "UniversalResolverV2", address: NETWORK.universalResolver, use: "<token>.tokens.klamp.eth pool record", kind: "read" as const },
-            { name: "tokens.klamp.eth resolver", address: NETWORK.resolver, use: "must be the resolver that answered", kind: "read" as const },
+            { name: "UniversalResolverV2", address: NETWORK.universalResolver, use: "<token>.tokens.klamp.eth pool record", kind: "read" as const, protocol: "ens" as const },
+            { name: "tokens.klamp.eth resolver", address: NETWORK.resolver, use: "must be the resolver that answered", kind: "read" as const, protocol: "ens" as const },
           ] : []),
-          { name: "Universal Router", address: CONTRACTS.universalRouter, use: "execute(V4_SWAP) with the chosen PoolKey", kind: "tx" },
+          { name: "Universal Router", address: CONTRACTS.universalRouter, use: "execute(V4_SWAP) with the chosen PoolKey", kind: "tx", protocol: "uniswap" },
         ]} />
       </section>
     </div>
