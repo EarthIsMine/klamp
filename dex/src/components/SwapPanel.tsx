@@ -5,7 +5,7 @@ import type { PoolKey } from "@klamp/sdk/poolKey";
 import { tokenAbi } from "../lib/abis";
 import { ensureSepolia, errorText, sendTx, short, walletClient, type TxState } from "../lib/chain";
 import { ATTACK_TEST_URL, CONTRACTS, ETH, NETWORK, type KnownToken } from "../lib/config";
-import { discoverPools, feeLabel, fmt, kindOf, planRoute, swapCalldata, tokenInfo, type RoutePlan } from "../lib/pools";
+import { discoverPools, feeLabel, fmt, kindOf, planRoute, preflightSwap, swapCalldata, tokenInfo, type RoutePlan } from "../lib/pools";
 import { useSwapHistory } from "../lib/history";
 import type { Wallet } from "../lib/wallet";
 import { Ext, txUrl } from "./Ext";
@@ -96,7 +96,23 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
     if (!wallet.account || !swap || !amountIn || !chosen?.out || !swap.check.ok) return;
     const account = wallet.account;
     setResult(null);
-    const receipt = await sendTx(klampOn ? "Klamp swap" : "Swap", async () => {
+    const label = klampOn ? "Klamp swap" : "Swap";
+    const pool = klampOn ? (kind === "hooked" ? "undeclared hook" : kind ?? "") : kind === "static" ? "no hook" : "hook pool";
+    // Simulate first: a swap that would revert is reported with numbers instead of a wallet's "internal error".
+    const check = await preflightSwap(account, swap.data, amountIn);
+    if (!check.ok) {
+      const message = check.wouldReceive !== undefined && check.minOut !== undefined
+        ? `Would revert: the pool pays ${fmt(check.wouldReceive)} ${symbol}, below your minimum ${fmt(check.minOut)} (${slippage}% slippage). Nothing was sent.`
+        : `Would revert: ${check.reason}. Nothing was sent.`;
+      setTx({ status: "error", label, message });
+      history.add({
+        token, symbol, klamp: klampOn, poolId: chosen.poolId, fee: chosen.key.fee, pool,
+        amountIn: amountIn.toString(), quoted: chosen.out.toString(), minOut: swap.minOut.toString(), received: "0",
+        hash: null, wouldReceive: check.wouldReceive?.toString(), at: Date.now(),
+      });
+      return;
+    }
+    const receipt = await sendTx(label, async () => {
       const client = walletClient(account);
       await ensureSepolia(client);
       return client.sendTransaction({ account, chain: client.chain, to: CONTRACTS.universalRouter, data: swap.data, value: amountIn });
@@ -105,7 +121,6 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
       const received = parseEventLogs({ abi: tokenAbi, eventName: "Transfer", logs: receipt.logs })
         .filter((log) => log.address.toLowerCase() === token.toLowerCase() && log.args.to.toLowerCase() === account.toLowerCase())
         .at(-1)?.args.value ?? 0n; // Universal Router's TAKE_ALL is the last transfer to the trader
-      const pool = klampOn ? (kind === "hooked" ? "undeclared hook" : kind ?? "") : kind === "static" ? "no hook" : "hook pool";
       setResult({ received, quoted: chosen.out, symbol, klamp: klampOn, hash: receipt.transactionHash, pool });
       history.add({
         token, symbol, klamp: klampOn, poolId: chosen.poolId, fee: chosen.key.fee, pool,

@@ -3,7 +3,7 @@ import { getCanonicalPool, type CanonicalPoolResult } from "@klamp/sdk/canonical
 import { compareRoutes, type RouteComparison } from "@klamp/sdk/compareRoutes";
 import { isStatic, judge, type Verdict } from "@klamp/sdk/judge";
 import { hashPoolKey, type PoolKey } from "@klamp/sdk/poolKey";
-import { formatUnits, parseAbi, type Address, type Hex } from "viem";
+import { BaseError, decodeErrorResult, formatUnits, parseAbi, type Address, type Hex } from "viem";
 import { canonicalRecordedEvent, initializeEvent, stateViewAbi, tokenAbi } from "./abis";
 import { publicClient } from "./chain";
 import { CONTRACTS, ETH, NETWORK } from "./config";
@@ -156,3 +156,30 @@ export async function tokenInfo(token: Address, account: Address | null) {
 export const fmt = (value: bigint, digits = 2) =>
   Number(formatUnits(value, 18)).toLocaleString("en-US", { maximumFractionDigits: digits });
 export const feeLabel = (fee: number) => ((fee & 0x800000) !== 0 ? "dynamic fee" : `${+(fee / 10_000).toFixed(3)}%`);
+
+const routerErrors = parseAbi(["error V4TooLittleReceived(uint256 minAmountOutReceived, uint256 amountReceived)"]);
+
+export type Preflight = { ok: true } | { ok: false; minOut?: bigint; wouldReceive?: bigint; reason: string };
+
+/**
+ * Runs the swap as an eth_call before the wallet sees it. Wallets only say "internal error" when their gas estimate
+ * reverts; this names the reason, and for V4TooLittleReceived how much the pool would actually have paid.
+ */
+export async function preflightSwap(account: Address, data: Hex, value: bigint): Promise<Preflight> {
+  try {
+    await publicClient.call({ account, to: CONTRACTS.universalRouter, data, value });
+    return { ok: true };
+  } catch (error) {
+    const revert = error instanceof BaseError ? error.walk((e) => typeof (e as { data?: unknown }).data === "string") as { data?: Hex } | null : null;
+    if (revert?.data) {
+      try {
+        const decoded = decodeErrorResult({ abi: routerErrors, data: revert.data });
+        const [minOut, wouldReceive] = decoded.args;
+        return { ok: false, minOut, wouldReceive, reason: "V4TooLittleReceived" };
+      } catch {
+        return { ok: false, reason: `reverted (${revert.data.slice(0, 10)})` };
+      }
+    }
+    return { ok: false, reason: error instanceof BaseError ? error.shortMessage : String(error) };
+  }
+}

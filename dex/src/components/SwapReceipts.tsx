@@ -19,11 +19,28 @@ function Tile({ record, klamp }: { record: SwapRecord | undefined; klamp: boolea
       </div>
     );
   }
-  const received = BigInt(record.received);
   const quoted = BigInt(record.quoted);
+  if (record.hash === null) {
+    const would = record.wouldReceive ? BigInt(record.wouldReceive) : null;
+    return (
+      <motion.div key={`${record.at}`} className={`receipt reverted ${klamp ? "receipt-klamp" : "receipt-naive"}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <span className="receipt-mode">{title}</span>
+        <span className="receipt-label">Swap reverts</span>
+        <strong className="receipt-amount">0 <small>{record.symbol}</small></strong>
+        {would !== null && <span className="receipt-diff down">pool pays {fmt(would)} · {pct(would, quoted).toFixed(2)}% vs quote</span>}
+        <dl>
+          <div><dt>Quoted</dt><dd>{fmt(quoted)}</dd></div>
+          <div><dt>Minimum</dt><dd>{fmt(BigInt(record.minOut))}</dd></div>
+          <div><dt>Pool</dt><dd>{feeLabel(record.fee)} · {record.pool}</dd></div>
+        </dl>
+        <span className="receipt-meta">Below the slippage minimum, so nothing was sent.</span>
+      </motion.div>
+    );
+  }
+  const received = BigInt(record.received);
   const diff = pct(received, quoted);
   return (
-    <motion.div key={record.hash} className={`receipt ${klamp ? "receipt-klamp" : "receipt-naive"}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+    <motion.div key={record.hash ?? record.at} className={`receipt ${klamp ? "receipt-klamp" : "receipt-naive"}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
       <span className="receipt-mode">{title}</span>
       <span className="receipt-label">Received</span>
       <strong className="receipt-amount">{fmt(received)} <small>{record.symbol}</small></strong>
@@ -62,11 +79,11 @@ export function SwapReceipts({ swaps, token }: { swaps: SwapRecord[]; token: Add
         {earlier.length > 0 && (
           <motion.ul className="receipt-list" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             {earlier.map((swap) => (
-              <li key={swap.hash}>
+              <li key={swap.hash ?? swap.at}>
                 <span className={`kind ${swap.klamp ? "kind-tx" : "kind-sim"}`}>{swap.klamp ? "Klamp" : "best quote"}</span>
-                <b>{fmt(BigInt(swap.received))}</b>
-                <span>quoted {fmt(BigInt(swap.quoted))}</span>
-                <a href={txUrl(swap.hash)} target="_blank" rel="noreferrer">{short(swap.hash)} ↗</a>
+                <b>{swap.hash === null ? "reverted" : fmt(BigInt(swap.received))}</b>
+                <span>quoted {fmt(BigInt(swap.quoted))}{swap.wouldReceive ? ` · pool pays ${fmt(BigInt(swap.wouldReceive))}` : ""}</span>
+                {swap.hash ? <a href={txUrl(swap.hash)} target="_blank" rel="noreferrer">{short(swap.hash)} ↗</a> : <span>not sent</span>}
               </li>
             ))}
           </motion.ul>

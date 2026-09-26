@@ -13,7 +13,8 @@ export type SwapRecord = {
   quoted: string;
   minOut: string;
   received: string;
-  hash: Hex;
+  hash: Hex | null; // null: reverted in the pre-send simulation, nothing was sent
+  wouldReceive?: string; // set when it reverted: what the pool would have paid
   at: number;
 };
 

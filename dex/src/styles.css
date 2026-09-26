@@ -381,3 +381,5 @@ main { padding: clamp(18px, 3vw, 36px) clamp(16px, 3vw, 32px); max-width: 1180px
 .declare-box { display: grid; gap: 8px; justify-items: center; text-align: center; width: 100%; padding: 16px; border-radius: 14px; background: var(--surface-2); }
 .declare-box > strong { font-size: 16px; }
 .declare-box > span { font-size: 13px; color: var(--text-2); max-width: 480px; }
+.receipt.reverted { border-color: var(--danger); background: var(--danger-soft); }
+.receipt.reverted .receipt-amount { color: var(--danger); }
