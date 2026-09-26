@@ -612,3 +612,4 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - 사람의 결정/수정: 새 공개 저장소를 만들지 않고, 인계받은 `klamp/`(커밋 `2f2558b`)의 데모 재료·테스트를 이 저장소로 작은 커밋 단위로 합치도록 결정함. 인계 폴더와 zip은 추적하지 않고 병합 후 삭제.
 - 출처 원칙: 팀원 소스는 수정하지 않고 가져온다. import 경로 차이는 remapping 별칭(`v4-core/`, `ensv2/`, `ens-contracts/`)으로 흡수한다. 팀원 저장소는 v4-core `46c6834`, 이 저장소는 `59d3ecf`(liquidity-launcher 경유)를 쓴다.
 - 1) 데모 컨트랙트 `src/demo/` 4종(DeltaFeeHook, DemoLaunchpad, DisposableLauncher, PoolSeeder): 원본 그대로 복사, `forge build` 통과(DisposableLauncher의 의도된 `selfdestruct` 경고만), 기존 `forge test` 34 통과.
+- 2) Sepolia 셋업에 실제 실행된 스크립트 `script/KlampSetup.sol`, `Commit.s.sol`, `Finish.s.sol`: 원본 그대로. 서명자는 CLI로 받고 코드에 키 없음. `Commit`은 등록 secret을 `deployments/sepolia.json`에 쓰며, 이 값은 register 트랜잭션으로 이미 공개됨. 저장소의 `Phase1Setup` 계열과 같은 순서·역할 값(C14에서 트랜잭션 디코딩으로 대조). `forge build` 통과, 기존 테스트 34 통과.
