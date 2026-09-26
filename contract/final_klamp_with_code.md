@@ -1,24 +1,24 @@
 
-Klamp 1단계 설계 (최종): 런칭과 대표 풀 기록 (ENSv2)
-2026년 9월 25일
+Klamp Phase 1 Design (Final): Launch and Canonical Pool Record (ENSv2)
+September 25, 2026
  · 
 @Someone
 
 
-Klamp는 토큰 발행자가 선언한 대표 풀을 ENSv2에 기록하고, 라우터·터미널이 표준 ENS 도구로 읽어 제3자가 만든 복제 풀과 구분하게 한다. 설계의 핵심은 한 줄이다: 토큰 주소가 가리키는 발행자만 대표 풀을 한 번 선언할 수 있다. 전체 흐름(런칭 → 풀 생성 → 견적 → 체결)의 첫 단계다.
+Klamp records the canonical pool declared by a token's issuer in ENSv2, so routers and terminals can read it with standard ENS tools and tell it apart from replica pools created by third parties. The core of the design fits in one line: only the issuer that the token address points to can declare the canonical pool, once. This is the first stage of the full flow (launch → pool creation → quote → execution).
 
-범위 밖: 수수료 상한(2단계, CappedHookProxy), 사칭 토큰, 트랜잭션 바깥의 MEV.
+Out of scope: fee caps (phase 2, CappedHookProxy), impersonation tokens, MEV outside the transaction.
 
-현재 상태: 등록 컨트랙트, SDK, 셋업 스크립트, 공격 재현까지 끝났다 (로컬 테스트 13개 통과). Sepolia 배포와 데모는 남았다 (맨 아래 체크리스트).
+Current status: the registrar, SDK, setup script and attack reproduction are done (13 local tests pass). Sepolia deployment and the demo remain (checklist at the bottom).
 
-공격이 성립하는 조건
-복제 풀 공격의 피해는 사용자의 슬리피지 허용치가 정한다. 허용치가 체결 수수료보다 크면 그만큼 잃고, 작으면 거래가 실패한다. Uniswap v4 실제 코드(v4-core)로 재현했다. 같은 페어에 대표 풀(0.25% 고정, 훅 없음)과 복제 풀(dynamic fee + 훅)을 만들고, 훅은 견적 호출자에게 0.05%, 실제 라우터에게는 높은 수수료를 매긴다.
+When the attack works
+The damage from a replica pool attack is set by the user's slippage tolerance. If the tolerance exceeds the execution fee, the user loses that much; if it is lower, the trade fails. We reproduced it with the real Uniswap v4 code (v4-core). On the same pair we created a canonical pool (0.25% fixed, no hook) and a replica pool (dynamic fee + hook); the hook charges the quote caller 0.05% and the actual router a high fee.
 
-체결 수수료
+Execution fee
 
-견적 대비 실제 수령량
+Actual received vs. quote
 
-슬리피지 0.5%·1%·5%
+Slippage 0.5%·1%·5%
 
 10%
 
@@ -30,454 +30,454 @@ Klamp는 토큰 발행자가 선언한 대표 풀을 ENSv2에 기록하고, 라�
 
 −9.94%
 
-체결 실패
+Execution fails
 
-체결, 손실
+Executes, loss
 
-체결, 손실
+Executes, loss
 
-체결, 손실
+Executes, loss
 
 30%
 
 −29.94%
 
-체결 실패
+Execution fails
 
-체결 실패
+Execution fails
 
-체결 실패
+Execution fails
 
-체결, 손실
+Executes, loss
 
-두 경우 모두 복제 풀의 견적(0.05%)이 대표 풀(0.25%)보다 좋아 보여 라우터가 복제 풀을 고른다.
+In both cases the replica pool's quote (0.05%) looks better than the canonical pool's (0.25%), so the router picks the replica pool.
 
-허용치 ≥ 체결 수수료: 거래가 체결되고 수수료만큼 잃는다. 공격자는 수수료를 흔한 허용치 바로 아래로 맞춘다.
+Tolerance ≥ execution fee: the trade executes and the user loses the fee. The attacker sets the fee just below common tolerances.
 
-허용치 < 체결 수수료: 거래가 실패하고 가스를 잃는다. 실패한 사용자가 허용치를 올려 재시도하면 첫 번째 경우가 된다.
+Tolerance < execution fee: the trade fails and the user loses gas. If the user raises the tolerance and retries, it becomes the first case.
 
-밈 거래는 가격 변동이 커서 허용치를 높게 잡기 쉽다. 반대로 수수료가 PoolKey에 고정된 풀(훅 없음 + 정적 수수료)에서는 이 공격이 불가능하다. 이하 이런 풀을 정적 풀이라 부른다.
+Meme trades are volatile, so users tend to set high tolerances. Conversely, this attack is impossible on a pool whose fee is fixed in the PoolKey (no hook + static fee). Below, such pools are called static pools.
 
-대표 풀은 누가 정하나
-대표 풀 = 그 토큰의 발행자가 선언한, 이미 초기화된 풀. 경로 A는 런칭 트랜잭션 안에서 선언하므로 런칭 때 생성된 풀과 같다. Klamp는 풀이 좋은지 판단하지 않는다. 누가 선언했는지, 토큰과 풀이 실제로 있는지만 온체인에서 검증하고, 한 번 선언되면 아무도 바꾸지 못하게 한다. 남의 토큰의 대표 풀은 아무도 선언할 수 없다.
+Who decides the canonical pool
+Canonical pool = an already-initialized pool declared by the token's issuer. Path A declares inside the launch transaction, so it is the pool created at launch. Klamp does not judge whether a pool is good. It only verifies on-chain who declared it and that the token and pool actually exist, and once declared, no one can change it. No one can declare the canonical pool for someone else's token.
 
-역할은 세 가지로 나눈다.
+There are three roles.
 
-역할
+Role
 
-뜻
+Meaning
 
-할 수 있는 것
+Can do
 
-발행자 (issuer)
+Issuer (issuer)
 
-토큰 주소가 암호학적으로 가리키는 주소. 토큰마다 정확히 하나
+The address the token address cryptographically points to. Exactly one per token
 
-대표 풀을 한 번 선언
+Declare the canonical pool once
 
-크리에이터 (creator)
+Creator (creator)
 
-토큰을 런칭한 사람
+The person who launched the token
 
-토큰 설명·링크(description, url) 관리. 대표 풀은 못 바꿈
+Manage the token description and link (description, url). Cannot change the canonical pool
 
-배포 컨트랙트 (deployer)
+Deployer contract (deployer)
 
-CREATE2를 실제로 실행한 컨트랙트. 경로 A에서는 등록 호출자가 반드시 이 컨트랙트여야 한다
+The contract that actually executed CREATE2. On path A, the registration caller must be this contract
 
-없음. 발행자일 수도, 아닐 수도 있다
+Nothing. May or may not be the issuer
 
-발행자가 누구인지는 토큰이 만들어진 방식이 정한다.
+Who the issuer is depends on how the token was created.
 
 
 
-경로 A: CREATE2 런치패드
+Path A: CREATE2 launchpad
 
-경로 B: Uniswap Pools.trade
+Path B: Uniswap Pools.trade
 
-토큰을 배포한 컨트랙트
+Contract that deployed the token
 
-런치패드
+Launchpad
 
 UERC20Factory
 
-토큰 주소가 묶고 있는 것
+What the token address commits to
 
-런치패드 주소 + salt + 코드
+Launchpad address + salt + code
 
-LiquidityLauncher 주소 + graffiti = keccak256(abi.encode(LiquidityLauncher를 부른 주소))
+LiquidityLauncher address + graffiti = keccak256(abi.encode(address that called LiquidityLauncher))
 
-발행자
+Issuer
 
-런치패드 컨트랙트. 그 코드가 선언한다
+The launchpad contract. Its code declares
 
-LiquidityLauncher를 직접 부른 주소. 일회용 컨트랙트로 불렀으면 그 컨트랙트를 배포한 주소
+The address that called LiquidityLauncher directly. If called through a disposable contract, the address that deployed that contract
 
-크리에이터
+Creator
 
-런치패드가 넘겨주는 사람 주소
+The person's address passed by the launchpad
 
-발행자와 같음
+Same as the issuer
 
-선언할 수 있는 풀
+Pool that can be declared
 
-발행자가 고른 초기화된 풀. 런칭 트랜잭션 안에서 선언
+An initialized pool chosen by the issuer. Declared inside the launch transaction
 
-런칭 풀 (ETH, 토큰, 2500, 25, 훅 없음) 하나. 런칭 후 크리에이터가 선언
+The single launch pool (ETH, token, 2500, 25, no hook). Declared by the creator after launch
 
-경로 B는 가상의 런치패드가 아니다. Uniswap LiquidityLauncher가 지금 UERC20Factory에 graffiti로 LiquidityLauncher를 부른 주소를 새기고 있고, Klamp는 그 값을 그대로 증명에 쓴다. Pools.trade 코드는 바뀌지 않는다.
+Path B is not a hypothetical launchpad. Uniswap LiquidityLauncher already writes the address that called LiquidityLauncher into UERC20Factory as graffiti, and Klamp uses that value as-is for the proof. The Pools.trade code does not change.
 
-행동
+Action
 
-가능한 주체
+Who can do it
 
-대표 풀 선언
+Declare canonical pool
 
-그 토큰의 발행자, 한 번
+The token's issuer, once
 
-대표 풀 변경·삭제
+Change or delete canonical pool
 
-아무도 없음 (발행자와 Klamp 팀 포함)
+No one (including the issuer and the Klamp team)
 
-설명·링크 수정
+Edit description and link
 
-그 토큰의 크리에이터
+The token's creator
 
-규칙(등록 컨트랙트) 변경
+Change the rules (registrar)
 
-아무도 없음. 업그레이드 불가, 셋업 후 관리 역할 회수
+No one. Not upgradeable; admin roles revoked after setup
 
-남는 신뢰 가정
+Remaining trust assumption
 
-ENS 자체의 루트·.eth 레지스트리. ENS를 읽는 모든 곳과 같은 가정
+ENS's own root and .eth registry. The same assumption as anything that reads ENS
 
-심사에서 나올 질문과 답:
+Questions expected from judges, with answers:
 
-발행자가 나쁜 풀을 선언하면? 막지 않는다. 그 토큰은 발행자의 것이고, 트레이더가 사려는 것도 발행자의 토큰이다. Klamp가 막는 건 제3자가 남의 토큰에 붙이는 복제 풀이다. 대표 풀 자체의 수수료 조작은 2단계(수수료 상한)가 따로 본다.
+What if the issuer declares a bad pool? We don't block it. The token belongs to the issuer, and what traders want to buy is the issuer's token. What Klamp blocks is replica pools that third parties attach to someone else's token. Fee manipulation in the canonical pool itself is handled separately by phase 2 (fee cap).
 
-크리에이터 키가 나중에 털리면? 이미 선언된 대표 풀은 바꿀 수 없다. 한 번만 쓰기를 택한 이유다. 바뀌는 건 설명·링크뿐이다.
+What if the creator key is later compromised? An already-declared canonical pool cannot be changed. That is why we chose write-once. Only the description and link can change.
 
-선언을 안 하면? 기록이 없으면 대표 풀을 모르는 토큰이다. 기존 Pools.trade 토큰은 TokenLaunched 이벤트로 대신 조회한다.
+What if nothing is declared? With no record, the token has no known canonical pool. Existing Pools.trade tokens are looked up via the TokenLaunched event instead.
 
-경로 B에서 런칭 풀이 아닌 다른 풀을 선언하면? 할 수 없다. 경로 B는 PoolKey를 받지 않고 런칭 풀로 고정한다.
+On path B, what if someone declares a pool other than the launch pool? They can't. Path B takes no PoolKey and is fixed to the launch pool.
 
-경로 A의 발행자 컨트랙트에 임의 호출 기능이 있으면? 제3자가 그 기능(execute, multicall 등)으로 recordByCreate2를 부를 수 있다. 그래서 경로 A는 "발행자 컨트랙트가 임의 외부 호출을 막는다"를 런치패드 연동 조건으로 둔다.
+What if the path A issuer contract has an arbitrary-call feature? A third party could call recordByCreate2 through that feature (execute, multicall, etc.). So path A makes "the issuer contract blocks arbitrary external calls" a launchpad integration requirement.
 
-여러 사람이 쓰는 공용 런처 컨트랙트로 런칭하면? 그 컨트랙트에는 코드가 남아 있어 Via 진입점이 거절한다. 그래서 런처를 배포한 사람이 남의 런칭을 가로채지 못한다. 이런 토큰은 런처가 직접 recordByLiquidityLauncher를 부르는 기능을 갖춰야 선언할 수 있다.
+What if a token is launched through a shared launcher contract used by many people? That contract still has code, so the Via entry point rejects it. So the person who deployed the launcher cannot hijack other people's launches. Such tokens can only be declared if the launcher itself can call recordByLiquidityLauncher.
 
-라우터·터미널 판정 정책
-Klamp SDK는 견적 경로에서 이 토큰이 들어 있는 풀만 본다. 대표 풀과 정적 풀은 위 공격이 불가능하므로 통과시키고, 그 외 풀(훅·dynamic fee)이 경로에 있을 때만 조회 결과에 따라 다르게 처리한다.
+Router and terminal verdict policy
+The Klamp SDK looks only at pools in the quote route that contain this token. Canonical pools and static pools are immune to the attack above, so they pass; only when other pools (hook, dynamic fee) are in the route does handling depend on the lookup result.
 
-조회 결과
+Lookup result
 
-판정 기준
+Criterion
 
-경로에 그 외 풀이 있을 때
+When other pools are in the route
 
-등록됨
+Registered
 
-ENS 기록이 검증을 통과
+The ENS record passes verification
 
-대표 풀·정적 풀로만 재견적. 사용자 우회 없음
+Requote using only canonical and static pools. No user bypass
 
-미등록
+Not registered
 
-레코드가 비어 있고, 신뢰하는 런칭 이벤트도 없음
+The record is empty and there is no trusted launch event
 
-정적 풀로만 재견적. 정적 경로가 없으면 경고 후 사용자 확인
+Requote using only static pools. If there is no static route, warn and ask the user to confirm
 
-조회 실패
+Lookup failed
 
-RPC 오류, 고정한 resolver가 아님, 형식·chainId·PoolId 불일치
+RPC error, not the pinned resolver, format/chainId/PoolId mismatch
 
-정적 풀로만 재견적. 확인으로 우회 불가, 재시도
+Requote using only static pools. Cannot be bypassed by confirmation; retry
 
-경로가 대표 풀과 정적 풀만 쓰면 세 경우 모두 허용한다. 대표 풀 자체가 훅 풀(D형)이면 허용하고, 그 훅의 수수료 조작은 2단계(수수료 상한)가 막는다.
+If the route uses only canonical and static pools, all three cases allow it. If the canonical pool itself is a hook pool (type D), it is allowed, and fee manipulation by that hook is blocked by phase 2 (fee cap).
 
-보호 효과가 생기는 곳. 대표 풀이 정적 풀이면 "정적 풀만 허용" 규칙만으로도 판정이 같다. Pools.trade 런칭 풀이 그렇다. 기록이 판정을 바꾸는 건 대표 풀에 훅이 붙은 토큰(D형)이다. 기록이 없으면 정당한 훅 풀도 복제 풀과 구별되지 않아 막히고, 기록이 있으면 대표 훅 풀은 통과하고 같은 페어의 다른 훅 풀만 막힌다. hooklist 기준 런치패드 훅의 다수(Robinhood 86%)가 D형이다. 그래서 방어 데모는 경로 A의 D형 런치패드로 보여주고, 경로 B는 발행자 증명·표준 ENS 조회·설명과 링크를 보여준다.
+Where the protection comes from. If the canonical pool is a static pool, the "static pools only" rule alone gives the same verdict. Pools.trade launch pools are like this. The record changes the verdict for tokens whose canonical pool has a hook (type D). Without a record, a legitimate hook pool is indistinguishable from a replica pool and gets blocked; with a record, the canonical hook pool passes and only other hook pools on the same pair are blocked. By hooklist, most launchpad hooks (Robinhood 86%) are type D. So the defense demo uses a type D launchpad on path A, and path B shows the issuer proof, standard ENS lookup, and description and link.
 
-ENS 기록이 없는 Pools.trade 토큰은 런칭 이벤트를 대신 쓴다. 이벤트로 얻은 풀은 등록됨과 같이 취급한다.
+Pools.trade tokens without an ENS record use the launch event instead. A pool obtained from the event is treated the same as registered.
 
-이벤트 대체
+Event fallback
 
-정책
+Policy
 
-신뢰하는 발생 주소
+Trusted emitter address
 
-InstantLaunchStrategy 0x23f8209572b4a1C2AD88A42749E830791Fb027f1 (liquidity-launcher README의 v3.2.0 Robinhood 표, 최근 364건 중 294건). 같은 표의 0xAD44D55E7f8337C3cE113fBb591486E85be104b2는 최근 약 200만 블록 동안 0건. 활동 중인 미확인 주소 3개(0x7c48dde3…, 0xc9566675…, 0x60d73b21…)는 Pools.trade 공식 전략인지 확인한 뒤 추가. 목록은 SDK에 고정
+InstantLaunchStrategy 0x23f8209572b4a1C2AD88A42749E830791Fb027f1 (v3.2.0 Robinhood table in the liquidity-launcher README; 294 of the last 364). 0xAD44D55E7f8337C3cE113fBb591486E85be104b2 from the same table had 0 in roughly the last 2 million blocks. Three active unverified addresses (0x7c48dde3…, 0xc9566675…, 0x60d73b21…) will be added after confirming they are official Pools.trade strategies. The list is pinned in the SDK
 
-검증
+Verification
 
-topic0 = TokenLaunched, topic2 = 그 토큰, 디코딩한 PoolKey로 계산한 PoolId = topic1, PoolKey = (ETH, 토큰, 2500, 25, 훅 없음)
+topic0 = TokenLaunched, topic2 = the token, PoolId computed from the decoded PoolKey = topic1, PoolKey = (ETH, token, 2500, 25, no hook)
 
-조회 방법
+Lookup method
 
-인덱서나 자체 캐시로 조회. 공개 RPC의 블록 범위 제한 등으로 조회가 끝나지 않으면 조회 실패
+Via an indexer or our own cache. If the lookup cannot complete (e.g. public RPC block-range limits), lookup failed
 
-ENS 기록과 충돌
+Conflict with ENS record
 
-ENS 기록이 우선. 다르면 ENS 값을 대표 풀로 쓰고 "런칭 풀과 다름" 경고
+The ENS record wins. If they differ, use the ENS value as the canonical pool and warn "differs from launch pool"
 
-바뀌는 것
-대표 풀은 그대로 두고 기록 하나만 추가한다. 
+What changes
+The canonical pool stays as is; we only add one record. 
 
-기준은 Pools.trade Instant Launch(InstantLaunchStrategy)다.
+The baseline is Pools.trade Instant Launch (InstantLaunchStrategy).
 
 
 
-현재
+Current
 
-바꾼 뒤
+After
 
-런칭
+Launch
 
-토큰 발행 → 풀 생성(ETH/토큰, 0.25% 고정, 훅 없음) → 유동성 영구 잠금 → TokenLaunched 이벤트
+Mint token → create pool (ETH/token, 0.25% fixed, no hook) → lock liquidity permanently → TokenLaunched event
 
-동일 + 등록 컨트랙트 호출 1번 (런칭 중 또는 직후)
+Same + 1 registrar call (during or right after launch)
 
-대표 풀 정보
+Canonical pool info
 
-이벤트에만 있고 라우터는 안 봄
+Only in the event; routers don't look at it
 
-ENSv2 레코드, 누구나 조회
+ENSv2 record, anyone can look it up
 
-복제 풀
+Replica pools
 
-누구나 생성 가능
+Anyone can create one
 
-여전히 가능. 라우터가 걸러냄
+Still possible. Routers filter them out
 
-대표 풀 기록은 런치패드 유형과 무관하게 공통이다. 수수료 상한은 C·D형에만 필요하다.
+The canonical pool record is common to all launchpad types. The fee cap is needed only for types C and D.
 
-유형
+Type
 
-대표 풀 모양
+Canonical pool shape
 
-예시
+Examples
 
-A. 훅 없음
+A. No hook
 
-훅 없음, 고정 수수료
+No hook, fixed fee
 
 Pools.trade Instant Launch
 
-B. 스왑 훅, 수수료 조작 없음
+B. Swap hook, no fee manipulation
 
-beforeSwap만 (거래 게이트 등)
+beforeSwap only (trade gates, etc.)
 
 GatedSwapHook, ZoraV4CoinHook
 
-C. dynamic fee 훅
+C. Dynamic fee hook
 
-LP 수수료를 훅이 바꿈
+The hook changes the LP fee
 
-Clanker dynamic fee 계열
+Clanker dynamic fee family
 
-D. delta 수수료 훅
+D. Delta fee hook
 
-매 스왑 delta로 수수료 취득
+Takes a fee via delta on every swap
 
 LaunchHook, LaunchpadHook, TokenFab
 
-E. 졸업형
+E. Graduating
 
-졸업 전엔 자체 커브, 졸업 후 v4 풀
+Own curve before graduation, v4 pool after
 
-본딩 커브형
+Bonding curve style
 
-D형이 다수다: hooklist 기준 Robinhood 86%, Base 76% (키워드 필터 근사치). E형은 졸업 때 기록한다.
+Type D is the majority: by hooklist, Robinhood 86%, Base 76% (keyword-filter approximation). Type E records at graduation.
 
-왜 매핑이 아니라 ENSv2인가
-기록의 가치는 몇 곳이 읽느냐에 비례한다. 그래서 쓰는 규칙은 우리 컨트랙트, 읽는 곳은 ENS로 나눈다.
+Why ENSv2 rather than a mapping
+A record's value scales with how many places read it. So the write rules live in our contract, and reading happens through ENS.
 
 
 
-자체 매핑
+Own mapping
 
 ENSv2
 
-읽는 곳
+Who reads it
 
-우리 ABI를 아는 곳만
+Only those who know our ABI
 
-ENS를 읽는 모든 클라이언트 (getEnsText, ENS 앱)
+Every client that reads ENS (getEnsText, ENS app)
 
-쓰기 권한
+Write permissions
 
-직접 구현
+Implement ourselves
 
-Enhanced Access Control 기본 제공
+Enhanced Access Control built in
 
-토큰 정보
+Token info
 
-별도 시스템
+Separate system
 
-같은 이름에 설명·링크 (발행자가 증명한 토큰 리스트)
+Description and link on the same name (a token list attested by the issuer)
 
-다음 단계
+Next phase
 
-새 컨트랙트, 새 연동
+New contract, new integration
 
-hooks.klamp.eth로 같은 트리에 추가
+Add hooks.klamp.eth to the same tree
 
-우리가 사라지면
+If we disappear
 
-같이 사라짐
+Disappears with us
 
-표준 도구로 계속 읽힘
+Still readable with standard tools
 
-발표용: 매핑은 우리 터미널 하나를 지킨다. ENS 기록은 ENS를 읽는 모든 곳을 지킨다. 데모에서는 우리 코드 없이 viem getEnsText(가능하면 ENS 앱)로 같은 pool 값이 나오는 장면을 보여준다.
+For the pitch: a mapping protects our one terminal. An ENS record protects everything that reads ENS. The demo shows the same pool value coming out of viem getEnsText (and the ENS app if possible) without any of our code.
 
-ENSv2: 새 기능과 우리가 쓰는 방식
-ENS는 이름(vitalik.eth)을 주소·텍스트 같은 레코드로 풀어주는 이더리움 표준 이름 시스템이다. v1은 모든 이름이 레지스트리 컨트랙트 하나에 namehash → 소유자로 들어 있었고, 소유자가 모든 권한을 가졌다. v2는 이름마다 자기 레지스트리를 갖는 트리 구조이고, 권한을 역할 단위로 쪼갤 수 있다.
+ENSv2: new features and how we use them
+ENS is Ethereum's standard naming system that resolves names (vitalik.eth) to records such as addresses and text. In v1, every name lived in one registry contract as namehash → owner, and the owner had all permissions. v2 is a tree in which each name has its own registry, and permissions can be split into roles.
 
-우리 이름 트리는 이렇다. 런치패드별 이름공간이나 신뢰 목록 없이, 발행자 증명으로 모든 토큰을 한 공간에 기록한다.
+Our name tree looks like this. With no per-launchpad namespaces or trust lists, issuer proofs record every token in one space.
 
-klamp.eth                              ← 루트. 하위 이름은 우리 UserRegistry가 관리
- ├ tokens.klamp.eth                    ← 1단계. 역할 0, 만료 최대. resolver 하나가 모든 토큰에 답함
- │   └ 0x<토큰주소>.tokens.klamp.eth   ← 토큰별 기록. 등록하지 않음 (와일드카드)
- └ hooks.klamp.eth                     ← 2단계 (수수료 상한)
-v2 기능
+klamp.eth                              ← root. Subnames managed by our UserRegistry
+ ├ tokens.klamp.eth                    ← phase 1. Roles 0, max expiry. One resolver answers for all tokens
+ │   └ 0x<token>.tokens.klamp.eth      ← per-token record. Not registered (wildcard)
+ └ hooks.klamp.eth                     ← phase 2 (fee cap)
+v2 feature
 
-무엇인가
+What it is
 
-우리가 쓰는 곳
+Where we use it
 
-계층형 레지스트리
+Hierarchical registries
 
-이름마다 하위 이름을 관리하는 레지스트리를 따로 둔다 (root → eth → klamp.eth → …). 하위 라벨은 register(label, owner, subregistry, resolver, roleBitmap, expiry)로 만든다
+Each name has its own registry managing its subnames (root → eth → klamp.eth → …). Sublabels are created with register(label, owner, subregistry, resolver, roleBitmap, expiry)
 
-klamp.eth 아래 우리 UserRegistry를 두고 tokens 라벨 하나만 등록
+Our UserRegistry under klamp.eth, with only the tokens label registered
 
-역할 기반 권한 (Enhanced Access Control)
+Role-based permissions (Enhanced Access Control)
 
-소유권 대신 역할 비트맵. ROLE_SET_RESOLVER, ROLE_SET_SUBREGISTRY, ROLE_CAN_TRANSFER_ADMIN 등을 따로 주고 회수한다. 역할을 남에게 주려면 그 역할의 _ADMIN이 있어야 한다
+Role bitmaps instead of ownership. ROLE_SET_RESOLVER, ROLE_SET_SUBREGISTRY, ROLE_CAN_TRANSFER_ADMIN, etc. are granted and revoked separately. Granting a role to someone requires that role's _ADMIN
 
-tokens 라벨을 역할 0으로 등록 → resolver 교체·전송·삭제를 아무도 못 함
+Register the tokens label with roles 0 → no one can replace the resolver, transfer, or delete
 
-레코드 단위 권한 (PermissionedResolver)
+Per-record permissions (PermissionedResolver)
 
-resolver 쓰기 권한을 (이름, 레코드 키) 조합으로 준다. 아래 4칸 표
+Grants resolver write permission per (name, record key) pair. See the 4-cell table below
 
-등록 컨트랙트 = 모든 이름의 pool, 크리에이터 = 자기 토큰 이름의 description·url
+Registrar = pool on all names, creator = description and url on its own token's name
 
-와일드카드 해석
+Wildcard resolution
 
-등록되지 않은 하위 이름을 물으면 가장 가까운 상위 이름의 resolver가 답한다 (LibRegistry.findResolver)
+When an unregistered subname is queried, the nearest parent name's resolver answers (LibRegistry.findResolver)
 
-토큰 이름은 등록하지 않는다. 토큰당 등록 비용 0
+Token names are not registered. Zero registration cost per token
 
 UniversalResolverV2
 
-클라이언트가 이름만 넘기면 레지스트리 트리를 따라가 resolver를 찾아 호출해 주는 진입점
+Entry point where a client passes just the name and it walks the registry tree, finds the resolver and calls it
 
-viem getEnsText가 이걸 부른다 → 우리 ABI 없이 읽힘
+viem getEnsText calls this → readable without our ABI
 
 VerifiableFactory
 
-ENS 표준 구현(UserRegistry, PermissionedResolver)을 프록시로 배포한다. 누구나 표준 코드인지 확인 가능
+Deploys ENS standard implementations (UserRegistry, PermissionedResolver) as proxies. Anyone can verify it is standard code
 
-우리 레지스트리·resolver가 임의 코드가 아님을 증명
+Proves our registry and resolver are not arbitrary code
 
-data 레코드 (ENSIP-24)
+data record (ENSIP-24)
 
-텍스트 외에 임의 바이트를 저장하는 새 표준
+A new standard for storing arbitrary bytes besides text
 
-abi.encode(chainId, PoolKey)를 그대로 저장 → 컨트랙트도 디코딩해 쓸 수 있음
+Store abi.encode(chainId, PoolKey) as-is → contracts can decode and use it too
 
-PermissionedResolver는 setText(node, key, value)를 받으면 아래 네 resource 중 하나에 ROLE_SET_TEXT가 있는지 본다. resource는 keccak256(node, keccak256(key))이고, 자리가 0이면 "모든"이다. 루트 resource(0, 0)에 있는 역할은 모든 resource에 적용된다.
+When PermissionedResolver receives setText(node, key, value), it checks whether one of the four resources below has ROLE_SET_TEXT. A resource is keccak256(node, keccak256(key)), and 0 in a slot means "all". Roles on the root resource (0, 0) apply to every resource.
 
 
 
-모든 키
+All keys
 
-특정 키
+Specific key
 
-모든 이름
+All names
 
-resource(0, 0) = 루트. 셋업 후 비움
+resource(0, 0) = root. Emptied after setup
 
-resource(0, pool) ← 등록 컨트랙트
+resource(0, pool) ← registrar
 
-특정 이름
+Specific name
 
-resource(node, 0). 아무에게도 안 줌
+resource(node, 0). Granted to no one
 
-resource(node, description), resource(node, url) ← 그 토큰의 크리에이터
+resource(node, description), resource(node, url) ← that token's creator
 
-기준 코드: ensdomains/contracts-v2 (2026-07-03 커밋).
+Reference code: ensdomains/contracts-v2 (commit of 2026-07-03).
 
 CanonicalPoolRegistrar
-우리가 만드는 컨트랙트는 하나다. 진입점은 세 개(발행자 증명 방식은 CREATE2와 graffiti 두 가지)이고, 증명을 통과하면 같은 _record로 기록한다. 세 진입점 모두 호출자 = 발행자다.
+We build a single contract. It has three entry points (two issuer proof methods: CREATE2 and graffiti), and once a proof passes, all record through the same _record. For all three entry points, caller = issuer.
 
-진입점
+Entry point
 
-호출자 (= 발행자)
+Caller (= issuer)
 
-발행자 증명
+Issuer proof
 
-대표 풀
+Canonical pool
 
 recordByCreate2(token, key, salt, initCodeHash, creator)
 
-토큰을 CREATE2로 배포한 컨트랙트, 런칭 트랜잭션 안에서
+The contract that deployed the token with CREATE2, inside the launch transaction
 
 CREATE2(msg.sender, salt, initCodeHash) == token
 
-인자 key
+Argument key
 
 recordByLiquidityLauncher(token, launcher)
 
-LiquidityLauncher를 직접 부른 주소 (EOA·스마트 계정)
+The address that called LiquidityLauncher directly (EOA or smart account)
 
 getUERC20Address(name, symbol, decimals, launcher, keccak256(msg.sender)) == token
 
-런칭 풀로 고정
+Fixed to the launch pool
 
 recordByLiquidityLauncherVia(token, launcher, nonce)
 
-일회용 런칭 컨트랙트를 배포한 크리에이터
+The creator who deployed the disposable launch contract
 
-위 식의 graffiti 자리에 CREATE(msg.sender, nonce). 그 주소에 코드가 남아 있으면 거절
+CREATE(msg.sender, nonce) in the graffiti slot of the formula above. Rejected if that address still has code
 
-런칭 풀로 고정
+Fixed to the launch pool
 
-경로 B의 런칭 풀은 InstantLaunchStrategy가 만드는 (ETH, 토큰, 2500, 25, 훅 없음)이다. PoolKey를 받지 않으므로 잘못 선언할 수 없다. Robinhood 최근 런칭 샘플 12건 중 10건이 일회용 컨트랙트 방식이라 Via 진입점이 없으면 대부분 선언할 수 없다.
+The path B launch pool is the (ETH, token, 2500, 25, no hook) pool created by InstantLaunchStrategy. Since no PoolKey is taken, it cannot be declared wrongly. In a sample of 12 recent Robinhood launches, 10 used a disposable contract, so without the Via entry point most could not be declared.
 
-launcher는 배포 때 고정한 LiquidityLauncher 두 버전만 받는다: v3.0.0 0x00004c4ccc709Ef590F7C81102C0689F0263D4e9, v3.2.0 0x0000FffFBE8efE702c8703aE3477FF5dE3d319C0. 둘 다 graffiti에 LiquidityLauncher를 부른 주소를 넣는다는 게 검증된 소스로 확인됐고, Sepolia와 Robinhood에 같은 바이트코드로 있다. 런치패드 심사가 아니라 증명 방식의 조건이다.
+launcher accepts only the two LiquidityLauncher versions pinned at deployment: v3.0.0 0x00004c4ccc709Ef590F7C81102C0689F0263D4e9, v3.2.0 0x0000FffFBE8efE702c8703aE3477FF5dE3d319C0. Verified source confirms both put the address that called LiquidityLauncher into graffiti, and both exist on Sepolia and Robinhood with the same bytecode. This is a condition of the proof method, not a launchpad vetting.
 
-기록 전에 네 가지를 본다. 토큰이 이미 배포돼 있는지(TokenNotDeployed), PoolKey에 토큰이 들어 있는지(TokenNotInPool), 이미 선언됐는지(AlreadyRecorded), 지정한 PoolManager에서 초기화된 풀인지(PoolNotInitialized). 통과하면 아래를 쓰고 CanonicalRecorded(token, poolId, issuer, creator)를 낸다. creator가 0이면 설명·링크 권한은 아무에게도 주지 않는다.
+Before recording it checks four things: whether the token is already deployed (TokenNotDeployed), whether the PoolKey contains the token (TokenNotInPool), whether it is already declared (AlreadyRecorded), and whether the pool is initialized in the specified PoolManager (PoolNotInitialized). On success it writes the following and emits CanonicalRecorded(token, poolId, issuer, creator). If creator is 0, description and link permissions go to no one.
 
-키
+Key
 
-값
+Value
 
-쓰는 주체
+Written by
 
 pool (text)
 
 eip155:<chainId>:<poolId>
 
-등록 컨트랙트
+Registrar
 
 pool (data, ENSIP-24)
 
 abi.encode(chainId, PoolKey)
 
-등록 컨트랙트
+Registrar
 
 description, url (text)
 
-토큰 설명, 링크
+Token description, link
 
-크리에이터 (기록 시 위임)
+Creator (delegated at record time)
 
-전체 코드다. 외부 라이브러리 없이 이 파일 하나로 컴파일된다.
+This is the full code. It compiles as this single file with no external libraries.
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-/// @dev Uniswap v4 PoolKey. v4-core의 PoolKey와 ABI가 같다 (Currency, IHooks = address).
+/// @dev Uniswap v4 PoolKey. Same ABI as v4-core's PoolKey (Currency, IHooks = address).
 struct PoolKey {
     address currency0; // 0x0 = ETH
     address currency1;
@@ -486,7 +486,7 @@ struct PoolKey {
     address hooks;
 }
 
-/// @dev ENSv2 PermissionedResolver 중 쓰는 함수만.
+/// @dev Only the ENSv2 PermissionedResolver functions we use.
 interface IPermissionedResolver {
     function setText(bytes32 node, string calldata key, string calldata value) external;
     function setData(bytes32 node, string calldata key, bytes calldata value) external;
@@ -495,9 +495,9 @@ interface IPermissionedResolver {
         returns (bool);
 }
 
-/// @dev Uniswap UERC20Factory. 토큰 주소 = CREATE2(salt = keccak256(name, symbol, decimals, factoryCaller, graffiti)).
-///      factoryCaller는 팩토리를 부른 컨트랙트(Uniswap 코드의 `creator` 인자, Pools.trade에서는 LiquidityLauncher)다.
-///      LiquidityLauncher를 부른 주소는 graffiti 쪽에 들어간다.
+/// @dev Uniswap UERC20Factory. Token address = CREATE2(salt = keccak256(name, symbol, decimals, factoryCaller, graffiti)).
+///      factoryCaller is the contract that called the factory (the `creator` argument in Uniswap's code; LiquidityLauncher on Pools.trade).
+///      The address that called LiquidityLauncher goes into graffiti.
 interface IUERC20Factory {
     function getUERC20Address(
         string memory name,
@@ -508,7 +508,7 @@ interface IUERC20Factory {
     ) external view returns (address);
 }
 
-/// @dev Uniswap v4 PoolManager 중 쓰는 함수만. 풀 상태는 extsload로 읽는다.
+/// @dev Only the Uniswap v4 PoolManager functions we use. Pool state is read via extsload.
 interface IPoolManager {
     function extsload(bytes32 slot) external view returns (bytes32);
 }
@@ -520,26 +520,26 @@ interface IERC20Metadata {
 }
 
 /// @title CanonicalPoolRegistrar
-/// @notice 토큰의 발행자(issuer)만 그 토큰의 대표 풀을 한 번 선언할 수 있다.
-///         발행자 = 토큰 주소가 암호학적으로 가리키는 주소. 남의 토큰의 대표 풀은 아무도 선언할 수 없다.
-///         기록 위치: <토큰주소>.tokens.klamp.eth 의 text("pool"), data("pool")
+/// @notice Only a token's issuer can declare that token's canonical pool, once.
+///         Issuer = the address the token address cryptographically points to. No one can declare the canonical pool for someone else's token.
+///         Record location: text("pool"), data("pool") of <tokenAddress>.tokens.klamp.eth
 contract CanonicalPoolRegistrar {
-    IPermissionedResolver public immutable resolver; // tokens.klamp.eth 의 resolver
+    IPermissionedResolver public immutable resolver; // resolver of tokens.klamp.eth
     bytes32 public immutable tokensNode; // namehash("tokens.klamp.eth")
-    bytes public tokensName; // DNS 인코딩된 "tokens.klamp.eth"
-    IPoolManager public immutable poolManager; // 이 체인의 Uniswap v4 PoolManager
-    IUERC20Factory public immutable uerc20Factory; // 0x0이면 경로 B 끔
-    mapping(address => bool) public isLiquidityLauncher; // 배포 시 고정, 이후 변경 불가
+    bytes public tokensName; // DNS-encoded "tokens.klamp.eth"
+    IPoolManager public immutable poolManager; // this chain's Uniswap v4 PoolManager
+    IUERC20Factory public immutable uerc20Factory; // 0x0 disables path B
+    mapping(address => bool) public isLiquidityLauncher; // pinned at deployment, immutable afterwards
 
     mapping(address token => bytes32 poolId) public canonicalPoolOf;
 
     uint24 public constant LAUNCH_FEE = 2500; // InstantLaunchStrategy.LP_FEE
     int24 public constant LAUNCH_TICK_SPACING = 25; // InstantLaunchStrategy.TICK_SPACING
-    /// @dev v4 StateLibrary.POOLS_SLOT (v4-core 46c6834). 배포된 PoolManager에서 같은 값인지 테스트로 확인한다
+    /// @dev v4 StateLibrary.POOLS_SLOT (v4-core 46c6834). Tests confirm the deployed PoolManager uses the same value
     bytes32 public constant POOLS_SLOT = bytes32(uint256(6));
 
-    /// @param issuer 대표 풀을 선언한 주소 (경로 A: 런치패드 컨트랙트, 경로 B: 크리에이터)
-    /// @param creator description·url을 관리할 사람 주소 (경로 B에서는 issuer와 같다)
+    /// @param issuer Address that declared the canonical pool (path A: launchpad contract, path B: creator)
+    /// @param creator Person's address that manages description and url (equals issuer on path B)
     event CanonicalRecorded(address indexed token, bytes32 indexed poolId, address indexed issuer, address creator);
 
     error NotIssuer();
@@ -565,12 +565,12 @@ contract CanonicalPoolRegistrar {
         }
     }
 
-    /// @notice 경로 A. issuer = 토큰을 CREATE2로 배포한 컨트랙트(런치패드) 자신.
-    ///         런칭 트랜잭션 안에서, 방금 만든 풀을 선언한다. creator는 런치패드가 넘겨주는 사람 주소.
-    ///         호출자는 CREATE2를 실제로 실행한 컨트랙트여야 한다. 런치패드가 별도 토큰 팩토리를 쓰면
-    ///         그 팩토리가 호출해야 한다 (런치패드가 대신 부르면 NotIssuer).
-    ///         전제: 발행자 컨트랙트에 임의 외부 호출 기능(execute, multicall 등)이 없어야 한다.
-    ///         있으면 제3자가 그 기능을 통해 이 함수를 부를 수 있다.
+    /// @notice Path A. issuer = the contract (launchpad) that deployed the token with CREATE2.
+    ///         Declares the just-created pool inside the launch transaction. creator is the person's address passed by the launchpad.
+    ///         The caller must be the contract that actually executed CREATE2. If the launchpad uses a separate token factory,
+    ///         that factory must call (if the launchpad calls instead, NotIssuer).
+    ///         Precondition: the issuer contract must have no arbitrary external call feature (execute, multicall, etc.).
+    ///         Otherwise a third party could call this function through it.
     function recordByCreate2(
         address token,
         PoolKey calldata key,
@@ -586,19 +586,19 @@ contract CanonicalPoolRegistrar {
         _record(token, key, creator);
     }
 
-    /// @notice 경로 B. Uniswap LiquidityLauncher(Pools.trade)로 만든 토큰.
-    ///         LiquidityLauncher는 graffiti = keccak256(abi.encode(LiquidityLauncher를 부른 주소))를 넣는다.
-    ///         그 주소를 직접 부른 경우: 그 주소가 발행자이자 크리에이터다. 런칭 후 직접 호출한다.
-    ///         PoolKey는 받지 않는다. InstantLaunchStrategy가 만드는 풀 하나로 고정해 잘못된 선언을 막는다.
+    /// @notice Path B. Tokens created with Uniswap LiquidityLauncher (Pools.trade).
+    ///         LiquidityLauncher sets graffiti = keccak256(abi.encode(address that called LiquidityLauncher)).
+    ///         If that address called directly: it is both issuer and creator, and calls this directly after launch.
+    ///         Takes no PoolKey. Fixed to the single pool InstantLaunchStrategy creates, to prevent wrong declarations.
     function recordByLiquidityLauncher(address token, address launcher) external {
         _recordLaunched(token, launcher, msg.sender);
     }
 
-    /// @notice 경로 B, 일회용 컨트랙트 경유. 크리에이터가 일회용 컨트랙트를 배포하고, 그 생성자가
-    ///         LiquidityLauncher를 부른 뒤 사라진 경우. graffiti는 일회용 주소를 가리키고, 그 주소는
-    ///         CREATE(크리에이터, nonce)로 다시 계산된다. 발행자 = 그 컨트랙트를 배포한 크리에이터.
-    /// @dev 일회용 주소에 코드가 남아 있으면 거절한다. 여러 사람이 쓰는 공용 컨트랙트의 배포자가
-    ///      남의 런칭을 가로채지 못하게 하기 위해서다.
+    /// @notice Path B, via a disposable contract. The creator deploys a disposable contract whose constructor
+    ///         calls LiquidityLauncher and then disappears. graffiti points to the disposable address, which is
+    ///         recomputed as CREATE(creator, nonce). Issuer = the creator that deployed that contract.
+    /// @dev Rejects if the disposable address still has code, so that the deployer of a shared contract used by many
+    ///      cannot hijack other people's launches.
     function recordByLiquidityLauncherVia(address token, address launcher, uint256 nonce) external {
         address disposable = _createAddress(msg.sender, nonce);
         if (disposable.code.length != 0) revert NotIssuer();
@@ -613,7 +613,7 @@ contract CanonicalPoolRegistrar {
             t.name(), t.symbol(), t.decimals(), launcher, keccak256(abi.encode(graffitiOwner))
         );
         if (predicted != token) revert NotIssuer();
-        // InstantLaunchStrategy의 풀: ETH / 토큰, LP_FEE 2500, TICK_SPACING 25, 훅 없음 (liquidity-launcher v3.2.0)
+        // InstantLaunchStrategy's pool: ETH / token, LP_FEE 2500, TICK_SPACING 25, no hook (liquidity-launcher v3.2.0)
         _record(token, PoolKey(address(0), token, LAUNCH_FEE, LAUNCH_TICK_SPACING, address(0)), msg.sender);
     }
 
@@ -621,14 +621,14 @@ contract CanonicalPoolRegistrar {
         if (key.currency0 != token && key.currency1 != token) revert TokenNotInPool();
         if (canonicalPoolOf[token] != bytes32(0)) revert AlreadyRecorded();
 
-        bytes32 poolId = keccak256(abi.encode(key)); // v4 PoolIdLibrary와 같은 값
-        // 풀 상태 slot0 = pools[poolId]. sqrtPriceX96 == 0이면 미초기화.
-        // PoolManager가 initialize 때 PoolKey를 검증하므로, 초기화된 풀이면 PoolKey도 유효하다.
+        bytes32 poolId = keccak256(abi.encode(key)); // same value as v4 PoolIdLibrary
+        // Pool state slot0 = pools[poolId]. sqrtPriceX96 == 0 means uninitialized.
+        // PoolManager validates the PoolKey at initialize, so an initialized pool implies a valid PoolKey.
         bytes32 slot0 = poolManager.extsload(keccak256(abi.encodePacked(poolId, POOLS_SLOT)));
         if (uint160(uint256(slot0)) == 0) revert PoolNotInitialized();
         canonicalPoolOf[token] = poolId;
 
-        string memory label = _hex(abi.encodePacked(token)); // "0x" + 소문자 40자
+        string memory label = _hex(abi.encodePacked(token)); // "0x" + 40 lowercase chars
         bytes32 node = keccak256(abi.encodePacked(tokensNode, keccak256(bytes(label))));
         bytes memory name = abi.encodePacked(uint8(bytes(label).length), label, tokensName);
 
@@ -646,7 +646,7 @@ contract CanonicalPoolRegistrar {
 
     // ---------- utils ----------
 
-    /// @dev CREATE 주소 = keccak256(rlp([deployer, nonce]))의 끝 20바이트. nonce < 2^64 (EIP-2681)
+    /// @dev CREATE address = last 20 bytes of keccak256(rlp([deployer, nonce])). nonce < 2^64 (EIP-2681)
     function _createAddress(address deployer, uint256 nonce) internal pure returns (address) {
         bytes memory rlp;
         if (nonce == 0) {
@@ -694,116 +694,116 @@ contract CanonicalPoolRegistrar {
         return string(s);
     }
 }
-검증: ENSv2 실제 컨트랙트(contracts-v2 48b3e2d, 2026-07-03), Uniswap v4 PoolManager(v4-core 46c6834), Uniswap UERC20Factory 원본 위에서 로컬 Foundry 테스트 13개가 통과했다 (CREATE 주소 계산은 무작위 4,096회).
+Verification: 13 local Foundry tests pass on top of the real ENSv2 contracts (contracts-v2 48b3e2d, 2026-07-03), Uniswap v4 PoolManager (v4-core 46c6834), and the original Uniswap UERC20Factory (CREATE address computation fuzzed 4,096 times).
 
-테스트
+Test
 
-확인한 것
+What it checks
 
-CREATE2 경로 선언과 조회
+CREATE2 path declaration and lookup
 
-런치패드가 런칭 중 풀 초기화 후 선언 → 와일드카드로 tokens resolver가 답함 → viem이 부르는 resolveWithGateways로 같은 값. data(node, "pool")도 실제 resolver에서 읽어 PoolKey 디코딩. creator는 description을 쓰고 pool은 못 씀. 발행자(런치패드)는 메타데이터 권한 없음
+Launchpad initializes a pool during launch and declares it → tokens resolver answers via wildcard → resolveWithGateways, which viem calls, returns the same value. data(node, "pool") is also read from the real resolver and the PoolKey decoded. creator can write description but not pool. The issuer (launchpad) has no metadata permission
 
-발행자 아닌 호출 거절
+Non-issuer call rejected
 
-공격자가 같은 salt로 호출하면 NotIssuer
+An attacker calling with the same salt gets NotIssuer
 
-덮어쓰기 거절
+Overwrite rejected
 
-발행자가 다른 fee의 풀로 다시 선언하면 AlreadyRecorded
+Issuer redeclaring with a pool of a different fee gets AlreadyRecorded
 
-LiquidityLauncher 직접 호출 경로
+LiquidityLauncher direct-call path
 
-크리에이터는 선언 성공, 공격자는 NotIssuer
+Creator declares successfully, attacker gets NotIssuer
 
-일회용 컨트랙트 경로
+Disposable contract path
 
-생성자에서 런칭 후 사라지는 컨트랙트(nonce 1788). 직접 경로는 아무도 못 하고, 크리에이터만 Via로 선언. 다른 사람은 같은 nonce로도 NotIssuer
+A contract that launches in its constructor and disappears (nonce 1788). No one can use the direct path; only the creator declares via Via. Anyone else gets NotIssuer even with the same nonce
 
-공용 런처 가로채기 거절
+Shared launcher hijack rejected
 
-공격자가 배포한 공용 런처로 피해자가 런칭하면, 런처에 코드가 남아 있어 공격자의 Via는 NotIssuer
+If a victim launches through a shared launcher deployed by the attacker, the launcher still has code, so the attacker's Via gets NotIssuer
 
-CREATE 주소 계산
+CREATE address computation
 
-무작위 배포자·nonce 4,096쌍에서 EVM과 같은 값
+Matches the EVM for 4,096 random deployer/nonce pairs
 
-토큰 미포함
+Token not included
 
-토큰이 없는 PoolKey는 TokenNotInPool
+A PoolKey without the token gets TokenNotInPool
 
-미초기화 풀 거절
+Uninitialized pool rejected
 
-런칭 풀이 PoolManager에 없으면 PoolNotInitialized
+If the launch pool is not in the PoolManager, PoolNotInitialized
 
-미배포 토큰 거절
+Undeployed token rejected
 
-아직 배포되지 않은 CREATE2 예상 주소는 TokenNotDeployed
+A predicted CREATE2 address not yet deployed gets TokenNotDeployed
 
 POOLS_SLOT
 
-실제 PoolManager에서 초기화한 풀의 slot0를 이 슬롯으로 읽으면 초기 가격이 나옴
+Reading slot0 of a pool initialized in the real PoolManager through this slot returns the initial price
 
-남긴 등록 권한의 한계
+Limits of the retained registrar role
 
-남긴 ROLE_REGISTRAR로 tokens의 재등록·resolver 교체·하위 레지스트리 교체·삭제 불가. klamp.eth 하위 레지스트리 교체 불가. hooks 등록 후 마지막 권한 회수
+The retained ROLE_REGISTRAR cannot re-register tokens, replace its resolver, replace its subregistry, or delete it. Cannot replace the klamp.eth subregistry. Final role revoked after registering hooks
 
-업그레이드 역할 없음
+No upgrade role
 
-resolver·레지스트리 어디에도 우리·등록 컨트랙트의 ROLE_UPGRADE 없음
+Neither we nor the registrar hold ROLE_UPGRADE on the resolver or any registry
 
-등록 컨트랙트는 업그레이드 기능이 없고, resolver의 업그레이드 역할(ROLE_UPGRADE)은 처음부터 아무에게도 주지 않는다. 셋업이 끝나면 우리 관리 역할도 전부 회수하므로, 우리도 기록을 바꾸거나 지울 수 없다.
+The registrar has no upgrade feature, and the resolver's upgrade role (ROLE_UPGRADE) is never granted to anyone. After setup we revoke all our admin roles too, so even we cannot change or delete records.
 
-셋업과 조회 (Sepolia)
-세팅은 한 번만 한다.
+Setup and lookup (Sepolia)
+Setup happens once.
 
-// 셋업 스크립트 (me = 우리 배포 계정). 2단계를 빼고 로컬 테스트 setUp과 같다
+// Setup script (me = our deployer account). Same as the local test setUp, minus phase 2
 uint256 REG_ROLES = ROLE_REGISTRAR | ROLE_REGISTRAR_ADMIN | ROLE_SET_PARENT | ROLE_SET_PARENT_ADMIN;
 uint256 RES_ROLES = ROLE_SET_TEXT_ADMIN | ROLE_SET_DATA_ADMIN;
-bytes memory ANY = NameCoder.encode("");   // "모든 이름" (namehash 0)
+bytes memory ANY = NameCoder.encode("");   // "all names" (namehash 0)
 
-// 1. 우리 레지스트리와 resolver를 ENS 표준 구현으로 배포. ROLE_UPGRADE는 누구에게도 주지 않는다
-//    나중에 회수하려면 _ADMIN 역할도 같이 받아야 한다 (회수에도 ADMIN 필요)
+// 1. Deploy our registry and resolver as ENS standard implementations. ROLE_UPGRADE is granted to no one
+//    To revoke later we must also hold the _ADMIN roles (revoking also requires ADMIN)
 UserRegistry reg = UserRegistry(VERIFIABLE_FACTORY.deployProxy(
     USER_REGISTRY_IMPL, salt1, abi.encodeCall(UserRegistry.initialize, (me, REG_ROLES))));
 PermissionedResolver res = PermissionedResolver(VERIFIABLE_FACTORY.deployProxy(
     PERMISSIONED_RESOLVER_IMPL, salt2,
     abi.encodeCall(PermissionedResolver.initialize, (me, RES_ROLES, new bytes[](0)))));
 
-// 2. klamp.eth 등록 (가능한 최대 기간). subregistry에 우리 레지스트리를 바로 지정
+// 2. Register klamp.eth (maximum possible duration). Set our registry as subregistry right away
 ETH_REGISTRAR.commit(ETH_REGISTRAR.makeCommitment("klamp", me, secret, reg, address(0), duration, bytes32(0)));
 uint256 klampTokenId = ETH_REGISTRAR.register("klamp", me, secret, reg, address(0), duration, MOCK_USDC, bytes32(0));
 reg.setParent(ETH_REGISTRY, "klamp");
 
-// 3. tokens 라벨: resolver 지정, 역할 0, 만료 최대
+// 3. tokens label: set resolver, roles 0, max expiry
 reg.register("tokens", me, IRegistry(address(0)), address(res), 0, type(uint64).max);
 
-// 4. 등록 컨트랙트 배포와 권한 부여
+// 4. Deploy the registrar and grant permissions
 address[] memory launchers = new address[](2);
 launchers[0] = 0x00004c4ccc709Ef590F7C81102C0689F0263D4e9; // LiquidityLauncher v3.0.0
 launchers[1] = 0x0000FffFBE8efE702c8703aE3477FF5dE3d319C0; // LiquidityLauncher v3.2.0
 CanonicalPoolRegistrar registrar = new CanonicalPoolRegistrar(
     res, NameCoder.encode("tokens.klamp.eth"), POOL_MANAGER, UERC20_FACTORY, launchers);
-res.authorizeTextRoles(ANY, "pool", address(registrar), true);            // 모든 이름의 text(pool)
-res.authorizeDataRoles(ANY, "pool", address(registrar), true);            // 모든 이름의 data(pool)
-res.authorizeNameRoles(ANY, ROLE_SET_TEXT_ADMIN, address(registrar), true); // description·url 위임용
+res.authorizeTextRoles(ANY, "pool", address(registrar), true);            // text(pool) on all names
+res.authorizeDataRoles(ANY, "pool", address(registrar), true);            // data(pool) on all names
+res.authorizeNameRoles(ANY, ROLE_SET_TEXT_ADMIN, address(registrar), true); // for delegating description and url
 
-// 5. 권한 회수. 레지스트리의 REGISTRAR만 2단계까지 남긴다 (tokens는 못 건드림, 테스트로 확인)
-res.authorizeNameRoles(ANY, RES_ROLES, me, false);                                  // resolver: 전부
-reg.revokeRootRoles(ROLE_SET_PARENT | ROLE_SET_PARENT_ADMIN, me);                  // 레지스트리: REGISTRAR만 남김
+// 5. Revoke roles. Keep only the registry's REGISTRAR until phase 2 (cannot touch tokens, confirmed by tests)
+res.authorizeNameRoles(ANY, RES_ROLES, me, false);                                  // resolver: all
+reg.revokeRootRoles(ROLE_SET_PARENT | ROLE_SET_PARENT_ADMIN, me);                  // registry: keep only REGISTRAR
 ETH_REGISTRY.revokeRoles(klampTokenId, ROLE_SET_SUBREGISTRY | ROLE_SET_SUBREGISTRY_ADMIN
-    | ROLE_SET_RESOLVER | ROLE_SET_RESOLVER_ADMIN | ROLE_CAN_TRANSFER_ADMIN, me);   // klamp.eth 소유자 역할: 전부
+    | ROLE_SET_RESOLVER | ROLE_SET_RESOLVER_ADMIN | ROLE_CAN_TRANSFER_ADMIN, me);   // klamp.eth owner roles: all
 
-// 6. (2단계) hooks.klamp.eth 확보 후 마지막 권한 회수
+// 6. (Phase 2) Secure hooks.klamp.eth, then revoke the final roles
 reg.register("hooks", me, hooksRegistry, hooksResolver, 0, type(uint64).max);
 reg.revokeRootRoles(ROLE_REGISTRAR | ROLE_REGISTRAR_ADMIN, me);
-셋업 후 남는 쓰기 권한은 등록 컨트랙트의 것뿐이고, 그 컨트랙트는 업그레이드되지 않는다. 남는 위험은 klamp.eth의 만료다. 가능한 최대 기간으로 등록하고, ETHRegistrar.renew는 누구나 비용을 내고 부를 수 있다. 만료 후 누가 이름을 가로채도, SDK는 고정한 tokens resolver가 답하지 않으면 조회 실패로 처리하므로 가짜 값을 쓰지 않는다.
+After setup the only remaining write permission belongs to the registrar, and that contract is not upgradeable. The remaining risk is klamp.eth expiring. We register for the maximum possible duration, and anyone can pay to call ETHRegistrar.renew. Even if someone grabs the name after expiry, the SDK treats a non-answer from the pinned tokens resolver as lookup failed, so it never uses a fake value.
 
-Sepolia 주소:
+Sepolia addresses:
 
-컨트랙트
+Contract
 
-주소
+Address
 
 ENSv2 ETHRegistrar
 
@@ -817,11 +817,11 @@ VerifiableFactory
 
 0x118bc31a50d559f7015a8da26d54b3b030cdb70f
 
-UserRegistry 구현
+UserRegistry implementation
 
 0x840fa461059862ea466a711e8c98c8de732061c0
 
-PermissionedResolver 구현
+PermissionedResolver implementation
 
 0x7e4b2d59938930168024201752ee5503df402303
 
@@ -829,7 +829,7 @@ UniversalResolverV2
 
 0x85edf8b6b7d4211e2b07aa687506b746357b92cf
 
-MockUSDC (등록비 결제)
+MockUSDC (registration fee payment)
 
 0xd3322b29a7bdee707d1684676f149bf41aa3422f
 
@@ -841,26 +841,26 @@ Uniswap v4 StateView
 
 0xe1dd9c3fa50edb962e442f60dfbc432e24537e4c
 
-조회는 이렇게 흐른다.
+The lookup flows like this.
 
 tokens resolver
 UniversalResolv-
 erV2
-터미널 SDK
+Terminal SDK
 tokens resolver
 UniversalResolv-
 erV2
-터미널 SDK
-resolve(<토큰>.tokens.klamp.-
+Terminal SDK
+resolve(<token>.tokens.klamp.-
 eth, text(pool))
-토큰 라벨 미등록
-확인
-상위 resolver에 위임
-(와일드카드)
+Token label not registered
+check
+Delegate to parent resolver
+(wildcard)
 eip155:<chainId>:<poolId>
-풀 상태 확인, 경로의
-PoolId와 비교
-터미널 쪽 코드는 viem 표준 함수 하나다. 우리 ABI는 필요 없다.
+Check pool state, compare
+with the route's PoolId
+The terminal-side code is one standard viem function. Our ABI is not needed.
 
 import {
   createPublicClient, http, keccak256, encodeAbiParameters, decodeAbiParameters, namehash, parseAbi,
@@ -871,7 +871,7 @@ import { normalize } from 'viem/ens'
 
 const client = createPublicClient({ chain: sepolia, transport: http() })
 const UNIVERSAL_RESOLVER_V2: Address = '0x85edf8b6b7d4211e2b07aa687506b746357b92cf'
-const TOKENS_RESOLVER: Address = '0x0000000000000000000000000000000000000000' // 셋업 후 고정: tokens.klamp.eth의 resolver
+const TOKENS_RESOLVER: Address = '0x0000000000000000000000000000000000000000' // pinned after setup: resolver of tokens.klamp.eth
 const DYNAMIC_FEE_FLAG = 0x800000
 
 const POOL_KEY = {
@@ -895,26 +895,26 @@ export type Canonical =
 const eq = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
 export const poolIdOf = (key: PoolKey) => keccak256(encodeAbiParameters([POOL_KEY], [key]))
 
-/** 토큰의 대표 풀. 미등록과 조회 실패를 구분한다 */
+/** The token's canonical pool. Distinguishes not registered from lookup failed */
 export async function getCanonicalPool(token: Address, root = 'klamp.eth'): Promise<Canonical> {
   const name = normalize(`${token.toLowerCase()}.tokens.${root}`)
   try {
-    // 1. 해석 경로: 고정한 tokens resolver가 답해야 한다 (상위 이름이 만료·탈취되면 여기서 걸림)
+    // 1. Resolution path: the pinned tokens resolver must answer (catches an expired or hijacked parent name)
     const resolver = await client.getEnsResolver({ name, universalResolverAddress: UNIVERSAL_RESOLVER_V2 })
     if (!eq(resolver, TOKENS_RESOLVER)) return { status: 'lookup_failed', reason: 'unexpected resolver' }
 
-    // 2. 표준 ENS 조회. strict: 해석 오류를 미등록(null)으로 삼키지 않는다
+    // 2. Standard ENS lookup. strict: don't swallow resolution errors as not registered (null)
     const text = await client.getEnsText({
       name, key: 'pool', universalResolverAddress: UNIVERSAL_RESOLVER_V2, strict: true,
     })
     if (text === null) return { status: 'not_registered' }
 
-    // 3. 형식과 체인
+    // 3. Format and chain
     const m = /^eip155:(\d+):(0x[0-9a-f]{64})$/.exec(text)
     if (!m || Number(m[1]) !== client.chain.id) return { status: 'lookup_failed', reason: 'bad pool record' }
     const poolId = m[2] as Hex
 
-    // 4. data 레코드의 PoolKey로 PoolId를 다시 계산하고, 토큰이 들어 있는지 확인
+    // 4. Recompute the PoolId from the data record's PoolKey and check the token is in it
     const raw = await client.readContract({
       address: TOKENS_RESOLVER, abi: dataAbi, functionName: 'data', args: [namehash(name), 'pool'],
     })
@@ -933,152 +933,152 @@ export async function getCanonicalPool(token: Address, root = 'klamp.eth'): Prom
 
 export type Verdict = 'allow' | 'requote_canonical' | 'requote_static' | 'hold'
 
-/** 수수료가 PoolKey에 고정된 풀: 훅 없음 + 정적 수수료. 견적과 체결 수수료가 같다 */
+/** Pool whose fee is fixed in the PoolKey: no hook + static fee. Quote and execution fees are equal */
 const isStatic = (k: PoolKey) =>
   eq(k.hooks, '0x0000000000000000000000000000000000000000') && (k.fee & DYNAMIC_FEE_FLAG) === 0
 
-/** 견적 경로 중 이 토큰이 들어 있는 풀만 판정한다 */
+/** Judges only the pools in the quote route that contain this token */
 export function judge(token: Address, c: Canonical, route: PoolKey[]): Verdict {
   const hops = route.filter((k) => eq(k.currency0, token) || eq(k.currency1, token))
   const isCanonical = (k: PoolKey) => c.status === 'registered' && poolIdOf(k) === c.poolId
   if (hops.every((k) => isStatic(k) || isCanonical(k))) return 'allow'
-  if (c.status === 'registered') return 'requote_canonical' // 대표 풀·정적 풀로만 다시 견적
-  if (c.status === 'not_registered') return 'requote_static' // 정적 풀로만 다시 견적, 없으면 경고 후 확인
-  return 'hold' // 조회 실패: 정적 풀로만 다시 견적, 확인으로 우회 불가
+  if (c.status === 'registered') return 'requote_canonical' // requote using only canonical and static pools
+  if (c.status === 'not_registered') return 'requote_static' // requote using only static pools; if none, warn and confirm
+  return 'hold' // lookup failed: requote using only static pools; cannot be bypassed by confirmation
 }
-getCanonicalPool은 네 단계로 검증한다. 고정한 resolver가 답하는지, 값이 비었는지(미등록) 오류인지(strict), 형식과 chainId, data 레코드의 PoolKey로 계산한 PoolId가 같은지다. judge는 위 판정 정책 표를 그대로 코드로 옮긴 것이다. 타입 검사를 통과했고, poolIdOf는 Solidity keccak256(abi.encode(key))와 같은 값을 낸다.
+getCanonicalPool verifies in four steps: whether the pinned resolver answers, whether the value is empty (not registered) or an error (strict), the format and chainId, and whether the PoolId computed from the data record's PoolKey matches. judge is the verdict policy table above translated directly into code. It passes type checking, and poolIdOf produces the same value as Solidity keccak256(abi.encode(key)).
 
-설계 결정 (리뷰 반영)
-항목
+Design decisions (after review)
+Item
 
-결정
+Decision
 
-대표 풀의 의미
+Meaning of canonical pool
 
-발행자가 선언한, 등록 시점에 이미 초기화된 풀. 경로 A는 런칭 트랜잭션 안에서 선언하므로 런칭 때 생성된 풀과 같다. 경로 B는 런칭 풀(ETH, 토큰, 2500, 25, 훅 없음)로 고정
+A pool declared by the issuer and already initialized at registration time. Path A declares inside the launch transaction, so it is the pool created at launch. Path B is fixed to the launch pool (ETH, token, 2500, 25, no hook)
 
-등록 권한 증명
+Proof of registration right
 
-경로 A: 호출자 = CREATE2를 실제로 실행한 컨트랙트. 런치패드가 별도 팩토리를 쓰면 그 팩토리가 호출한다. 발행자 컨트랙트에 임의 호출 기능이 없어야 한다. 경로 B: graffiti = LiquidityLauncher를 부른 주소. 직접 불렀으면 그 주소, 일회용 컨트랙트로 불렀으면 CREATE(배포자, nonce)로 다시 계산한 배포자
+Path A: caller = the contract that actually executed CREATE2. If the launchpad uses a separate factory, that factory calls. The issuer contract must have no arbitrary-call feature. Path B: graffiti = the address that called LiquidityLauncher. If called directly, that address; if called through a disposable contract, the deployer recomputed via CREATE(deployer, nonce)
 
-토큰 배포 확인
+Token deployment check
 
-배포된 토큰만 (TokenNotDeployed). 예상 주소 선등록 불가
+Deployed tokens only (TokenNotDeployed). No pre-registering predicted addresses
 
-풀 검증
+Pool verification
 
-지정한 PoolManager에서 초기화됐는지 확인 (PoolNotInitialized). PoolManager가 initialize 때 PoolKey를 검증하므로 초기화된 풀이면 PoolKey도 유효. POOLS_SLOT은 상수로 두고 실제 PoolManager에서 테스트
+Checks the pool is initialized in the specified PoolManager (PoolNotInitialized). PoolManager validates the PoolKey at initialize, so an initialized pool implies a valid PoolKey. POOLS_SLOT is a constant, tested against the real PoolManager
 
-기록 수정 정책
+Record modification policy
 
-영구 고정, 버전 추가 없음. 키 탈취 때 바뀔 수 없는 게 더 중요하다. 복구 기능 대신 실수를 막는다: 경로 B는 PoolKey를 받지 않고, 경로 A는 발행자 코드가 런칭 중에 선언한다
+Permanently fixed, no versioning. Being unchangeable when a key is stolen matters more. Instead of a recovery feature, we prevent mistakes: path B takes no PoolKey, and on path A the issuer code declares during launch
 
-보호 범위
+Protection scope
 
-라우터·터미널 판정 정책 섹션과 SDK의 judge()
+The router and terminal verdict policy section and the SDK's judge()
 
-판정 기준
+Verdict criteria
 
-등록됨·미등록·조회 실패 3가지. 대표 풀·정적 풀만 쓰는 경로는 항상 허용. 기록이 판정을 바꾸는 건 D형(훅이 붙은 대표 풀)
+Three states: registered, not registered, lookup failed. Routes using only canonical and static pools are always allowed. The record changes the verdict for type D (canonical pool with a hook)
 
-공격 성립 조건
+Attack conditions
 
-공격 섹션. 허용치 ≥ 체결 수수료면 그만큼 손실, 아니면 체결 실패 (v4-core로 재현)
+Attack section. If tolerance ≥ execution fee, the user loses that much; otherwise execution fails (reproduced with v4-core)
 
-확장과 권한 봉인
+Extension and role seal
 
-레지스트리의 REGISTRAR만 남기고 나머지 회수. 2단계에서 hooks.klamp.eth 등록 후 REGISTRAR도 회수. 남긴 권한으로 tokens를 못 건드리는 것은 테스트로 확인
+Keep only the registry's REGISTRAR and revoke the rest. In phase 2, revoke REGISTRAR too after registering hooks.klamp.eth. Tests confirm the retained role cannot touch tokens
 
-불변성 보장
+Immutability guarantee
 
-업그레이드 역할은 처음부터 없음(테스트). klamp.eth 소유자 역할(하위 레지스트리·resolver 교체, 전송) 회수. 남는 위험인 만료는 최대 기간 등록, 누구나 갱신, SDK의 resolver 고정으로 대응
+No upgrade role from the start (tested). klamp.eth owner roles (subregistry/resolver replacement, transfer) revoked. The remaining risk, expiry, is handled by max-duration registration, renewal by anyone, and the SDK's pinned resolver
 
-메타데이터 편집자
+Metadata editor
 
-크리에이터(사람). 경로 A는 런치패드가 넘긴 주소, 0이면 없음. 경로 B는 선언한 발행자. 발행자 컨트랙트는 권한 없음(테스트)
+The creator (a person). Path A: the address passed by the launchpad; none if 0. Path B: the declaring issuer. The issuer contract has no permission (tested)
 
-조회값 검증
+Lookup value verification
 
-형식 eip155:<chainId>:<poolId>, chainId 일치, data 레코드의 PoolKey로 PoolId 재계산, 토큰 포함. strict 조회로 미등록(null)과 실패(예외) 구분
+Format eip155:<chainId>:<poolId>, chainId match, PoolId recomputed from the data record's PoolKey, token included. Strict lookup distinguishes not registered (null) from failure (exception)
 
-이벤트 대체 정책
+Event fallback policy
 
-신뢰 주소 1개 확정, 3개 확인 중. PoolId·PoolKey 검증, ENS 기록 우선, 조회가 끝나지 않으면 조회 실패 (판정 정책 섹션)
+1 trusted address confirmed, 3 under review. PoolId/PoolKey verification, ENS record wins, lookup failed if the lookup cannot complete (verdict policy section)
 
-실배포 호환성
+Live deployment compatibility
 
-고정 버전: ENSv2 contracts-v2 48b3e2d, v4-core 46c6834, LiquidityLauncher v3.0.0 0x00004c4ccc709Ef590F7C81102C0689F0263D4e9와 v3.2.0 0x0000FffFBE8efE702c8703aE3477FF5dE3d319C0 둘 다 허용. 두 버전과 UERC20Factory는 Sepolia에 Robinhood와 같은 바이트코드로 있음(검토에서 확인)
+Pinned versions: ENSv2 contracts-v2 48b3e2d, v4-core 46c6834, both LiquidityLauncher v3.0.0 0x00004c4ccc709Ef590F7C81102C0689F0263D4e9 and v3.2.0 0x0000FffFBE8efE702c8703aE3477FF5dE3d319C0 allowed. Both versions and UERC20Factory exist on Sepolia with the same bytecode as Robinhood (confirmed in review)
 
-Pools.trade의 실제 운영 체인(Robinhood Chain)에는 ENSv2가 없다. 레코드에 chainId가 있으니 다른 체인의 풀을 적는 것 자체는 가능하다. 막히는 건 등록 컨트랙트의 검사(발행자 증명, 토큰 배포, 풀 초기화)가 같은 체인 상태만 볼 수 있다는 점이다. 그래서 지금 Robinhood의 Pools.trade 토큰은 이벤트 대체로 보호하고, 다른 체인의 기록은 그 체인 상태를 증명할 수단(스토리지 증명 등)이 생긴 뒤의 로드맵이다. 데모는 Sepolia에서 두 경로를 모두 보여준다.
+Pools.trade's actual production chain (Robinhood Chain) has no ENSv2. Since the record includes chainId, writing a pool from another chain is possible in itself. The blocker is that the registrar's checks (issuer proof, token deployment, pool initialization) can only see same-chain state. So Pools.trade tokens on Robinhood are currently protected by the event fallback, and records for other chains are on the roadmap once there is a way to prove that chain's state (storage proofs, etc.). The demo shows both paths on Sepolia.
 
-Sepolia에서 확인할 것:
-
-
-klamp.eth 등록 가능 여부와 ETHRegistrar 등록 (commit → register, 최소 대기 시간 포함)
+To check on Sepolia:
 
 
-ETH_REGISTRY.revokeRoles로 klamp.eth 소유자 역할 회수 후 hasRoles가 0인 화면 캡처 (심사 증거)
+Whether klamp.eth can be registered, and ETHRegistrar registration (commit → register, including the minimum wait)
 
 
-LiquidityLauncher v3.0.0·v3.2.0과 UERC20Factory가 Sepolia에 있는지 → 확인됨, 바이트코드도 Robinhood와 같음
+Screenshot of hasRoles being 0 after revoking the klamp.eth owner roles via ETH_REGISTRY.revokeRoles (evidence for judges)
 
 
-getCanonicalPool을 Sepolia에서 실행 (getEnsResolver, getEnsText strict). data(node, "pool") 호출은 로컬의 실제 PermissionedResolver에서 확인됨
+Whether LiquidityLauncher v3.0.0/v3.2.0 and UERC20Factory exist on Sepolia → confirmed, bytecode also matches Robinhood
 
 
-Sepolia PoolManager에서 POOLS_SLOT 확인 (StateView getSlot0와 같은 값인지)
+Run getCanonicalPool on Sepolia (getEnsResolver, getEnsText strict). The data(node, "pool") call is confirmed against the real PermissionedResolver locally
 
 
-ENS 앱에서 와일드카드 이름 표시. 안 보이면 데모는 viem 조회 화면으로
+Check POOLS_SLOT on the Sepolia PoolManager (same value as StateView getSlot0)
 
 
-42자 0x… 라벨을 ENS 앱 UI가 자르지 않는지
+Wildcard name display in the ENS app. If it doesn't show, the demo uses the viem lookup screen
 
 
-경로 B 실수 복구 → 런칭 풀 고정으로 실수 자체를 막음
+Whether the ENS app UI truncates the 42-char 0x… label
 
 
-이벤트 발생 주소 3개(0x7c48dde3…, 0xc9566675…, 0x60d73b21…)가 Pools.trade 공식 전략인지
+Path B mistake recovery → prevented altogether by fixing the launch pool
 
-부록: 용어
-이 문서에 나오는 Uniswap·배포 용어다. ENS 용어는 위 ENSv2 섹션에 있다.
 
-용어
+Whether the three emitter addresses (0x7c48dde3…, 0xc9566675…, 0x60d73b21…) are official Pools.trade strategies
 
-뜻
+Appendix: Terms
+Uniswap and deployment terms used in this document. ENS terms are in the ENSv2 section above.
 
-Uniswap v4 풀
+Term
 
-모든 풀이 PoolManager 컨트랙트 하나 안에 있다. 누구나 아무 풀이나 만들 수 있다 (무허가)
+Meaning
+
+Uniswap v4 pool
+
+All pools live inside a single PoolManager contract. Anyone can create any pool (permissionless)
 
 PoolKey
 
-풀을 정의하는 5개 값: currency0, currency1, fee, tickSpacing, hooks. 하나라도 다르면 다른 풀
+The 5 values that define a pool: currency0, currency1, fee, tickSpacing, hooks. If any differs, it is a different pool
 
 PoolId
 
-keccak256(abi.encode(PoolKey)). 풀의 고유 ID
+keccak256(abi.encode(PoolKey)). The pool's unique ID
 
-훅 (hook)
+Hook (hook)
 
-풀에 붙는 외부 컨트랙트. 스왑 전후로 코드를 실행하고, dynamic fee 풀이면 수수료를 매번 바꿀 수 있다
+An external contract attached to a pool. Runs code before and after swaps; on a dynamic fee pool it can change the fee every time
 
-복제 풀
+Replica pool
 
-같은 토큰 페어에 다른 fee·훅으로 만든 풀. 견적 때는 낮은 수수료, 체결 때는 높은 수수료(예: 30%)를 매기는 악성 훅이 붙는다
+A pool created on the same token pair with a different fee or hook. Carries a malicious hook that charges a low fee at quote time and a high fee (e.g. 30%) at execution
 
-대표 풀
+Canonical pool
 
-토큰의 발행자가 선언한, 이미 초기화된 풀. 우리가 ENS에 기록하는 대상
+An already-initialized pool declared by the token's issuer. What we record in ENS
 
 CREATE2
 
-주소 = keccak256(0xff, 배포 컨트랙트, salt, initCode 해시)의 끝 20바이트. 세 값을 알면 주소를 다시 계산해 누가 배포했는지 증명할 수 있다
+Address = last 20 bytes of keccak256(0xff, deployer contract, salt, initCode hash). Knowing the three values lets you recompute the address and prove who deployed it
 
 UERC20Factory
 
-Uniswap 토큰 팩토리. salt = keccak256(name, symbol, decimals, 호출자, graffiti)로 CREATE2 배포
+Uniswap token factory. Deploys via CREATE2 with salt = keccak256(name, symbol, decimals, caller, graffiti)
 
 graffiti
 
-UERC20Factory가 salt에 넣는 값. Pools.trade가 쓰는 LiquidityLauncher는 keccak256(abi.encode(LiquidityLauncher를 부른 주소))를 넣는다 → 발행자 증명에 쓴다
+The value UERC20Factory puts into the salt. LiquidityLauncher, used by Pools.trade, puts in keccak256(abi.encode(address that called LiquidityLauncher)) → used for the issuer proof

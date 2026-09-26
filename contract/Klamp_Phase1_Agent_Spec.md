@@ -1,118 +1,118 @@
-# Klamp 1단계 — 코딩 에이전트 구현 명세
+# Klamp Phase 1 — Coding-Agent Implementation Spec
 
-작성일: 2026-09-25  
-기준: 팀 공유 문서 「1단계 설계: 런칭과 대표 풀 기록 (ENSv2)」  
-목표: 기존 코드 예시를 출발점으로 삼아 작은 diff와 독립적으로 검증 가능한 커밋으로 1단계를 구현한다.
+Written: 2026-09-25  
+Basis: team shared document "Phase 1 design: launch and canonical pool records (ENSv2)"  
+Goal: implement phase 1 starting from the existing code examples, in small diffs and independently verifiable commits.
 
-## 0. 에이전트에게 전달할 작업 지시
+## 0. Instructions for the agent
 
-이 문서의 순서대로 기존 저장소를 수정하라. 먼저 AGENTS.md, 현재 브랜치와 변경사항, 기존 컨트랙트·테스트·SDK·배포 스크립트를 확인하라. 이미 구현된 기능은 재작성하지 말고 완료 조건만 검증하라. 사용자의 미커밋 변경을 덮어쓰지 않는다.
+Modify the existing repository in the order of this document. First check AGENTS.md, the current branch and changes, and the existing contracts, tests, SDK and deployment scripts. Do not rewrite features that are already implemented; only verify their Done when conditions. Do not overwrite the user's uncommitted changes.
 
-원문 Solidity·셋업·TypeScript 코드는 부록에 포함되어 있다. 구조, 이름, 기록 형식, 두 등록 경로를 유지하되 본문에서 지정한 최소 수정만 적용하라. 본문 요구사항이 부록 원문보다 우선한다. 부록은 완성 코드가 아니라 기준 코드다.
+The original Solidity, setup and TypeScript code is included in the appendix. Keep its structure, names, record format and both registration paths, and apply only the minimal changes specified in the body. Body requirements take precedence over the original text in the appendix. The appendix is reference code, not finished code.
 
-각 커밋은 하나의 목적과 관련 테스트만 포함한다. 전체 폴더 재배치, 일괄 포맷 변경, 도구 체인 교체, 불필요한 추상화, 의존성 일괄 업그레이드는 하지 않는다. 파일 경로는 아래 예시보다 기존 저장소 구조를 우선한다. 구현이 없는 빈 저장소에만 Foundry와 기존 예시를 실행할 최소 TypeScript 구성을 추가한다.
+Each commit contains one purpose and its related tests only. Do not relocate whole folders, reformat in bulk, replace the toolchain, add unnecessary abstractions or bulk-upgrade dependencies. Prefer the existing repository structure over the file paths in the examples below. Only in an empty repository with no implementation, add Foundry and the minimal TypeScript setup needed to run the existing examples.
 
-커밋마다 변경 이유, 변경 파일, 실행한 검증과 결과, 남은 제약을 보고하라. 기존 완료 항목은 빈 커밋을 만들지 말고 건너뛴 근거를 남긴다. 아래 커밋 메시지는 권장값이며 커밋 순서와 책임 경계가 핵심이다. 원격 push나 실제 네트워크 broadcast는 저장소 및 사용자에게 이미 부여된 권한 범위를 따른다. 자격증명 없이 실행 가능한 로컬 구현·통합 테스트·배포 dry-run까지 완성한다.
+For each commit, report the reason for the change, the changed files, the verification run and its result, and remaining constraints. For items already done, do not create empty commits; record why they were skipped. The commit messages below are recommendations; the commit order and responsibility boundaries are what matter. Remote pushes and real network broadcasts follow the permission scope already granted by the repository and the user. Complete everything runnable without credentials: local implementation, integration tests and deployment dry-runs.
 
-## 1. 이번 구현에서 확정하는 MVP 정책
+## 1. MVP policies fixed for this implementation
 
-이 절은 원문의 미결정 부분에 대한 이번 구현의 기본 결정이다. 기존 저장소에 충돌하는 확정 요구사항이 있다면 조용히 덮어쓰지 말고 차이를 기록한다.
+This section is this implementation's default decision for the parts left open in the original text. If the existing repository has conflicting confirmed requirements, do not silently overwrite them; record the difference.
 
-| 항목 | 결정 |
+| Item | Decision |
 | --- | --- |
-| 대표 풀의 의미 | 검증된 배포 주체 또는 지원되는 런처의 크리에이터가 지정한 풀. 원래 런칭 풀 또는 안전한 풀이라는 인증은 아님 |
-| 대상 체인 | 한 배포당 한 체인. 로컬과 Sepolia를 우선하며 크로스체인 쓰기는 제외 |
-| 풀 식별 | `(chainId, configured PoolManager, PoolId)`. text 형식은 원문대로 유지하고 PoolManager는 배포 설정으로 고정 |
-| 등록 시점 | 토큰 배포와 풀 초기화가 끝난 뒤. 같은 런칭 트랜잭션 안에서 호출해도 순서는 동일 |
-| 등록 횟수 | 토큰당 한 번. 수정·삭제·버전 추가·풀 이전은 이번 단계에서 구현하지 않음 |
-| 등록 전 검증 | CREATE2 또는 LiquidityLauncher 증명, 토큰 코드 존재, currency 정렬·포함, 지정된 PoolManager에서 풀 초기화 완료 |
-| 이름 | `0x`를 포함한 소문자 주소 + `.tokens.klamp.eth`. 조회와 쓰기에 같은 이름 사용 |
-| 데이터 | `text("pool") = eip155:<chainId>:<poolId>` 및 `data("pool") = abi.encode(chainId, PoolKey)` 유지 |
-| 메타데이터 권한 | description·url만 지정 편집자에게 부여. pool 편집 권한은 부여하지 않음 |
-| 미등록 | 악성으로 판정하지 않음. 대표 풀 미확인 상태 |
-| 조회 실패 | 미등록과 별도 상태. 이벤트 fallback을 실행하지 않음 |
-| 데모 정책 | 대표 풀 검증 모드에서는 검증된 일치 경로만 진행 가능. 이것은 거래 클라이언트 정책이지 전역 차단 기능이 아님 |
-| 이벤트 fallback | 지원하는 런처/전략의 검증된 TokenLaunched 로그에 한정. ENS의 실제 미등록 시만 사용하며 출처를 별도로 표시 |
-| 확장 | hooks 이름공간은 권한 봉인 전에 예약. CappedHookProxy 및 수수료 상한 로직은 구현하지 않음 |
+| Meaning of canonical pool | A pool designated by a verified deployer or by the creator of a supported launcher. Not a certification that it is the original launch pool or a safe pool |
+| Target chain | One chain per deployment. Local and Sepolia first; cross-chain writes excluded |
+| Pool identity | `(chainId, configured PoolManager, PoolId)`. Keep the text format as in the original text; PoolManager is fixed by deployment config |
+| Registration timing | After token deployment and pool initialization. Same order even when called within the same launch transaction |
+| Registration count | Once per token. Edits, deletion, versioning and pool migration are not implemented in this phase |
+| Pre-registration checks | CREATE2 or LiquidityLauncher proof, token code exists, currency ordering and inclusion, pool initialized on the designated PoolManager |
+| Name | Lowercase address including `0x` + `.tokens.klamp.eth`. The same name is used for reads and writes |
+| Data | Keep `text("pool") = eip155:<chainId>:<poolId>` and `data("pool") = abi.encode(chainId, PoolKey)` |
+| Metadata permission | Only description and url are granted to the designated editor. No pool edit permission is granted |
+| Missing | Not judged malicious. Canonical pool unconfirmed |
+| Lookup failure | A state separate from missing. Event fallback is not run |
+| Demo policy | In canonical pool verification mode, only verified matching routes may proceed. This is a trading client policy, not a global blocking feature |
+| Event fallback | Limited to verified TokenLaunched logs of supported launchers/strategies. Used only when ENS is genuinely missing, and its source is shown separately |
+| Extension | The hooks namespace is reserved before the permission seal. CappedHookProxy and fee cap logic are not implemented |
 
-보장하지 않는 것: 사칭 토큰 방지, 배포자의 정직성, 훅 안전성, 유동성 보장, 수익성, MEV 방지, 모든 라우터의 자동 적용, ENS 상위 이름의 영구 존속.
+Not guaranteed: prevention of impersonating tokens, deployer honesty, hook safety, liquidity, profitability, MEV protection, automatic adoption by all routers, permanent existence of the parent ENS name.
 
-## 2. 유지할 구조와 최소 변경
+## 2. Structure to keep and minimal changes
 
-### 유지
+### Keep
 
-- `CanonicalPoolRegistrar` 하나가 두 등록 경로에서 공통 `_record`를 호출한다.
-- `PoolKey`의 필드 순서와 `keccak256(abi.encode(key))`를 유지한다.
-- `canonicalPoolOf`, `tokensNode`, `tokensName`, `isLiquidityLauncher`, `uerc20Factory`와 기존 이벤트를 유지한다.
-- `UserRegistry`·`PermissionedResolver` 표준 구현과 `VerifiableFactory`를 사용한다.
-- tokens 라벨 하나와 와일드카드 조회를 사용하며 토큰마다 ENS 이름을 등록하지 않는다.
-- SDK의 레코드 읽기는 viem `getEnsText`를 사용한다. 전용 registrar 조회 ABI를 필수로 만들지 않는다.
-- `_hex`, `_dec`, `_namehash`는 정상 입력에서의 동작을 유지한다. 헬퍼 전면 교체는 하지 않는다.
+- A single `CanonicalPoolRegistrar` calls the shared `_record` from both registration paths.
+- Keep the field order of `PoolKey` and `keccak256(abi.encode(key))`.
+- Keep `canonicalPoolOf`, `tokensNode`, `tokensName`, `isLiquidityLauncher`, `uerc20Factory` and the existing events.
+- Use the standard `UserRegistry` and `PermissionedResolver` implementations and `VerifiableFactory`.
+- Use a single tokens label and wildcard resolution; do not register an ENS name per token.
+- SDK record reads use viem `getEnsText`. Do not make a dedicated registrar lookup ABI mandatory.
+- `_hex`, `_dec` and `_namehash` keep their behavior on valid input. Do not replace the helpers wholesale.
 
-### 필요한 변경
+### Required changes
 
-1. 등록 전에 실제 토큰·풀 상태를 검증한다.
-2. CREATE2 경로에 메타데이터 편집자 지정용 오버로드를 추가한다.
-3. 셋업 권한을 최소화하고 hooks 예약·봉인 검증을 추가한다.
-4. SDK의 값 검증·결과 상태·fallback·경로 비교를 명시한다.
-5. 실제 ENS 통합 및 네트워크 셋업의 검증 근거를 남긴다.
+1. Verify actual token and pool state before registration.
+2. Add an overload to the CREATE2 path for designating a metadata editor.
+3. Minimize setup permissions and add hooks reservation and seal verification.
+4. Make the SDK's value validation, result states, fallback and route comparison explicit.
+5. Leave verification evidence for real ENS integration and network setup.
 
-원문의 “외부 라이브러리 없이 파일 하나로 컴파일” 형태는 가능한 한 유지한다. 필요한 StateView 인터페이스는 같은 파일에 최소 선언할 수 있다. 테스트와 스크립트는 실제 의존성 구현을 import한다. ABI는 추측하지 말고 고정한 버전에서 확인한다.
+Keep the original text's "compiles as a single file without external libraries" form where possible. The required StateView interface may be minimally declared in the same file. Tests and scripts import the real dependency implementations. Do not guess ABIs; confirm them at the pinned version.
 
-## 3. 커밋별 실행 계획
+## 3. Per-commit execution plan
 
-| 순서 | 권장 커밋 메시지 | 단일 목표 | 의존 |
+| Order | Recommended commit message | Single goal | Depends on |
 | --- | --- | --- | --- |
-| C01 | `chore: pin phase1 contract and sdk dependencies` | 원문과 실행 환경의 버전 차이 고정 | 없음 |
-| C02 | `feat: add baseline canonical pool registrar` | 원문 등록 흐름 재현 | C01 |
-| C03 | `fix: validate deployed tokens and initialized pools` | 잘못된 영구 등록 방지 | C02 |
-| C04 | `fix: delegate metadata editing to explicit recipients` | 배포 주체와 편집자 분리 | C02 |
-| C05 | `feat: configure least-privilege ens namespaces` | tokens·hooks 셋업과 봉인 | C03, C04 |
-| C06 | `test: verify canonical registration through ens resolution` | 실제 ENS 경로 및 권한 검증 | C05 |
-| C07 | `feat: add validated canonical pool resolution` | 표준 ENS 조회와 엄격한 상태 처리 | C06 |
-| C08 | `feat: add verified launch event fallback` | 제한된 이벤트 대체 조회 | C07 |
-| C09 | `feat: compare swap routes with canonical pools` | 라우트 판정·최소 데모 표시 | C07, C08 |
-| C10 | `feat: add reproducible sepolia deployment checks` | 실제 배포 가능한 스크립트·smoke test | C06, C09 |
-| C11 | `docs: record phase1 guarantees and verification evidence` | 구현과 일치하는 인계 문서 | C10 |
+| C01 | `chore: pin phase1 contract and sdk dependencies` | Pin version differences between the original text and the runtime environment | None |
+| C02 | `feat: add baseline canonical pool registrar` | Reproduce the original registration flow | C01 |
+| C03 | `fix: validate deployed tokens and initialized pools` | Prevent invalid permanent registrations | C02 |
+| C04 | `fix: delegate metadata editing to explicit recipients` | Separate deployer and editor | C02 |
+| C05 | `feat: configure least-privilege ens namespaces` | tokens/hooks setup and seal | C03, C04 |
+| C06 | `test: verify canonical registration through ens resolution` | Verify the real ENS path and permissions | C05 |
+| C07 | `feat: add validated canonical pool resolution` | Standard ENS lookup with strict state handling | C06 |
+| C08 | `feat: add verified launch event fallback` | Limited event-based fallback lookup | C07 |
+| C09 | `feat: compare swap routes with canonical pools` | Route verdict and minimal demo display | C07, C08 |
+| C10 | `feat: add reproducible sepolia deployment checks` | Deployable scripts and smoke test | C06, C09 |
+| C11 | `docs: record phase1 guarantees and verification evidence` | Handoff docs consistent with the implementation | C10 |
 
-각 커밋은 관련 테스트까지 함께 포함하여 그 시점에 빌드가 통과해야 한다. C06은 앞 커밋의 테스트를 미루는 단계가 아니라 실제 의존성 전체를 묶는 통합 검증 단계다.
+Each commit includes its related tests, and the build must pass at that point. C06 is not a stage for deferring earlier commits' tests; it is the integration verification stage that ties all real dependencies together.
 
-### C01 — 의존성과 기준 고정
+### C01 — Pin dependencies and baseline
 
-예상 파일: 기존 `foundry.toml`, 의존성 lock/submodule 설정, `package.json`·lockfile, `docs/phase1-dependencies.md`.
+Expected files: existing `foundry.toml`, dependency lock/submodule config, `package.json` and lockfile, `docs/phase1-dependencies.md`.
 
-- 원문의 `contracts-v2 2026-07-03`은 날짜만으로 정확한 SHA가 아니다. 기존 테스트/저장소에서 실제 SHA를 우선 복구한다. 식별할 수 없으면 이를 명시하고 호환되는 한 SHA를 선택하여 고정한다.
-- ENSv2, v4-core, v4-periphery/StateView, UERC20Factory, LiquidityLauncher와 viem 버전을 기록한다. 원문 버전 재현을 우선하며 최신 버전 전체로 옮기지 않는다.
-- `authorizeTextRoles`, `authorizeDataRoles`, `authorizeNameRoles`, resolver 초기화, UserRegistry 등록, ETHRegistrar 등록·갱신, UniversalResolver ABI를 확인한다.
-- LiquidityLauncher의 graffiti와 UERC20Factory의 주소 계산이 원문과 일치하는지 확인한다. 허용된 런처가 업그레이드 가능한지도 기록한다.
-- 원문 Sepolia 주소는 후보 값이다. 체인·코드 존재·구현 버전·프로토콜 역할을 확인하기 전 검증된 배포값으로 표기하지 않는다.
+- The original text's `contracts-v2 2026-07-03` is a date, not an exact SHA. First recover the actual SHA from existing tests/repository. If it cannot be identified, say so and pin one compatible SHA.
+- Record the versions of ENSv2, v4-core, v4-periphery/StateView, UERC20Factory, LiquidityLauncher and viem. Prefer reproducing the original text's versions; do not move everything to the latest versions.
+- Confirm the ABIs for `authorizeTextRoles`, `authorizeDataRoles`, `authorizeNameRoles`, resolver initialization, UserRegistry registration, ETHRegistrar registration/renewal, and UniversalResolver.
+- Confirm that LiquidityLauncher's graffiti and UERC20Factory's address computation match the original text. Also record whether the allowed launchers are upgradeable.
+- The original text's Sepolia addresses are candidate values. Do not label them as verified deployments before confirming chain, code existence, implementation version and protocol role.
 
-완료 조건: 기존 테스트 기준선 결과와 고정 버전 표가 있고, 이후 커밋이 같은 환경에서 재현 가능하다. ENS 라이브러리 버전 불일치를 해결하기 위해 임의의 selector/role 비트를 만들어내지 않는다.
+Done when: there is a baseline result for existing tests and a pinned-version table, and later commits are reproducible in the same environment. Do not invent selector/role bits to work around ENS library version mismatches.
 
-### C02 — 원문 registrar 재현
+### C02 — Reproduce the original registrar
 
-예상 파일: `src/CanonicalPoolRegistrar.sol`, `test/CanonicalPoolRegistrar.t.sol`, 필요한 최소 fixture.
+Expected files: `src/CanonicalPoolRegistrar.sol`, `test/CanonicalPoolRegistrar.t.sol`, minimal fixtures as needed.
 
-- 부록 Solidity를 기존 구현에 대조해 누락된 부분만 추가한다.
-- CREATE2 경로는 실제 CREATE2를 실행하는 fixture 컨트랙트가 호출한다. 임의 EOA를 배포자로 꾸민 테스트만으로 통과 처리하지 않는다.
-- LiquidityLauncher 경로는 고정한 실제 UERC20Factory와 호환되는 토큰으로 검증한다. 런처의 graffiti 생성 규칙까지 증명하는 fixture 또는 실제 런처 통합 테스트를 둔다.
-- `isLiquidityLauncher`는 생성자에서만 설정하며 변경용 관리 함수를 추가하지 않는다.
-- factory 주소가 0이면 경로 B가 명시적으로 실패하도록 작은 custom error를 추가할 수 있다.
+- Compare the appendix Solidity against the existing implementation and add only what is missing.
+- The CREATE2 path is called by a fixture contract that actually executes CREATE2. Do not pass it with tests that merely pose an arbitrary EOA as the deployer.
+- Verify the LiquidityLauncher path with tokens compatible with the pinned real UERC20Factory. Include a fixture or a real launcher integration test that also proves the launcher's graffiti generation rule.
+- `isLiquidityLauncher` is set only in the constructor; do not add admin functions to change it.
+- A small custom error may be added so that path B fails explicitly when the factory address is 0.
 
-완료 조건: 원문의 다섯 시나리오(정상 기록, 비배포자 거절, 덮어쓰기 거절, 런처 경로, 토큰 미포함 거절)가 재현된다. 이 단계에서 미배포 토큰·풀 검증까지 완료했다고 보고하지 않는다.
+Done when: the original text's five scenarios (normal record, non-deployer rejected, overwrite rejected, launcher path, token-not-in-pool rejected) are reproduced. Do not report undeployed token/pool validation as done at this stage.
 
-### C03 — 실제 토큰·풀 검증
+### C03 — Real token and pool validation
 
-예상 파일: registrar, 해당 테스트, constructor 호출 fixture.
+Expected files: registrar, its tests, constructor-calling fixtures.
 
-- 생성자에 신뢰할 StateView를 immutable로 추가한다. 기존 배포 스크립트와 fixture의 생성자 호출만 함께 수정한다.
-- StateView가 기대한 PoolManager에 연결되어 있는지 실제 버전의 getter 또는 배포 근거로 검증한다. 단순히 주소에 코드가 있다는 것만으로 신뢰하지 않는다.
-- 등록 토큰은 `token != address(0)` 및 `token.code.length > 0`이어야 한다. currency0의 0 주소는 네이티브 ETH를 나타내므로 허용한다.
-- currency0 < currency1, 토큰 포함, 동일 PoolManager에서 해당 PoolId의 `sqrtPriceX96 != 0`을 확인한다.
-- 초기화된 실제 v4 풀 조회를 검증의 기준으로 삼는다. fee·tickSpacing·hook 규칙 전체를 registrar에 중복 구현하지 않는다.
-- 검증 실패 시 mapping, text/data, 권한, 이벤트 어느 것도 남지 않아야 한다. resolver 쓰기 실패도 전체 트랜잭션을 revert시켜야 한다.
+- Add a trusted StateView to the constructor as immutable. Update only the constructor calls in existing deployment scripts and fixtures.
+- Verify that StateView is connected to the expected PoolManager using the real version's getter or deployment evidence. Do not trust it merely because the address has code.
+- The registered token must satisfy `token != address(0)` and `token.code.length > 0`. The 0 address for currency0 represents native ETH and is allowed.
+- Check currency0 < currency1, token inclusion, and `sqrtPriceX96 != 0` for the PoolId on the same PoolManager.
+- Use a lookup of the real initialized v4 pool as the basis of validation. Do not duplicate all fee, tickSpacing and hook rules in the registrar.
+- On validation failure, no mapping, text/data, permission or event may remain. A resolver write failure must also revert the whole transaction.
 
-삽입 방향 예시(인터페이스는 고정한 실제 ABI로 확인):
+Example of where to insert (confirm the interface against the pinned real ABI):
 
 ```solidity
 interface IStateView {
@@ -124,7 +124,7 @@ interface IStateView {
     );
 }
 
-// _record에서 저장 전에 실행
+// Run in _record before storing
 if (token == address(0) || token.code.length == 0) revert TokenNotDeployed();
 if (key.currency0 >= key.currency1) revert InvalidCurrencyOrder();
 if (key.currency0 != token && key.currency1 != token) revert TokenNotInPool();
@@ -132,83 +132,83 @@ if (canonicalPoolOf[token] != bytes32(0)) revert AlreadyRecorded();
 bytes32 poolId = keccak256(abi.encode(key));
 (uint160 sqrtPriceX96,,,) = stateView.getSlot0(poolId);
 if (sqrtPriceX96 == 0) revert PoolNotInitialized();
-// 이후 원문의 mapping → text → data → 권한 → 이벤트 흐름 유지
+// Then keep the original mapping → text → data → permission → event flow
 ```
 
-완료 조건: 미배포 주소·역순/동일 currency·미초기화 풀은 실패하며, 실제 초기화된 풀은 성공한다. 초기화만 되고 유동성이 없는 풀은 등록 가능하다는 정책을 테스트·문서에 명시한다. 유동성 검사는 견적 단계의 책임이다.
+Done when: undeployed addresses, reversed/identical currencies and uninitialized pools fail, and a real initialized pool succeeds. State in tests and docs the policy that a pool that is initialized but has no liquidity can be registered. Liquidity checks are the quoting stage's responsibility.
 
-### C04 — 메타데이터 편집자 분리
+### C04 — Separate the metadata editor
 
-예상 파일: registrar, 편집 권한 테스트, 경로 A 호출 fixture.
+Expected files: registrar, edit-permission tests, path A calling fixture.
 
-기존 4인자 진입점을 보존하고 오버로드만 추가한다.
+Keep the existing 4-argument entry point and only add an overload.
 
 ```solidity
 function recordByCreate2(
     address token, PoolKey calldata key, bytes32 salt, bytes32 initCodeHash
-) external; // 기존: editor = msg.sender
+) external; // existing: editor = msg.sender
 
 function recordByCreate2(
     address token, PoolKey calldata key, bytes32 salt,
     bytes32 initCodeHash, address metadataEditor
-) external; // 신규: 증명 주체는 여전히 msg.sender
+) external; // new: the proving party is still msg.sender
 
-// 공통 기록 함수의 변경 방향
+// Direction of change for the shared record function
 function _record(address token, PoolKey calldata key, address metadataEditor) internal;
 ```
 
-- 증명 로직은 작은 internal 함수로 공통화해도 되지만 권한 체계 전면 리팩터링은 하지 않는다.
-- 신규 경로의 editor는 0 주소를 거절한다. 런처 경로 B는 editor = msg.sender로 유지한다.
-- editor에게 description·url만 준다. pool text/data 또는 관리자 권한을 주지 않는다.
-- 기존 `CanonicalRecorded`의 ABI를 유지한다. 마지막 인자는 A에서는 직접 CREATE2 실행자, B에서는 검증된 크리에이터임을 명시한다. 필요하면 `MetadataEditorAssigned(token, editor)` 이벤트 하나를 추가한다.
-- 기존 경로 A의 4인자 함수는 컨트랙트 자신에게 편집 권한이 간다는 호환 동작이다. 실제 런치패드 데모는 5인자 함수를 사용한다.
+- The proof logic may be factored into a small internal function, but do not refactor the whole permission scheme.
+- The new path rejects the 0 address as editor. Launcher path B keeps editor = msg.sender.
+- Give the editor only description and url. Do not give pool text/data or admin permissions.
+- Keep the ABI of the existing `CanonicalRecorded`. Document that the last argument is the direct CREATE2 executor in A and the verified creator in B. If needed, add one `MetadataEditorAssigned(token, editor)` event.
+- The existing 4-argument path A function is compatibility behavior in which the edit permission goes to the calling contract itself. The real launchpad demo uses the 5-argument function.
 
-완료 조건: 지정 editor는 자기 토큰 description·url을 수정할 수 있고 pool 및 타 토큰 메타데이터는 수정할 수 없다. editor 지정이 등록 권한을 이전시키지 않는다.
+Done when: the designated editor can edit its own token's description and url but cannot edit the pool or other tokens' metadata. Designating an editor does not transfer the registration permission.
 
-### C05 — ENS 셋업·hooks 예약·권한 봉인
+### C05 — ENS setup, hooks reservation, permission seal
 
-예상 파일: `script/DeployPhase1.s.sol`, `script/SealPhase1.s.sol`, 권한 테스트, 배포 설정.
+Expected files: `script/DeployPhase1.s.sol`, `script/SealPhase1.s.sol`, permission tests, deployment config.
 
-- 원문의 UserRegistry·PermissionedResolver 배포와 tokens 라벨 등록 순서를 유지한다.
-- registrar는 전체 이름의 pool text/data 쓰기 권한을 갖는다.
-- description·url 위임은 가능하면 전체 이름의 각 키에 한정된 TEXT_ADMIN 권한 두 개만 부여한다. 실제 API의 resource 계산·grant 함수를 사용한다.
-- 위 키별 admin이 고정한 버전에서 지원되지 않으면 원문의 root TEXT_ADMIN을 유지할 수 있다. 이 경우 컨트랙트 코드로 위임 키가 두 개에 고정된다는 잔여 신뢰 가정과 테스트를 기록한다. 무관한 setter를 추가하지 않는다.
-- tokens 라벨은 resolver/subregistry 변경 권한 및 이를 재부여할 admin 경로까지 제거된 상태여야 한다. 단순히 owner 값이나 roleBitmap=0만 보고 봉인 성공으로 간주하지 않는다.
-- `hooks` 라벨을 registrar 권한 회수 전에 등록한다. hooks만을 관리할 지정 관리자에게 미래 resolver/subregistry 설정에 필요한 역할과 대응 admin을 부여한다. 해당 관리자는 tokens와 klamp 상위 연결을 변경할 수 없어야 한다.
-- hooks에 남은 역할 때문에 “셋업 후 모든 관리 역할이 사라짐”이라고 쓰지 않는다. 정확한 주장: tokens의 기록 경로는 봉인하고 hooks의 별도 확장 권한은 유지한다.
-- registrar 및 resolver/registry proxy의 업그레이드 역할과 대응 admin을 포함해 실질적인 재권한 부여 경로를 점검한다. ENS 프로토콜 자체의 상위 권한까지 제거했다고 주장하지 않는다.
-- 루트 klamp.eth의 만료·갱신·재등록과 조회 경로의 관계를 문서화한다.
-- 새 배포에서는 namespace와 정상 왕복 조회를 확인한 뒤 봉인한다. Seal 스크립트는 잘못된 네트워크나 이미 봉인된 상태를 구분하고 재실행 시 불필요한 쓰기를 하지 않는다.
+- Keep the original text's order of UserRegistry/PermissionedResolver deployment and tokens label registration.
+- The registrar holds pool text/data write permission for all names.
+- For description/url delegation, where possible grant only two TEXT_ADMIN permissions scoped to each key across all names. Use the real API's resource computation and grant functions.
+- If such per-key admin is not supported at the pinned version, the original text's root TEXT_ADMIN may be kept. In that case, record the residual trust assumption that the contract code fixes delegation to the two keys, along with tests. Do not add unrelated setters.
+- The tokens label must have its resolver/subregistry change permissions removed, including the admin path that could re-grant them. Do not treat the seal as successful just by looking at the owner value or roleBitmap=0.
+- Register the `hooks` label before revoking the registrar's permissions. Grant a designated hooks-only admin the roles needed for future resolver/subregistry settings and their corresponding admin roles. That admin must not be able to change tokens or the klamp parent link.
+- Because roles remain on hooks, do not write "all admin roles are gone after setup". The accurate claim: the tokens record path is sealed and the separate hooks extension permission remains.
+- Check the effective re-grant paths, including the upgrade roles and corresponding admin roles of the registrar and resolver/registry proxies. Do not claim the ENS protocol's own higher-level permissions were removed.
+- Document how expiry, renewal and re-registration of the root klamp.eth relate to the lookup path.
+- In a new deployment, seal only after confirming the namespace and a successful round-trip lookup. The Seal script distinguishes a wrong network from an already sealed state and does not perform unnecessary writes when rerun.
 
-완료 조건: 프로젝트 운영자는 tokens resolver 교체·pool 직접 수정·registrar 우회 권한 부여를 할 수 없다. hooks 관리자는 hooks를 설정할 수 있지만 tokens에는 영향을 주지 못한다. 구체적인 허용/거절 호출 테스트로 증명한다.
+Done when: the project operator cannot replace the tokens resolver, edit pool directly, or grant permissions bypassing the registrar. The hooks admin can configure hooks but cannot affect tokens. Proven by concrete allowed/rejected call tests.
 
-### C06 — 실제 ENS 통합 테스트
+### C06 — Real ENS integration tests
 
-예상 파일: `test/CanonicalPoolEnsIntegration.t.sol`와 기존 통합 fixture.
+Expected files: `test/CanonicalPoolEnsIntegration.t.sol` and existing integration fixtures.
 
-- 실제 고정 버전의 레지스트리·PermissionedResolver·UniversalResolverV2·v4 PoolManager/StateView를 사용한다.
-- 배포 → 토큰 발행 → 풀 초기화 → 등록 → 와일드카드 조회 → text/data 대조 흐름을 검증한다.
-- 토큰 라벨이 개별 등록되지 않아도 상위 tokens resolver가 응답하는지 검증한다.
-- text의 PoolId와 data를 디코딩한 PoolKey의 해시, chainId가 일치해야 한다.
-- registrar 조회가 아니라 실제 UniversalResolver 경로를 사용한다. Solidity에서 `resolveWithGateways`를 호출한 것만으로 실제 viem 실행 완료라고 쓰지 않는다. viem 호출은 C07에서 별도로 수행한다.
-- resolver의 두 번째 쓰기 또는 권한 위임이 실패할 때 canonicalPoolOf와 첫 번째 레코드 쓰기도 rollback되는지 검증한다.
-- 권한 봉인 이후에도 두 등록 경로의 새 토큰 등록이 계속 가능한지 검증한다.
+- Use the real pinned versions of the registry, PermissionedResolver, UniversalResolverV2 and v4 PoolManager/StateView.
+- Verify the flow deploy → token issuance → pool initialization → registration → wildcard lookup → text/data comparison.
+- Verify that the parent tokens resolver responds even though token labels are not registered individually.
+- The PoolId in text, the hash of the PoolKey decoded from data, and chainId must match.
+- Use the real UniversalResolver path, not a registrar lookup. Do not claim real viem execution is done just because `resolveWithGateways` was called from Solidity. viem calls are done separately in C07.
+- Verify that when the resolver's second write or permission delegation fails, canonicalPoolOf and the first record write are also rolled back.
+- Verify that new token registration through both registration paths still works after the permission seal.
 
-완료 조건: mock resolver만으로는 드러나지 않는 권한·와일드카드·ABI 문제가 실제 구현 위에서 검증된다. 원문 테스트 통과 주장을 새로운 실행 로그로 대체한다.
+Done when: permission, wildcard and ABI issues that a mock resolver alone would not reveal are verified on the real implementation. Replace claims that the original tests pass with new execution logs.
 
-### C07 — SDK의 표준 조회·검증
+### C07 — SDK standard lookup and validation
 
-예상 파일: 기존 SDK의 `canonicalPool.ts`, 네트워크 설정, 해당 테스트.
+Expected files: the existing SDK's `canonicalPool.ts`, network config, its tests.
 
-- 원문의 `createPublicClient`, `normalize`, `getEnsText` 흐름을 유지한다.
-- root 기본값은 klamp.eth, token 라벨은 소문자로 통일한다.
-- resolver 주소는 환경 설정에서 관리한다. 명시 주소 사용 여부는 고정한 viem/ENS 배포 버전과 실제 통합 결과에 맞춘다.
-- chainId는 bigint, poolId는 검증된 32바이트 hex로 다룬다. TypeScript `as Hex`만으로 검증을 대체하지 않는다.
-- 정상 빈 레코드와 명확한 name/record 부재만 missing이다. RPC 실패, 해석 오류, 알 수 없는 revert는 unavailable이다.
-- ENS 이름 경로·resolver가 배포 manifest와 맞는지 초기화/smoke 검사한다. 기존 보호 대상에서 namespace 만료·교체가 발견되면 missing으로 fallback하지 않고 unavailable/namespace 오류로 처리한다.
-- 읽은 chainId가 대상 체인과 일치해야 하고, 설정된 StateView에서 풀 초기화를 재확인한다.
+- Keep the original text's `createPublicClient`, `normalize`, `getEnsText` flow.
+- The root defaults to klamp.eth; the token label is normalized to lowercase.
+- The resolver address is managed in environment config. Whether to use an explicit address follows the pinned viem/ENS deployment version and real integration results.
+- Handle chainId as bigint and poolId as validated 32-byte hex. A TypeScript `as Hex` alone does not replace validation.
+- Only a valid empty record and a clear name/record absence are missing. RPC failures, resolution errors and unknown reverts are unavailable.
+- Run an init/smoke check that the ENS name path and resolver match the deployment manifest. If namespace expiry or replacement is detected for a previously protected target, do not fall back to missing; treat it as unavailable/namespace error.
+- The read chainId must match the target chain, and pool initialization is rechecked on the configured StateView.
 
-권장 결과 형태:
+Recommended result shape:
 
 ```ts
 type CanonicalPoolResult =
@@ -226,126 +226,126 @@ function parsePoolRecord(value: string) {
 }
 ```
 
-기존 호출부가 `getCanonicalPool(): value | null`에 의존하면 내부에 detailed 함수와 위 타입을 추가하고 기존 함수는 missing만 null로 변환한다. invalid/unavailable/ambiguous는 typed error로 남긴다. 신규 호출부는 detailed 함수를 사용한다. 불필요한 기존 호출부 전체 변경을 피한다.
+If existing callers depend on `getCanonicalPool(): value | null`, add a detailed function and the type above internally, and have the existing function convert only missing to null. invalid/unavailable/ambiguous remain typed errors. New callers use the detailed function. Avoid unnecessary changes to all existing callers.
 
-완료 조건: 정상·빈 값·잘못된 형식·다른 체인·미초기화·RPC 오류가 구분되고 실제 viem getEnsText가 로컬 ENSv2 배포의 레코드를 읽는다.
+Done when: normal, empty value, malformed, other chain, uninitialized and RPC error are distinguished, and real viem getEnsText reads records from a local ENSv2 deployment.
 
-### C08 — 검증된 이벤트 fallback
+### C08 — Verified event fallback
 
-예상 파일: SDK의 `launchEventFallback.ts`, 체인별 emitter 설정, 해당 테스트.
+Expected files: the SDK's `launchEventFallback.ts`, per-chain emitter config, its tests.
 
-- ENS 결과가 missing일 때만 실행한다. found/invalid/unavailable은 이벤트로 덮어쓰지 않는다.
-- `TokenLaunched`의 정확한 ABI, 실제 emitting contract(런처인지 전략인지), 토큰/PoolKey 필드 위치를 C01에서 고정한 소스로 확인한다. 이벤트 필드를 임의로 만들어내지 않는다.
-- 지원 체인·신뢰 emitter·검색 시작 블록을 설정한다. 토픽 문자열만 같은 임의 이벤트는 인정하지 않는다.
-- 찾은 키에 토큰 포함, PoolId 계산, 올바른 PoolManager, 초기화 상태를 검증한다. 로그가 필요한 키/식별 정보를 제공하지 않으면 문서화된 실제 상태 조회로 보완한다. 증명할 수 없으면 미지원으로 남긴다.
-- 서로 다른 여러 후보는 ambiguous로 반환한다. 마지막 로그를 무조건 선택하지 않는다. 재조직된 로그/removed 로그를 인정하지 않고 설정된 확인 블록 기준을 적용한다.
-- fallback 결과는 source=launch-event이며 ENS에 자동 등록하지 않는다. 인덱서·DB를 새로 도입하지 않고 제한된 eth_getLogs 범위로 시작한다.
+- Run only when the ENS result is missing. Do not override found/invalid/unavailable with events.
+- Confirm the exact ABI of `TokenLaunched`, the real emitting contract (launcher or strategy) and the token/PoolKey field positions from the sources pinned in C01. Do not invent event fields.
+- Configure supported chains, trusted emitters and the search start block. Do not accept arbitrary events that merely share the topic string.
+- Verify on the found key: token inclusion, PoolId computation, correct PoolManager, initialization state. If the log does not provide the needed key/identity information, supplement with a documented real state lookup. If it cannot be proven, leave it unsupported.
+- Return multiple distinct candidates as ambiguous. Do not blindly pick the last log. Do not accept reorged/removed logs; apply the configured confirmation-block threshold.
+- The fallback result has source=launch-event and is not automatically registered in ENS. Do not introduce a new indexer or DB; start with a bounded eth_getLogs range.
 
-완료 조건: 믿을 수 있는 정상 로그만 fallback을 만들고, 가짜 emitter·타 토큰·충돌 후보·조회 오류는 성공 처리되지 않는다. 지원 ABI를 확보하지 못했으면 adapter를 disabled로 두고 근거를 남기며 나머지 작업을 계속한다.
+Done when: only trustworthy valid logs produce a fallback, and fake emitters, other tokens, conflicting candidates and lookup errors are not treated as success. If a supported ABI cannot be obtained, leave the adapter disabled, record the reason and continue with the remaining work.
 
-### C09 — 경로 판정 및 최소 데모 연결
+### C09 — Route verdict and minimal demo wiring
 
-예상 파일: SDK route 비교 함수, 기존 데모 화면의 해당 패널과 호출부, 정책 테스트.
+Expected files: SDK route comparison function, the relevant panel and callers in the existing demo screen, policy tests.
 
-- 경로의 hop마다 chainId·PoolManager·PoolId를 비교한다. PoolId만 비교하지 않는다.
-- 검증 대상은 사용자가 선택한 런칭 토큰과 그 토큰을 직접 포함하는 hop이다. ETH/USDC 같은 공통 자산의 모든 hop에 각자의 대표 풀을 강제하지 않는다.
-- 분할 경로에서는 보호 대상 토큰을 포함하는 모든 branch/hop을 확인한다. 하나라도 다른 풀이라면 mismatch이다. 대상 hop이 없는 잘못된 입력도 성공으로 처리하지 않는다.
-- ENS에서 받은 값과 외부 quote가 주장하는 pool 정보를 비교하는 것만으로 calldata의 실제 실행 풀을 보장하지 못한다. 기존 quote builder가 동일한 route 객체에서 실행 calldata를 구성하는지 확인한다. 불투명한 외부 calldata는 “경로 검증 완료” 범위에 포함하지 않는다.
-- 온체인 강제 guard는 이번 단계에서 새로 만들지 않는다. UI 차단이 직접 컨트랙트 호출을 막는다는 표현을 사용하지 않는다.
+- Compare chainId, PoolManager and PoolId for each hop of the route. Do not compare PoolId alone.
+- The verification target is the launch token selected by the user and the hops that directly include that token. Do not force a canonical pool on every hop of common assets like ETH/USDC.
+- In split routes, check every branch/hop that includes the protected token. If any one is a different pool, it is a mismatch. Invalid input with no target hop is not treated as success either.
+- Comparing the ENS value with the pool info claimed by an external quote does not by itself guarantee the pool actually executed by the calldata. Confirm that the existing quote builder constructs execution calldata from the same route object. Opaque external calldata is outside the scope of "route verified".
+- Do not build a new on-chain enforcement guard in this phase. Do not say that UI blocking prevents direct contract calls.
 
-| 입력 상태 | 표시 | 대표 풀 검증 모드 |
+| Input state | Display | Canonical pool verification mode |
 | --- | --- | --- |
-| found + 일치 | 대표 풀 일치 / ENS 또는 이벤트 출처 | 기존 견적·슬리피지 등 검증 후 진행 |
-| found + 불일치 | 지정 대표 풀과 다름 | 진행 차단 |
-| missing | 대표 풀 기록 없음 | 진행 차단 |
-| invalid / ambiguous | 검증 불가 및 이유 | 진행 차단 |
-| unavailable | 조회 실패, 재시도 가능 | 진행 차단; 미등록으로 표시 금지 |
+| found + match | Canonical pool match / ENS or event source | Proceed after existing quote, slippage and other checks |
+| found + mismatch | Differs from designated canonical pool | Blocked |
+| missing | No canonical pool record | Blocked |
+| invalid / ambiguous | Cannot verify, with reason | Blocked |
+| unavailable | Lookup failure, retryable | Blocked; do not display as missing |
 
-- 이 차단 정책은 해당 모드에만 적용한다. 기존 일반 거래 모드를 일괄 변경하지 않는다.
-- 화면은 기존 UI에 토큰 주소, ENS 이름, 출처, 대표 PoolId, 후보 PoolId, 판정만 추가한다. 새 디자인 시스템이나 전체 프론트 재작성은 하지 않는다.
-- 아직 데모가 없다면 이 값과 조회/비교 버튼만 있는 최소 화면을 만든다. 실제 거래 전송 없이도 조회·판정 데모는 가능하다.
+- This blocking policy applies only to that mode. Do not change the existing general trading mode wholesale.
+- The screen only adds token address, ENS name, source, canonical PoolId, candidate PoolId and verdict to the existing UI. No new design system or full frontend rewrite.
+- If there is no demo yet, build a minimal screen with only these values and lookup/compare buttons. The lookup and verdict demo works without sending real trades.
 
-완료 조건: 정상 대표 풀과 동일 토큰의 다른 풀을 같은 화면에서 구분하고, 미등록 및 RPC 실패도 다른 상태로 보여준다. “안전한 풀”이나 “악성 확정” 배지를 붙이지 않는다.
+Done when: the valid canonical pool and a different pool of the same token are distinguished on the same screen, and missing and RPC failure are shown as different states. Do not attach "safe pool" or "confirmed malicious" badges.
 
-### C10 — Sepolia 배포와 smoke test
+### C10 — Sepolia deployment and smoke test
 
-예상 파일: 배포·봉인·검증 스크립트, `.env.example`, `deployments/sepolia.phase1.json` 또는 기존 manifest 형식.
+Expected files: deploy, seal and verification scripts, `.env.example`, `deployments/sepolia.phase1.json` or the existing manifest format.
 
-- 원문의 등록 commit → 대기 → register → setParent 순서를 실제 고정 버전 ABI로 구현한다. MockUSDC 잔액/allowance, 가격 조회, commitment 시간 조건은 실제 API에 맞춰 처리한다.
-- 단계 사이 재실행을 지원한다. klamp.eth가 이미 타인에게 등록되어 있으면 임의로 다른 root를 사용했다고 숨기지 않는다. 로컬 검증을 완료하고 이름 충돌을 보고한다.
-- 배포 전 chainId, 프로토콜 주소, 코드, wallet, 역할과 자금 조건을 검사한다. private key나 RPC 비밀값을 manifest·로그에 남기지 않는다.
-- roots/registries/resolvers/registrar/StateView/PoolManager/런처 목록/구현 버전/배포 블록/공개 트랜잭션 해시/expiry/봉인 상태를 기록한다.
-- 후보 프로토콜 주소에 맞는 ENS 버전인지 확인한다. 로컬 테스트의 구현과 네트워크 구현이 다른 경우 차이를 숨기지 않는다.
-- 실제 네트워크에서는 1개 토큰·초기화 풀을 등록하고 viem 왕복 조회, 편집자 권한, 덮어쓰기 거절, 봉인 후 운영자 쓰기 거절을 검증한다. 가능한 revert 검증은 eth_call로 수행한다.
-- ENS 앱의 이름 표시 여부는 별도의 수동 smoke 항목이다. getEnsText 성공으로 앱 UI 지원을 확인했다고 쓰지 않는다. 앱 표시 실패 때문에 주소 라벨을 즉흥적으로 바꾸지 않는다.
+- Implement the original text's registration order commit → wait → register → setParent with the real pinned-version ABI. Handle MockUSDC balance/allowance, price lookup and commitment timing conditions per the real API.
+- Support rerunning between steps. If klamp.eth is already registered by someone else, do not hide it by silently using a different root. Complete local verification and report the name conflict.
+- Before deployment, check chainId, protocol addresses, code, wallet, roles and funding conditions. Do not leave private keys or RPC secrets in the manifest or logs.
+- Record roots/registries/resolvers/registrar/StateView/PoolManager/launcher list/implementation versions/deployment block/public transaction hashes/expiry/seal state.
+- Confirm the ENS version matches the candidate protocol addresses. If the local test implementation differs from the network implementation, do not hide the difference.
+- On the real network, register one token with an initialized pool and verify the viem round-trip lookup, editor permission, overwrite rejection, and rejection of operator writes after the seal. Perform revert checks with eth_call where possible.
+- Whether the ENS app displays the name is a separate manual smoke item. Do not claim app UI support is confirmed because getEnsText succeeded. Do not improvise changes to the address label because of an app display failure.
 
-완료 조건: 자격증명이 있으면 허용된 범위의 실배포 증거를 남긴다. 없으면 로컬 E2E·dry-run 가능한 스크립트·정확한 실행 방법을 완성하고 Sepolia는 미실행으로 표시한다. 네트워크 대기 때문에 로컬 구현을 미완료로 남기지 않는다.
+Done when: with credentials, leave real deployment evidence within the permitted scope. Without them, complete local E2E, dry-run-capable scripts and exact run instructions, and mark Sepolia as not run. Do not leave the local implementation incomplete because of network waits.
 
-### C11 — 문서와 인계
+### C11 — Docs and handoff
 
-예상 파일: 기존 README/설계 문서의 관련 절, `docs/phase1-verification.md`.
+Expected files: relevant sections of the existing README/design docs, `docs/phase1-verification.md`.
 
-- 대표 풀 정의, 통합 클라이언트의 역할, 다른 풀/악성 구분, 초기화/유동성 구분을 실제 구현과 맞춘다.
-- 자체 매핑도 온체인에 남는다는 점을 반영한다. ENS의 가치는 표준 조회·이름공간·공유 가능한 레코드에 있다.
-- wildcard는 토큰별 이름 등록을 생략하지만 resolver 레코드 쓰기 가스는 발생한다고 명시한다.
-- 불변성은 mapping/레코드 쓰기 권한/이름의 조회 경로/상위 만료를 나눠 설명한다.
-- 한 번 등록 후 변경 불가, 단일 체인, 고정 PoolManager, 지원 팩토리·런처만 가능, hooks 역할 잔존을 명시한다.
-- 수수료 상한, 공격 손실, 훅 분류와 시장 점유율은 이번 1단계의 검증 결과에 포함하지 않는다.
-- 각 검증 항목을 `로컬 통과 / Sepolia 통과 / 수동 확인 / 미실행 / 차단됨` 중 하나로 표시한다. 실행 명령·고정 버전·증거 위치를 연결한다.
+- Align the canonical pool definition, the role of integrating clients, the different-pool vs malicious distinction, and the initialization vs liquidity distinction with the real implementation.
+- Reflect that the contract's own mapping also stays on-chain. ENS's value lies in standard lookup, the namespace and shareable records.
+- State that wildcard skips per-token name registration but resolver record writes still cost gas.
+- Explain immutability separately for the mapping, record write permissions, the name's lookup path, and parent expiry.
+- State: immutable after one registration, single chain, fixed PoolManager, only supported factories/launchers, hooks roles remain.
+- Fee caps, attack losses, hook classification and market share are not part of this phase 1 verification result.
+- Mark each verification item as one of `Local pass / Sepolia pass / Manual check / Not run / Blocked`. Link the run commands, pinned versions and evidence locations.
 
-완료 조건: 새 팀원이 문서만으로 로컬 데모를 재현하고 미검증 항목을 식별할 수 있다. 임의로 “감사 완료”, “전역 보호”, “영구 보장”을 표기하지 않는다.
+Done when: a new team member can reproduce the local demo and identify unverified items from the docs alone. Do not arbitrarily label anything "audited", "global protection" or "permanent guarantee".
 
-## 4. 전체 완료 체크리스트
+## 4. Overall completion checklist
 
-- [ ] 기존 예시 구조와 두 등록 경로가 유지된다.
-- [ ] 실제 CREATE2 실행 주체만 경로 A의 검증을 통과한다.
-- [ ] 경로 B의 팩토리·런처·graffiti 버전이 고정되어 있다.
-- [ ] 미배포 토큰·잘못된 currency·미초기화 풀은 등록되지 않는다.
-- [ ] 한 번 기록된 토큰의 PoolId는 덮어쓸 수 없다.
-- [ ] resolver 오류 시 모든 상태가 rollback된다.
-- [ ] description·url 편집 권한은 원하는 편집자에게만 간다.
-- [ ] 토큰별 ENS 등록 없이 실제 UniversalResolver/viem 조회가 된다.
-- [ ] text와 data의 chainId·PoolId·PoolKey가 일치한다.
-- [ ] tokens 봉인과 hooks 향후 설정 권한이 분리되어 있다.
-- [ ] 조회 실패·미등록·불일치·invalid·ambiguous가 구분된다.
-- [ ] 이벤트 fallback의 출처·범위·충돌 정책이 검증된다.
-- [ ] 경로 비교가 체인·PoolManager·PoolId와 분할 경로를 다룬다.
-- [ ] Sepolia 실배포 여부와 ENS 앱 UI 확인 여부를 각각 기록한다.
+- [ ] The existing example structure and both registration paths are kept.
+- [ ] Only the actual CREATE2 executor passes path A verification.
+- [ ] Path B's factory, launcher and graffiti versions are pinned.
+- [ ] Undeployed tokens, invalid currencies and uninitialized pools are not registered.
+- [ ] A recorded token's PoolId cannot be overwritten.
+- [ ] All state rolls back on resolver errors.
+- [ ] description/url edit permission goes only to the intended editor.
+- [ ] Real UniversalResolver/viem lookup works without per-token ENS registration.
+- [ ] chainId, PoolId and PoolKey match between text and data.
+- [ ] The tokens seal and hooks future-configuration permission are separated.
+- [ ] Lookup failure, missing, mismatch, invalid and ambiguous are distinguished.
+- [ ] Event fallback source, scope and conflict policy are verified.
+- [ ] Route comparison covers chain, PoolManager, PoolId and split routes.
+- [ ] Whether Sepolia was really deployed and whether the ENS app UI was checked are recorded separately.
 
-## 5. 작업 종료 보고 형식
+## 5. Final report format
 
 ```text
-완료 커밋: SHA / 제목 / 핵심 변경
-건너뛴 커밋: 기존 충족 근거
-검증: 실행 명령 / 결과 / 환경
-원문 대비 diff: 추가·변경한 API와 이유
-배포: local / Sepolia 상태, 공개 주소와 manifest
-미완료: 구체적 원인, 완료에 필요한 입력, 재개 명령
-남은 제약: 이번 단계가 보장하지 않는 것
+Completed commits: SHA / title / key changes
+Skipped commits: evidence already satisfied
+Verification: commands run / results / environment
+Diff vs original text: APIs added or changed and why
+Deployment: local / Sepolia status, public addresses and manifest
+Incomplete: specific cause, inputs needed to finish, resume command
+Remaining constraints: what this phase does not guarantee
 ```
 
-## 6. 참고 근거
+## 6. References
 
-원문의 코드·주소·검증 주장은 제공 자료이며 이번 명세 작성 과정에서 재컴파일하거나 네트워크에 배포한 결과가 아니다. 구현 에이전트는 C01과 후속 테스트에서 확인한다.
+The code, addresses and verification claims in the original text are provided material, not results of recompiling or deploying to a network while writing this spec. The implementing agent confirms them in C01 and subsequent tests.
 
-- ENSv2 앱 연동: https://docs.ens.domains/ensv2/tutorial-app-developers/
-- ENSv2 권한: https://docs.ens.domains/ensv2/enhanced-access-control/
-- ENSv2 저장소: https://github.com/ensdomains/contracts-v2
-- LiquidityLauncher 소스: https://github.com/Uniswap/liquidity-launcher/blob/main/src/LiquidityLauncher.sol
+- ENSv2 app integration: https://docs.ens.domains/ensv2/tutorial-app-developers/
+- ENSv2 permissions: https://docs.ens.domains/ensv2/enhanced-access-control/
+- ENSv2 repository: https://github.com/ensdomains/contracts-v2
+- LiquidityLauncher source: https://github.com/Uniswap/liquidity-launcher/blob/main/src/LiquidityLauncher.sol
 
-main 브랜치 링크는 탐색 출발점이다. 구현 결과에는 실제 사용한 commit SHA의 permalink를 기록한다.
+The main-branch links are starting points for exploration. Record permalinks of the actually used commit SHAs in the implementation results.
 
-## 부록 A. 원문 기준 코드
+## Appendix A. Original reference code
 
-아래 코드는 제공 문서에서 그대로 옮긴 기준 코드다. C03/C04의 constructor·오버로드·검증 수정 및 C05의 셋업 변경을 적용해야 한다. 원문 코드 그대로 배포하라는 지시가 아니다.
+The code below is reference code copied verbatim from the provided document. Apply C03/C04's constructor, overload and validation changes and C05's setup changes. It is not an instruction to deploy the original code as-is.
 
-### A1. Solidity 원문
+### A1. Original Solidity
 
 ```solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-/// @dev Uniswap v4 PoolKey. v4-core의 PoolKey와 ABI가 같다 (Currency, IHooks = address).
+/// @dev Uniswap v4 PoolKey. Same ABI as v4-core's PoolKey (Currency, IHooks = address).
 struct PoolKey {
     address currency0; // 0x0 = ETH
     address currency1;
@@ -354,7 +354,7 @@ struct PoolKey {
     address hooks;
 }
 
-/// @dev ENSv2 PermissionedResolver 중 쓰는 함수만.
+/// @dev Only the ENSv2 PermissionedResolver functions we use.
 interface IPermissionedResolver {
     function setText(bytes32 node, string calldata key, string calldata value) external;
     function setData(bytes32 node, string calldata key, bytes calldata value) external;
@@ -363,7 +363,7 @@ interface IPermissionedResolver {
         returns (bool);
 }
 
-/// @dev Uniswap UERC20Factory. 토큰 주소 = CREATE2(salt = keccak256(name, symbol, decimals, creator, graffiti)).
+/// @dev Uniswap UERC20Factory. Token address = CREATE2(salt = keccak256(name, symbol, decimals, creator, graffiti)).
 interface IUERC20Factory {
     function getUERC20Address(
         string memory name,
@@ -381,14 +381,14 @@ interface IERC20Metadata {
 }
 
 /// @title CanonicalPoolRegistrar
-/// @notice 토큰을 만든 주체만 그 토큰의 대표 풀을 ENS에 한 번 기록할 수 있다.
-///         기록 위치: <토큰주소>.tokens.klamp.eth 의 text("pool"), data("pool")
+/// @notice Only the party that created a token can record that token's canonical pool in ENS, once.
+///         Record location: text("pool"), data("pool") of <tokenAddress>.tokens.klamp.eth
 contract CanonicalPoolRegistrar {
-    IPermissionedResolver public immutable resolver; // tokens.klamp.eth 의 resolver
+    IPermissionedResolver public immutable resolver; // resolver of tokens.klamp.eth
     bytes32 public immutable tokensNode; // namehash("tokens.klamp.eth")
-    bytes public tokensName; // DNS 인코딩된 "tokens.klamp.eth"
-    IUERC20Factory public immutable uerc20Factory; // 0x0이면 경로 B 끔
-    mapping(address => bool) public isLiquidityLauncher; // 배포 시 고정, 이후 변경 불가
+    bytes public tokensName; // DNS-encoded "tokens.klamp.eth"
+    IUERC20Factory public immutable uerc20Factory; // 0x0 disables path B
+    mapping(address => bool) public isLiquidityLauncher; // fixed at deployment, immutable afterwards
 
     mapping(address token => bytes32 poolId) public canonicalPoolOf;
 
@@ -413,7 +413,7 @@ contract CanonicalPoolRegistrar {
         }
     }
 
-    /// @notice 경로 A: CREATE2로 토큰을 배포한 컨트랙트(런치패드)가 런칭 트랜잭션 안에서 호출.
+    /// @notice Path A: called within the launch transaction by the contract (launchpad) that deployed the token via CREATE2.
     function recordByCreate2(address token, PoolKey calldata key, bytes32 salt, bytes32 initCodeHash)
         external
     {
@@ -424,8 +424,8 @@ contract CanonicalPoolRegistrar {
         _record(token, key);
     }
 
-    /// @notice 경로 B: Uniswap LiquidityLauncher(Pools.trade)로 만든 토큰의 크리에이터가 런칭 후 직접 호출.
-    /// @dev LiquidityLauncher는 graffiti = keccak256(abi.encode(원래 호출자))를 넣어 토큰을 만든다.
+    /// @notice Path B: called directly after launch by the creator of a token made with Uniswap LiquidityLauncher (Pools.trade).
+    /// @dev LiquidityLauncher creates the token with graffiti = keccak256(abi.encode(original caller)).
     function recordByLiquidityLauncher(address token, PoolKey calldata key, address launcher) external {
         if (!isLiquidityLauncher[launcher]) revert NotDeployer();
         IERC20Metadata t = IERC20Metadata(token);
@@ -440,10 +440,10 @@ contract CanonicalPoolRegistrar {
         if (key.currency0 != token && key.currency1 != token) revert TokenNotInPool();
         if (canonicalPoolOf[token] != bytes32(0)) revert AlreadyRecorded();
 
-        bytes32 poolId = keccak256(abi.encode(key)); // v4 PoolIdLibrary와 같은 값
+        bytes32 poolId = keccak256(abi.encode(key)); // same value as v4 PoolIdLibrary
         canonicalPoolOf[token] = poolId;
 
-        string memory label = _hex(abi.encodePacked(token)); // "0x" + 소문자 40자
+        string memory label = _hex(abi.encodePacked(token)); // "0x" + 40 lowercase chars
         bytes32 node = keccak256(abi.encodePacked(tokensNode, keccak256(bytes(label))));
         bytes memory name = abi.encodePacked(uint8(bytes(label).length), label, tokensName);
 
@@ -492,45 +492,45 @@ contract CanonicalPoolRegistrar {
 }
 ```
 
-### A2. 셋업 원문
+### A2. Original setup
 
 ```solidity
-// 셋업 스크립트 (me = 우리 배포 계정). 1, 3, 4, 5의 앞 두 줄은 로컬 테스트 setUp과 같다
+// Setup script (me = our deployer account). Steps 1, 3, 4 and the first two lines of 5 match the local test setUp
 uint256 REG_ROLES = ROLE_REGISTRAR | ROLE_REGISTRAR_ADMIN | ROLE_SET_PARENT | ROLE_SET_PARENT_ADMIN;
 uint256 RES_ROLES = ROLE_SET_TEXT_ADMIN | ROLE_SET_DATA_ADMIN;
-bytes memory ANY = NameCoder.encode("");   // "모든 이름" (namehash 0)
+bytes memory ANY = NameCoder.encode("");   // "any name" (namehash 0)
 
-// 1. 우리 레지스트리와 resolver를 ENS 표준 구현으로 배포
-//    나중에 회수하려면 _ADMIN 역할도 같이 받아야 한다 (회수에도 ADMIN 필요)
+// 1. Deploy our registry and resolver using the ENS standard implementations
+//    To revoke later we must also receive the _ADMIN roles (revoking also requires ADMIN)
 UserRegistry reg = UserRegistry(VERIFIABLE_FACTORY.deployProxy(
     USER_REGISTRY_IMPL, salt1, abi.encodeCall(UserRegistry.initialize, (me, REG_ROLES))));
 PermissionedResolver res = PermissionedResolver(VERIFIABLE_FACTORY.deployProxy(
     PERMISSIONED_RESOLVER_IMPL, salt2,
     abi.encodeCall(PermissionedResolver.initialize, (me, RES_ROLES, new bytes[](0)))));
 
-// 2. klamp.eth 등록. subregistry에 우리 레지스트리를 바로 지정 (commit 후 대기 → register)
+// 2. Register klamp.eth, setting our registry as the subregistry directly (commit, wait → register)
 ETH_REGISTRAR.commit(ETH_REGISTRAR.makeCommitment("klamp", me, secret, reg, address(0), 365 days, bytes32(0)));
 ETH_REGISTRAR.register("klamp", me, secret, reg, address(0), 365 days, MOCK_USDC, bytes32(0));
 reg.setParent(ETH_REGISTRY, "klamp");
 
-// 3. tokens 라벨: resolver 지정, 역할 0, 만료 최대
+// 3. tokens label: set resolver, roles 0, maximum expiry
 reg.register("tokens", me, IRegistry(address(0)), address(res), 0, type(uint64).max);
 
-// 4. 등록 컨트랙트 배포와 권한 부여
+// 4. Deploy the registrar and grant permissions
 CanonicalPoolRegistrar registrar = new CanonicalPoolRegistrar(
     res, NameCoder.encode("tokens.klamp.eth"), UERC20_FACTORY, launchers);
-res.authorizeTextRoles(ANY, "pool", address(registrar), true);            // 모든 이름의 text(pool)
-res.authorizeDataRoles(ANY, "pool", address(registrar), true);            // 모든 이름의 data(pool)
-res.authorizeNameRoles(ANY, ROLE_SET_TEXT_ADMIN, address(registrar), true); // description·url 위임용
+res.authorizeTextRoles(ANY, "pool", address(registrar), true);            // text(pool) of all names
+res.authorizeDataRoles(ANY, "pool", address(registrar), true);            // data(pool) of all names
+res.authorizeNameRoles(ANY, ROLE_SET_TEXT_ADMIN, address(registrar), true); // for description/url delegation
 
-// 5. 우리 권한 전부 회수
+// 5. Revoke all of our permissions
 res.authorizeNameRoles(ANY, RES_ROLES, me, false);
 reg.revokeRootRoles(REG_ROLES, me);
 ETH_REGISTRY.revokeRoles(rootTokenId, ROLE_SET_SUBREGISTRY | ROLE_SET_SUBREGISTRY_ADMIN
-    | ROLE_SET_RESOLVER | ROLE_SET_RESOLVER_ADMIN, me);                   // klamp.eth의 하위 레지스트리 교체 봉인
+    | ROLE_SET_RESOLVER | ROLE_SET_RESOLVER_ADMIN, me);                   // seal replacement of klamp.eth's subregistry
 ```
 
-### A3. TypeScript 원문
+### A3. Original TypeScript
 
 ```ts
 import { createPublicClient, http, type Address, type Hex } from 'viem'
@@ -540,7 +540,7 @@ import { normalize } from 'viem/ens'
 const client = createPublicClient({ chain: sepolia, transport: http() })
 const UNIVERSAL_RESOLVER_V2 = '0x85edf8b6b7d4211e2b07aa687506b746357b92cf'
 
-/** 토큰의 대표 풀. 기록이 없으면 null */
+/** The token's canonical pool. null if there is no record */
 export async function getCanonicalPool(token: Address, root = 'klamp.eth') {
   const value = await client.getEnsText({
     name: normalize(`${token.toLowerCase()}.tokens.${root}`),
@@ -553,16 +553,16 @@ export async function getCanonicalPool(token: Address, root = 'klamp.eth') {
 }
 ```
 
-### A4. 원문 Sepolia 주소 — 검증 전 후보
+### A4. Original Sepolia addresses — unverified candidates
 
-| 컨트랙트 | 원문 주소 |
+| Contract | Address in original text |
 | --- | --- |
 | ENSv2 ETHRegistrar | `0xa4449a0dd2b83007553d9b1d28b583a46a805a30` |
 | ENSv2 ETHRegistry | `0x67b728a792e789a8978b30cf1b3b641f19354b43` |
 | VerifiableFactory | `0x118bc31a50d559f7015a8da26d54b3b030cdb70f` |
-| UserRegistry 구현 | `0x840fa461059862ea466a711e8c98c8de732061c0` |
-| PermissionedResolver 구현 | `0x7e4b2d59938930168024201752ee5503df402303` |
+| UserRegistry implementation | `0x840fa461059862ea466a711e8c98c8de732061c0` |
+| PermissionedResolver implementation | `0x7e4b2d59938930168024201752ee5503df402303` |
 | UniversalResolverV2 | `0x85edf8b6b7d4211e2b07aa687506b746357b92cf` |
-| MockUSDC (등록비 결제) | `0xd3322b29a7bdee707d1684676f149bf41aa3422f` |
+| MockUSDC (registration fee payment) | `0xd3322b29a7bdee707d1684676f149bf41aa3422f` |
 | Uniswap v4 PoolManager | `0xE03A1074c86CFeDd5C142C4F04F1a1536e203543` |
 | Uniswap v4 StateView | `0xe1dd9c3fa50edb962e442f60dfbc432e24537e4c` |
