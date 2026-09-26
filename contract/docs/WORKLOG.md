@@ -798,3 +798,11 @@ Implementation status and human verification status are tracked separately; each
 - AI work: dex runs the swap as an eth_call before the wallet (`preflightSwap`). If it would revert, the toast says how much the pool would pay against the minimum and that nothing was sent, and the attempt is kept in "Your swaps" as a reverted tile ("0 KHOOK · pool pays … · −x% vs quote"). Records without a transaction hash are shown as "not sent".
 - AI-run verification: `pnpm build`; the eth_call reproduction above with the CLI's `buildSwap`. The dex path itself needs a wallet and was not run here.
 - Human verification: Pending human verification.
+
+## DEX12 — Use the Klamp logo in dex
+
+- Date / environment / tools: 2026-09-27 / Vite 8 / Claude Code (Opus 5.5)
+- Human decisions/changes: dex showed a two-colour square instead of the logo the web site uses.
+- AI work: dex imports `web/public/klamp.svg` through a `@brand` alias (one source, no copy) for the header mark, and `index.html` uses it as the favicon; Vite fingerprints it into `dist/assets`.
+- AI-run verification: `pnpm build` (favicon and header both resolve to `assets/klamp-*.svg`); header screenshot from the built app.
+- Human verification: Pending human verification.

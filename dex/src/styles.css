@@ -37,7 +37,7 @@ button:disabled { cursor: default; opacity: .45; }
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.02em; }
 .brand em { font-style: normal; font-weight: 500; color: var(--text-2); font-size: 13px; }
-.mark { width: 18px; height: 18px; border-radius: 5px; background: var(--primary); box-shadow: inset -6px 0 0 var(--text); }
+.mark { width: 26px; height: 26px; display: block; }
 .tabs { display: flex; gap: 4px; padding: 4px; background: var(--surface-2); border-radius: 12px; }
 .tab { position: relative; border: 0; background: none; padding: 7px 16px; border-radius: 9px; display: grid; justify-items: center; line-height: 1.15; }
 .tab-bg { position: absolute; inset: 0; background: var(--surface); border-radius: 9px; box-shadow: 0 1px 4px rgba(32, 32, 30, .12); }

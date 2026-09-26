@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { Address } from "viem";
 import { LaunchPanel } from "./components/LaunchPanel";
 import { LookAlikePanel } from "./components/LookAlikePanel";
+import logo from "@brand/klamp.svg";
 import { SealBadge } from "./components/SealBadge";
 import { SwapPanel } from "./components/SwapPanel";
 import { short } from "./lib/chain";
@@ -30,7 +31,7 @@ export function App() {
   return (
     <div className="app">
       <header className="top">
-        <div className="brand"><span className="mark" />Klamp <span className="net-badge" title="Every transaction here is on the Sepolia test network">Sepolia<span className="net-long"> testnet</span> · demo</span><SealBadge /></div>
+        <div className="brand"><img className="mark" src={logo} alt="" aria-hidden width={26} height={26} />Klamp <span className="net-badge" title="Every transaction here is on the Sepolia test network">Sepolia<span className="net-long"> testnet</span> · demo</span><SealBadge /></div>
         <nav className="tabs" aria-label="Sections">
           {tabs.map((item) => (
             <button key={item.id} className={`tab ${tab === item.id ? "tab-on" : ""}`} onClick={() => setTab(item.id)}>
