@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 import {Test} from "forge-std/Test.sol";
-import {CanonicalPoolRegistrar, PoolKey, IPermissionedResolver, IUERC20Factory, IPoolManager as IExtsloadManager} from "../../src/CanonicalPoolRegistrar.sol";
-import {PermissionedResolver} from "ens-v2/resolver/PermissionedResolver.sol";
-import {PermissionedResolverLib as Roles} from "ens-v2/resolver/libraries/PermissionedResolverLib.sol";
+import {CanonicalPoolRegistrar, PoolKey, IPermissionedResolver as IRegistrarResolver, IUERC20Factory, IPoolManager as IExtsloadManager} from "../../src/CanonicalPoolRegistrar.sol";
+import {IPermissionedResolver} from "ens-v2/resolver/interfaces/IPermissionedResolver.sol";
+import {IPermissionedResolverInitializable} from "ens-v2/resolver/interfaces/IPermissionedResolverInitializable.sol";
+import {Grant} from "ens-v2/access-control/interfaces/IEACGrantInitializable.sol";
+import {Phase1Setup} from "../../script/Phase1Setup.sol";
+import {EnsDeploy} from "../../script/EnsDeploy.sol";
 import {VerifiableFactory} from "@ensdomains/verifiable-factory/VerifiableFactory.sol";
 import {NameCoder} from "@ens/contracts/utils/NameCoder.sol";
 import {UERC20Factory} from "@uniswap/uerc20-factory/src/factories/UERC20Factory.sol";
@@ -32,7 +35,7 @@ contract Create2Launcher {
 abstract contract RegistrarFixture is Test {
     PoolManager internal manager;
     StateView internal stateView;
-    PermissionedResolver internal resolver;
+    IPermissionedResolver internal resolver;
     CanonicalPoolRegistrar internal registrar;
     Create2Launcher internal deployer;
     UERC20Factory internal factory;
@@ -42,17 +45,19 @@ abstract contract RegistrarFixture is Test {
     function setUp() public virtual {
         tokensName = NameCoder.encode("tokens.klamp.eth");
         VerifiableFactory vf = new VerifiableFactory();
-        resolver = PermissionedResolver(vf.deployProxy(address(new PermissionedResolver(address(this))), 0,
-            abi.encodeCall(PermissionedResolver.initialize,(address(this), Roles.ROLE_SET_TEXT_ADMIN | Roles.ROLE_SET_DATA_ADMIN, new bytes[](0)))));
+        Grant[] memory grants = new Grant[](1); grants[0] = Grant(address(this), Phase1Setup.RES_ROLES);
+        resolver = IPermissionedResolver(vf.deployProxy(EnsDeploy.resolverImpl(), 0,
+            abi.encodeCall(IPermissionedResolverInitializable.initialize,(grants, new bytes[](0)))));
         factory = new UERC20Factory();
         launcher = new LiquidityLauncher(IAllowanceTransfer(address(0)));
         address[] memory launchers = new address[](1); launchers[0] = address(launcher);
         manager = new PoolManager(address(this));
         stateView = new StateView(manager);
-        registrar = new CanonicalPoolRegistrar(IPermissionedResolver(address(resolver)), tokensName, IExtsloadManager(address(manager)), IUERC20Factory(address(factory)), launchers);
-        resolver.authorizeTextRoles(hex"00", "pool", address(registrar), true);
-        resolver.authorizeDataRoles(hex"00", "pool", address(registrar), true);
-        resolver.authorizeNameRoles(hex"00", Roles.ROLE_SET_TEXT_ADMIN, address(registrar), true);
+        registrar = new CanonicalPoolRegistrar(IRegistrarResolver(address(resolver)), tokensName, IExtsloadManager(address(manager)), IUERC20Factory(address(factory)), launchers);
+        resolver.grantSetterRoles(Phase1Setup.textSetter("pool"), address(registrar));
+        resolver.grantSetterRoles(Phase1Setup.dataSetter("pool"), address(registrar));
+        resolver.grantSetterRoles(Phase1Setup.textSetter("description"), address(registrar));
+        resolver.grantSetterRoles(Phase1Setup.textSetter("url"), address(registrar));
         deployer = new Create2Launcher();
     }
     function initialize(PoolKey memory key) internal {
@@ -64,6 +69,12 @@ abstract contract RegistrarFixture is Test {
     /// @dev InstantLaunchStrategy pool that path B always records.
     function launchKeyFor(address token) internal pure returns (PoolKey memory) {
         return PoolKey(address(0), token, 2500, 25, address(0));
+    }
+    function textOf(address token, string memory key) internal view returns (string memory) {
+        return Phase1Setup.readText(resolver, Phase1Setup.tokenName(token), key);
+    }
+    function dataOf(address token, string memory key) internal view returns (bytes memory) {
+        return Phase1Setup.readData(resolver, Phase1Setup.tokenName(token), key);
     }
     function nodeFor(address token) internal pure returns (bytes32) {
         return NameCoder.namehash(NameCoder.encode(string.concat(vm.toLowercase(vm.toString(token)), ".tokens.klamp.eth")),0);

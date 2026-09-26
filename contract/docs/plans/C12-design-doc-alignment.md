@@ -12,7 +12,7 @@
 | 경로 B | PoolKey 인자를 받음 | PoolKey를 받지 않고 런칭 풀 `(ETH, 토큰, 2500, 25, 훅 없음)`로 고정 |
 | 경로 B 경유 | 없음 | `recordByLiquidityLauncherVia(token, launcher, nonce)`: 일회용 컨트랙트를 배포한 크리에이터. 코드가 남은 주소는 거절 |
 | 풀 초기화 검사 | 생성자에 StateView, `getSlot0` | PoolManager `extsload(keccak256(poolId, POOLS_SLOT))`. POOLS_SLOT = 6을 실제 PoolManager에서 테스트 |
-| 에러·이벤트 | `NotDeployer`, `CanonicalRecorded(token, poolId, deployer)` | `NotIssuer`, `CanonicalRecorded(token, poolId, issuer, creator, key)` — `key`(PoolKey)는 사람 결정(2026-09-26)으로 추가하고 설계 문서도 함께 수정 |
+| 에러·이벤트 | `NotDeployer`, `CanonicalRecorded(token, poolId, deployer)` | `NotIssuer`, `CanonicalRecorded(token, poolId, issuer, creator)`. PoolKey를 이벤트에 넣는 변경은 C14에서 Sepolia 배포본에 맞추며 되돌림 |
 | 봉인 | hooks를 셋업 때 등록하고 hooksAdmin에게 역할 부여 | 운영자가 REGISTRAR(+admin)만 남기고 봉인. 2단계에서 hooks를 역할 0으로 등록한 뒤 회수(`finalizeHooks`) |
 | SDK 조회 | text + StateView 초기화 | 추가로 data 레코드의 chainId·PoolKey로 PoolId 재계산, 토큰 포함 확인 (`invalid: record-mismatch`) |
 | SDK 판정 | `compareRoutes` (match/mismatch/blocked) | 추가로 `judge()` (allow / requote_canonical / requote_static / hold), 정적 풀 항상 허용 |

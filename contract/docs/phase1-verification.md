@@ -21,8 +21,8 @@
 | 조회·비교 데모의 HTTP 응답 | 로컬 통과 | C09 match/mismatch/not_registered/HTML 확인. 브라우저 육안 확인은 미실행 |
 | commit/wait/register/setParent, 재개·가격·잔액·이름 충돌 | 로컬 통과 | 실제 ETHRegistrar + fixture oracle/token의 RegistrationFlowTest |
 | 배포 재개·실제 ERC20 probe·권한 eth_call·공개 manifest | 로컬 통과 | ProbeLauncherTest, NamespacePermissionsTest, 전체 E2E |
-| Sepolia 주소·코드·버전·자금 preflight 실제 실행 | 미실행 | 후보값 미검증, 필요한 설정은 배포 문서 참조 |
-| Sepolia 실배포·대표 풀 등록·왕복 조회 | 미실행 | 공개 체인 broadcast·서명 미실행 |
+| Sepolia 주소·코드·버전 확인 | 팀 확인 + AI 읽기 확인 | ENSv2 Beta 세트·LiquidityLauncher·UERC20Factory·POOLS_SLOT. 이 저장소의 preflight 스크립트는 Beta 세트로 실행하지 않음 |
+| Sepolia 실배포·대표 풀 등록·왕복 조회 | 팀 배포 + AI 읽기 확인 | registrar `0x820bE7…`(Sourcify 검증), KDEMO Via 선언. 저장소 SDK로 registered/not_registered 재현. 저장소 `src/`와 소스 동일·바이트코드 일치(C14) ([Sepolia 기록](phase1-deployment.md#sepolia-팀-배포-2026-09-26)) |
 | ENS 앱 UI 이름 표시 | 미실행 | 별도 사람 수동 확인 필요 |
 | SDK 공식 문서 사람 열람·직접 테스트 실행 | 미실행 | 사람 검증 대기 |
 | 팀원·멘토 피드백 반영 | 미실행 | 아직 실제 피드백을 전달받지 않음 |

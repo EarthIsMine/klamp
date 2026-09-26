@@ -596,3 +596,12 @@ AI 수행과 사람의 결정·직접 검증을 구분한다. 빈 양식과 예�
 - AI 실행 검증: `npm test` 25 통과, typecheck 통과, `npm run test:e2e` 통과(로컬 UniversalResolver도 같은 경로로 동작). 저장소 SDK로 Sepolia KDEMO `registered`(PoolKey `(ETH, KDEMO, 2500, 25, 훅 없음)`, 해시 일치), 미선언 `not_registered`. Sepolia 연결 데모(4174)에서 KDEMO 자기 풀 match, 다른 풀 mismatch, 미선언 not_registered.
 - 사람 직접 검증: explorer.ens.dev 구조 화면은 사용자가 확인. 나머지는 사람 검증 대기.
 - 남은 문제: 저장소 `src/`·셋업·로컬 테스트가 Sepolia 배포본(Beta API)과 다르다. 이벤트 PoolKey 변경은 배포본에 없다. ENSv2 Sepolia 초기화 시 Beta API용 재배포 스크립트가 필요하다.
+
+## C14 — ENSv2 Beta 전환
+
+- 날짜 / 환경 / 도구: 2026-09-26 / Foundry 1.7.1(solc 0.8.25·0.8.26), Node, 로컬 Anvil, Sepolia 공개 RPC, Sourcify / Claude Code (Opus 5.5)
+- 사람의 결정/수정: 저장소를 Sepolia 배포본(Beta)에 맞추고 이벤트 PoolKey 변경을 되돌리도록 결정함. 필요한 부수 작업도 진행하도록 요청함.
+- AI 수행: contracts-v2를 `f2f0a05`로 재고정했다(공식 Sepolia 주소표와 Beta 세트 일치 확인). registrar를 Sourcify 검증 소스로 교체했다. 팀원 셋업 트랜잭션을 디코딩해 역할 값과 `grantSetterRoles` 4건을 확인하고 `Phase1Setup`·스크립트·fixture를 인터페이스 + `vm.deployCode` 구조로 옮겼다. 메타데이터 테스트를 `setTokenText` 기준으로 다시 썼고, smoke 스크립트를 UniversalResolver 경유 읽기로 바꿨다. 설계 문서의 이벤트 PoolKey 수정을 되돌렸다. 계획은 [C14](plans/C14-ensv2-beta.md).
+- AI 실행 검증: `forge test` 34 통과. `npm test` 25 통과, typecheck 통과, `npm run test:e2e` 통과(Beta ENS 로컬 배포·등록·봉인·viem 조회·권한 smoke). 저장소 registrar 0.8.26 빌드와 Sepolia `0x820bE7…` 런타임 코드가 immutable·메타데이터 외 0바이트 차이.
+- 사람 직접 검증: 사람 검증 대기.
+- 남은 문제: 저장소 스크립트로 Sepolia 신규 배포는 미실행. Sepolia ENSv2 초기화 시 이 스크립트로 재배포해야 한다.

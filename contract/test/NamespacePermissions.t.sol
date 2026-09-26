@@ -19,12 +19,17 @@ contract NamespacePermissionsTest is NamespaceFixture {
         vm.expectRevert(); deployment.registry.setResolver(tokens,address(1));
         vm.expectRevert(); deployment.registry.setSubregistry(tokens,IRegistry(address(1)));
         vm.expectRevert(); deployment.registry.grantRootRoles(R.ROLE_SET_RESOLVER,address(this));
-        vm.expectRevert(); deployment.registry.upgradeToAndCall(address(deployment.registry),hex"");
-        vm.expectRevert(); resolver.upgradeToAndCall(address(resolver),hex"");
+        assertFalse(_upgrade(address(deployment.registry)));
+        assertFalse(_upgrade(address(resolver)));
         vm.expectRevert(); eth.setSubregistry(klamp,IRegistry(address(1)));
-        vm.expectRevert(); resolver.setText(nodeFor(probe),"pool","forged");
+        vm.expectRevert(); resolver.setText(Phase1Setup.tokenName(probe),"pool","forged");
         vm.expectRevert(); resolver.grantRootRoles(P.ROLE_SET_TEXT,address(this));
+        vm.expectRevert(); resolver.grantSetterRoles(Phase1Setup.textSetter("pool"),address(this));
+        assertEq(resolver.roleCount(0),0);
         seal(); // idempotent: no remaining roles are revoked twice
+    }
+    function _upgrade(address proxy) private returns (bool ok) {
+        (ok,) = proxy.call(abi.encodeWithSignature("upgradeToAndCall(address,bytes)", proxy, hex""));
     }
     /// @dev After seal the operator keeps only REGISTRAR(+ADMIN) for hooks.klamp.eth; it cannot touch tokens or klamp.eth.
     function testKeptRegistrarCannotTouchTokens() public {

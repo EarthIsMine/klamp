@@ -25,13 +25,14 @@ contract CanonicalPoolEnsIntegrationTest is NamespaceFixture {
         vm.prank(creator); registrar.recordByLiquidityLauncher(b,address(launcher));
         assertResolution(a); assertResolution(b);
     }
-    function testPermissionDelegationFailureRollsBackBothRecords() public {
-        resolver.authorizeNameRoles(hex"00",P.ROLE_SET_TEXT_ADMIN,address(registrar),false);
+    /// @dev A failing resolver write (here: the pool text role is missing) rolls back mapping, records and creator.
+    function testResolverWriteFailureRollsBackEverything() public {
+        resolver.revokeRoles(uint256(keccak256("pool")),P.ROLE_SET_TEXT,address(registrar));
         address token = deployer.deploy(bytes32(uint256(1))); initialize(keyFor(token));
         vm.expectRevert(); deployer.recordWithEditor(registrar,token,keyFor(token),bytes32(uint256(1)),creator);
         assertEq(registrar.canonicalPoolOf(token),0);
-        assertEq(resolver.text(nodeFor(token),"pool"),"");
-        assertEq(resolver.data(nodeFor(token),"pool"),hex"");
-        vm.prank(creator); vm.expectRevert(); resolver.setText(nodeFor(token),"description","unauthorized");
+        assertEq(registrar.creatorOf(token),address(0));
+        assertEq(textOf(token,"pool"),"");
+        assertEq(dataOf(token,"pool"),hex"");
     }
 }

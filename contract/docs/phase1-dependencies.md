@@ -4,13 +4,13 @@
 
 | 의존성 | 고정 SHA / 버전 |
 | --- | --- |
-| ENSv2 | [48b3e2d39513b9dd32ef1850877a29009bc807b9](https://github.com/ensdomains/contracts-v2/tree/48b3e2d39513b9dd32ef1850877a29009bc807b9) |
+| ENSv2 | [f2f0a05e6c1711134b73204a1e37f8e6c1aea6ab](https://github.com/ensdomains/contracts-v2/tree/f2f0a05e6c1711134b73204a1e37f8e6c1aea6ab) (태그 `sepolia-deployment-2026-09-15`, Sepolia ENSv2 Beta 공식 세트. C14에서 `48b3e2d`에서 재고정) |
 | LiquidityLauncher | [1eda9f0c0243e2fdc0cbe0d665200ffa8c2ba53a](https://github.com/Uniswap/liquidity-launcher/tree/1eda9f0c0243e2fdc0cbe0d665200ffa8c2ba53a) |
 | UERC20Factory | [46290a5447844016516b4b4530013da01b6ff801](https://github.com/Uniswap/uerc20-factory/tree/46290a5447844016516b4b4530013da01b6ff801) |
 | v4-core | [59d3ecf53afa9264a16bba0e38f4c5d2231f80bc](https://github.com/Uniswap/v4-core/tree/59d3ecf53afa9264a16bba0e38f4c5d2231f80bc) |
 | v4-periphery / StateView | [ad04c9f24a170accf5ea1b2836bbafd514537ca6](https://github.com/Uniswap/v4-periphery/tree/ad04c9f24a170accf5ea1b2836bbafd514537ca6) |
 | viem | 2.56.9 (package-lock.json) |
-| Solidity / EVM | 0.8.26 / Cancun |
+| Solidity / EVM | 0.8.26 (`src/`는 `compilation_restrictions`로 고정, Sepolia registrar와 동일) · ENSv2 구현은 0.8.25(`script/EnsArtifacts.sol`) / Cancun |
 | Foundry 실행 환경 | 1.7.1, 4072e48705af9d93e3c0f6e29e93b5e9a40caed8 |
 | Node / TypeScript | 24.14.1 / 5.9.3 |
 

@@ -1,10 +1,11 @@
 {
-  "ensV2": "48b3e2d39513b9dd32ef1850877a29009bc807b9",
+  "ensV2": "f2f0a05e6c1711134b73204a1e37f8e6c1aea6ab",
   "liquidityLauncher": "1eda9f0c0243e2fdc0cbe0d665200ffa8c2ba53a",
   "uerc20Factory": "46290a5447844016516b4b4530013da01b6ff801",
   "v4Core": "59d3ecf53afa9264a16bba0e38f4c5d2231f80bc",
   "v4Periphery": "ad04c9f24a170accf5ea1b2836bbafd514537ca6",
   "viem": "2.56.9",
-  "solidity": "0.8.26",
-  "evm": "cancun"
+  "solidity": "0.8.26 (src, scripts, tests); 0.8.25 (ENSv2 implementations via script/EnsArtifacts.sol)",
+  "evm": "cancun",
+  "ensV2Tag": "sepolia-deployment-2026-09-15"
 }

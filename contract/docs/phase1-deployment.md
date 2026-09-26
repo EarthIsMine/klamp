@@ -27,6 +27,22 @@ npm run demo
 
 브라우저에서 http://127.0.0.1:4173 를 연다. ProbeToken은 실제 ERC20이며 초기화 풀에 유동성은 추가하지 않는다. 거래 전송은 제공하지 않는다. 로컬 공개 개발 계정은 테스트 전용이다.
 
+## Sepolia 팀 배포 (2026-09-26)
+
+팀원이 Sepolia **ENSv2 Beta 세트**에 1단계를 배포하고 역할을 회수했다. 주소는 [`deployments/sepolia.phase1.json`](../deployments/sepolia.phase1.json)에 체인에서 다시 읽은 값으로 기록했다.
+
+- UniversalResolver는 `0x5d25c1d6…`다. 설계 문서의 `0x85edf8…`는 이전 후보 세트(ETH registry `0x67b728…`)를 따라가며, 거기에도 같은 운영자가 먼저 만든 `klamp.eth`가 남아 있다. 조회에는 Beta 세트만 쓴다.
+- 배포 registrar는 Beta resolver API(이름 기반 `setText(bytes name, …)`, 키 단위 권한)에 맞춘 버전이다. description·url은 `setTokenText`로 registrar가 크리에이터를 확인해 쓴다. C14에서 이 저장소의 `src/`를 Sourcify 검증 소스와 동일하게 맞췄고, 0.8.26 빌드 결과가 immutable·메타데이터를 제외하고 배포 바이트코드와 일치한다. 셋업·로컬 테스트도 같은 ENS 커밋(`f2f0a05`) 위에서 돈다.
+- 역할: `klamp.eth`·`tokens.klamp.eth` 역할 0. klamp 레지스트리 루트에 운영자의 REGISTRAR + admin만 남음(hooks 등록용). 역할 회수 트랜잭션에서 토큰 ID가 재발행되어 익스플로러에는 "transferred → 0x0"로 보이지만 소유권 이전·소각이 아니다.
+- explorer.ens.dev는 `klamp.eth`·`tokens.klamp.eth`를 보여주지만, 와일드카드 토큰 이름(`0x….tokens.klamp.eth`)은 Not found다. 등록된 라벨만 표시하는 것으로 보이며, 레코드는 viem `getEnsText`로 읽힌다.
+- ENSv2 Sepolia는 주기적으로 초기화될 수 있다(익스플로러 공지, 최근 2026-09-15). 발표 전 녹화본을 확보한다.
+
+Sepolia 조회 데모 (읽기 전용):
+
+```sh
+PORT=4174 MANIFEST=deployments/sepolia.phase1.json RPC_URL=<sepolia RPC> npm run demo
+```
+
 ## Sepolia 준비와 dry-run
 
 1. `.env.example`을 무시되는 `.env`로 복사해 설정한다. 서명은 Foundry keystore를 사용하고 비밀키를 manifest에 넣지 않는다. registration secret은 로컬에서 새로 생성하여 commit과 register 사이 동일하게 유지한다.

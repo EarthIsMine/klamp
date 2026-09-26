@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
-import { BaseError, ContractFunctionRevertedError, keccak256, parseAbi, namehash, decodeAbiParameters, type Address, type Hex } from 'viem';
+import { BaseError, ContractFunctionRevertedError, keccak256, parseAbi, namehash, decodeAbiParameters, decodeFunctionResult, encodeFunctionData, toHex, type Address, type Hex } from 'viem';
+import { packetToBytes } from 'viem/ens';
 import { createReader, getCanonicalPool, tokenName, type NetworkConfig } from '../sdk/canonicalPool.js';
 const path=process.env.MANIFEST??'deployments/local.json';
 const raw=JSON.parse(readFileSync(path,'utf8'));
@@ -13,12 +14,18 @@ assert.equal(result.status,'registered');
 if(result.status!=='registered') throw Error('Missing canonical pool');
 const resolverAbi=parseAbi([
  'function text(bytes32,string) view returns (string)','function data(bytes32,string) view returns (bytes)',
- 'function setText(bytes32,string,string)','function setData(bytes32,string,bytes)',
+ 'function setText(bytes,string,string)','function setData(bytes,string,bytes)',
  'function roleCount(uint256) view returns (uint256)','function roles(uint256,address) view returns (uint256)',
  'error EACUnauthorizedAccountRoles(uint256 resource,uint256 roleBitmap,address account)',
 ]);
-const node=namehash(tokenName(raw.token));
-const encoded=await client.readContract({address:raw.resolver,abi:resolverAbi,functionName:'data',args:[node,'pool'],blockNumber:block});
+const name=tokenName(raw.token);
+const node=namehash(name);
+const dnsName=toHex(packetToBytes(name));
+// ENSv2 Beta resolver records are read through UniversalResolver.resolve (no direct data(node, key) getter).
+const urAbi=parseAbi(['function resolve(bytes,bytes) view returns (bytes,address)']);
+const [dataResult,dataResolver]=await client.readContract({address:raw.universalResolver,abi:urAbi,functionName:'resolve',args:[dnsName,encodeFunctionData({abi:resolverAbi,functionName:'data',args:[node,'pool']})],blockNumber:block});
+assert.equal(dataResolver.toLowerCase(),String(raw.resolver).toLowerCase());
+const encoded=decodeFunctionResult({abi:resolverAbi,functionName:'data',data:dataResult});
 const [chainId,key]=decodeAbiParameters([{type:'uint256'},{type:'tuple',components:[{name:'currency0',type:'address'},{name:'currency1',type:'address'},{name:'fee',type:'uint24'},{name:'tickSpacing',type:'int24'},{name:'hooks',type:'address'}]}],encoded);
 assert.equal(chainId,config.chainId);
 const {hashPoolKey}=await import('../sdk/launchEventFallback.js');
@@ -31,11 +38,16 @@ async function rejected(call:Promise<unknown>,expected:string) {
  }
  throw Error(`Expected ${expected}; call succeeded`);
 }
-await client.simulateContract({address:raw.resolver,abi:resolverAbi,functionName:'setText',args:[node,'description','smoke eth_call only'],account:raw.editor??raw.operator});
-await client.simulateContract({address:raw.resolver,abi:resolverAbi,functionName:'setText',args:[node,'url','https://example.com'],account:raw.editor??raw.operator});
-// The issuer contract gets no description/url rights.
-await rejected(client.simulateContract({address:raw.resolver,abi:resolverAbi,functionName:'setText',args:[node,'description','issuer'],account:raw.create2Launcher}),'EACUnauthorizedAccountRoles');
-await rejected(client.simulateContract({address:raw.resolver,abi:resolverAbi,functionName:'setText',args:[node,'pool','forged'],account:raw.operator}),'EACUnauthorizedAccountRoles');
+// Beta resolver roles are key-scoped, so description/url go through registrar.setTokenText (creator only).
+const metaAbi=parseAbi(['function setTokenText(address,string,string)','error NotCreator()','error KeyNotAllowed()']);
+await client.simulateContract({address:raw.registrar,abi:metaAbi,functionName:'setTokenText',args:[raw.token,'description','smoke eth_call only'],account:raw.editor??raw.operator});
+await client.simulateContract({address:raw.registrar,abi:metaAbi,functionName:'setTokenText',args:[raw.token,'url','https://example.com'],account:raw.editor??raw.operator});
+await rejected(client.simulateContract({address:raw.registrar,abi:metaAbi,functionName:'setTokenText',args:[raw.token,'pool','forged'],account:raw.editor??raw.operator}),'KeyNotAllowed');
+// The issuer contract gets no description/url rights, and nobody writes the resolver directly.
+await rejected(client.simulateContract({address:raw.registrar,abi:metaAbi,functionName:'setTokenText',args:[raw.token,'description','issuer'],account:raw.create2Launcher}),'NotCreator');
+await rejected(client.simulateContract({address:raw.resolver,abi:resolverAbi,functionName:'setText',args:[dnsName,'description','direct'],account:raw.editor??raw.operator}),'EACUnauthorizedAccountRoles');
+await rejected(client.simulateContract({address:raw.resolver,abi:resolverAbi,functionName:'setText',args:[dnsName,'pool','forged'],account:raw.operator}),'EACUnauthorizedAccountRoles');
+assert.equal(await client.readContract({address:raw.resolver,abi:resolverAbi,functionName:'roleCount',args:[0n],blockNumber:block}),0n);
 const registrarAbi=parseAbi([
  'function recordByCreate2(address,(address currency0,address currency1,uint24 fee,int24 tickSpacing,address hooks),bytes32,bytes32,address)',
  'error AlreadyRecorded()',

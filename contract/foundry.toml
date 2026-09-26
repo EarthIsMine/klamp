@@ -4,12 +4,13 @@ test = "test"
 script = "script"
 out = "out"
 libs = ["lib"]
-solc_version = "0.8.26"
 evm_version = "cancun"
+# ENSv2 Beta implementations are =0.8.25 (script/EnsArtifacts.sol); the registrar must match the Sepolia deployment (0.8.26).
+compilation_restrictions = [{ paths = "src/**", version = "=0.8.26" }]
 optimizer = true
 optimizer_runs = 200
 auto_detect_remappings = false
-fs_permissions = [{ access = "read-write", path = "./deployments" }]
+fs_permissions = [{ access = "read-write", path = "./deployments" }, { access = "read", path = "./out" }]
 
 [profile.default.fuzz]
 runs = 256

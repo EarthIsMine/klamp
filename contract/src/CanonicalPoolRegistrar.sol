@@ -10,13 +10,12 @@ struct PoolKey {
     address hooks;
 }
 
-/// @dev ENSv2 PermissionedResolver 중 쓰는 함수만.
+/// @dev ENSv2 PermissionedResolver (Sepolia ENSv2 Beta) 중 쓰는 함수만. 레코드는 DNS 인코딩 이름으로 쓴다.
+///      이 버전의 쓰기 권한은 키 단위다(이름 단위 위임 없음). 그래서 description·url도 등록 컨트랙트가 쓰고,
+///      토큰별 크리에이터 확인은 이 컨트랙트가 한다.
 interface IPermissionedResolver {
-    function setText(bytes32 node, string calldata key, string calldata value) external;
-    function setData(bytes32 node, string calldata key, bytes calldata value) external;
-    function authorizeTextRoles(bytes calldata name, string calldata key, address account, bool grant)
-        external
-        returns (bool);
+    function setText(bytes calldata name, string calldata key, string calldata value) external;
+    function setData(bytes calldata name, string calldata key, bytes calldata value) external;
 }
 
 /// @dev Uniswap UERC20Factory. 토큰 주소 = CREATE2(salt = keccak256(name, symbol, decimals, factoryCaller, graffiti)).
@@ -56,24 +55,25 @@ contract CanonicalPoolRegistrar {
     mapping(address => bool) public isLiquidityLauncher; // 배포 시 고정, 이후 변경 불가
 
     mapping(address token => bytes32 poolId) public canonicalPoolOf;
+    /// @notice description·url을 쓸 수 있는 사람. 선언 때 정해지고 바뀌지 않는다. 0이면 아무도 못 쓴다.
+    mapping(address token => address creator) public creatorOf;
 
     uint24 public constant LAUNCH_FEE = 2500; // InstantLaunchStrategy.LP_FEE
     int24 public constant LAUNCH_TICK_SPACING = 25; // InstantLaunchStrategy.TICK_SPACING
-    /// @dev v4 StateLibrary.POOLS_SLOT (고정한 v4-core 59d3ecf). 배포된 PoolManager에서 같은 값인지 테스트로 확인한다
+    /// @dev v4 StateLibrary.POOLS_SLOT (v4-core 46c6834). 배포된 PoolManager에서 같은 값인지 테스트로 확인한다
     bytes32 public constant POOLS_SLOT = bytes32(uint256(6));
 
     /// @param issuer 대표 풀을 선언한 주소 (경로 A: 런치패드 컨트랙트, 경로 B: 크리에이터)
-    /// @param creator description·url을 관리할 사람 주소 (경로 B에서는 issuer와 같다)
-    /// @param key 대표 풀의 PoolKey. 인덱서가 이 이벤트 하나로 token → PoolKey를 얻는다 (poolId = keccak256(abi.encode(key)))
-    event CanonicalRecorded(
-        address indexed token, bytes32 indexed poolId, address indexed issuer, address creator, PoolKey key
-    );
+    /// @param creator description·url을 관리할 사람 주소 (경로 B에서는 issuer와 같다). setTokenText로 쓴다
+    event CanonicalRecorded(address indexed token, bytes32 indexed poolId, address indexed issuer, address creator);
 
     error NotIssuer();
     error TokenNotDeployed();
     error PoolNotInitialized();
     error TokenNotInPool();
     error AlreadyRecorded();
+    error NotCreator();
+    error KeyNotAllowed();
 
     constructor(
         IPermissionedResolver resolver_,
@@ -154,21 +154,30 @@ contract CanonicalPoolRegistrar {
         bytes32 slot0 = poolManager.extsload(keccak256(abi.encodePacked(poolId, POOLS_SLOT)));
         if (uint160(uint256(slot0)) == 0) revert PoolNotInitialized();
         canonicalPoolOf[token] = poolId;
+        creatorOf[token] = creator;
 
-        string memory label = _hex(abi.encodePacked(token)); // "0x" + 소문자 40자
-        bytes32 node = keccak256(abi.encodePacked(tokensNode, keccak256(bytes(label))));
-        bytes memory name = abi.encodePacked(uint8(bytes(label).length), label, tokensName);
-
+        bytes memory name = _tokenName(token);
         resolver.setText(
-            node, "pool", string.concat("eip155:", _dec(block.chainid), ":", _hex(abi.encodePacked(poolId)))
+            name, "pool", string.concat("eip155:", _dec(block.chainid), ":", _hex(abi.encodePacked(poolId)))
         );
-        resolver.setData(node, "pool", abi.encode(block.chainid, key));
-        if (creator != address(0)) {
-            resolver.authorizeTextRoles(name, "description", creator, true);
-            resolver.authorizeTextRoles(name, "url", creator, true);
-        }
+        resolver.setData(name, "pool", abi.encode(block.chainid, key));
 
-        emit CanonicalRecorded(token, poolId, msg.sender, creator, key);
+        emit CanonicalRecorded(token, poolId, msg.sender, creator);
+    }
+
+    /// @notice 토큰의 크리에이터만 그 토큰 이름의 description·url을 쓴다. pool 등 다른 키는 쓸 수 없다.
+    function setTokenText(address token, string calldata key, string calldata value) external {
+        address creator = creatorOf[token];
+        if (creator == address(0) || msg.sender != creator) revert NotCreator();
+        bytes32 k = keccak256(bytes(key));
+        if (k != keccak256("description") && k != keccak256("url")) revert KeyNotAllowed();
+        resolver.setText(_tokenName(token), key, value);
+    }
+
+    /// @dev DNS 인코딩된 "<0x토큰주소 소문자>.tokens.klamp.eth"
+    function _tokenName(address token) internal view returns (bytes memory) {
+        string memory label = _hex(abi.encodePacked(token)); // "0x" + 소문자 40자
+        return abi.encodePacked(uint8(bytes(label).length), label, tokensName);
     }
 
     // ---------- utils ----------

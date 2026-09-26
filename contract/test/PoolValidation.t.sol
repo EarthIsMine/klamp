@@ -2,6 +2,7 @@
 pragma solidity ^0.8.26;
 import {RegistrarFixture, FixtureToken} from "./fixtures/RegistrarFixture.sol";
 import {CanonicalPoolRegistrar, PoolKey} from "../src/CanonicalPoolRegistrar.sol";
+import {PermissionedResolverLib as P} from "ens-v2/resolver/libraries/PermissionedResolverLib.sol";
 import {PoolManager} from "@uniswap/v4-core/src/PoolManager.sol";
 import {PoolKey as V4Key} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
@@ -10,8 +11,8 @@ import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 contract PoolValidationTest is RegistrarFixture {
     function assertEmpty(address token) internal view {
         assertEq(registrar.canonicalPoolOf(token), bytes32(0));
-        assertEq(resolver.text(nodeFor(token), "pool"), "");
-        assertEq(resolver.data(nodeFor(token), "pool"), hex"");
+        assertEq(textOf(token, "pool"), "");
+        assertEq(dataOf(token, "pool"), hex"");
     }
     function testRejectPredictedButUndeployedToken() public {
         bytes32 salt = bytes32(uint256(1));
@@ -46,7 +47,7 @@ contract PoolValidationTest is RegistrarFixture {
     }
     function testDataWriteFailureRollsBackTextAndMapping() public {
         address token = deployer.deploy(0); initialize(keyFor(token));
-        resolver.authorizeDataRoles(hex"00", "pool", address(registrar), false);
+        resolver.revokeRoles(uint256(keccak256("pool")), P.ROLE_SET_DATA, address(registrar));
         vm.expectRevert();
         deployer.record(registrar, token, keyFor(token), 0);
         assertEmpty(token);

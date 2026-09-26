@@ -1,16 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
-import {ETHRegistrar} from "ens-v2/registrar/ETHRegistrar.sol";
-import {PermissionedRegistry} from "ens-v2/registry/PermissionedRegistry.sol";
-import {UserRegistry} from "ens-v2/registry/UserRegistry.sol";
+import {IETHRegistrar} from "ens-v2/registrar/interfaces/IETHRegistrar.sol";
+import {IPermissionedRegistry} from "ens-v2/registry/interfaces/IPermissionedRegistry.sol";
 import {IRegistry} from "ens-v2/registry/interfaces/IRegistry.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+/// @dev Public immutables of the Beta ETHRegistrar that IETHRegistrar does not declare.
+interface IETHRegistrarParams is IETHRegistrar {
+    function ETH_REGISTRY() external view returns (IPermissionedRegistry);
+    function MIN_COMMITMENT_AGE() external view returns (uint64);
+    function MAX_COMMITMENT_AGE() external view returns (uint64);
+}
 library RegistrationFlow {
     using SafeERC20 for IERC20;
     enum Step { Committed, Waiting, Registered, AlreadyRegistered }
-    struct Config { ETHRegistrar registrar; PermissionedRegistry eth; UserRegistry registry; IERC20 payment; address operator; bytes32 secret; uint64 duration; uint256 maxPrice; }
+    struct Config { IETHRegistrarParams registrar; IPermissionedRegistry eth; IPermissionedRegistry registry; IERC20 payment; address operator; bytes32 secret; uint64 duration; uint256 maxPrice; }
     function step(Config memory c) internal returns (Step status, uint256 readyAt) {
         require(address(c.registrar.ETH_REGISTRY()) == address(c.eth), "registrar registry mismatch");
         require(c.operator != address(0) && address(c.registry).code.length > 0, "invalid registration config");

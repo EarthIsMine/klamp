@@ -1,5 +1,5 @@
 {
-  "status": "Team deployment on the Sepolia ENSv2 Beta set (2026-09-26). Addresses read back from chain; registrar source is the Sourcify-verified Beta variant, not this repo's src/.",
+  "status": "Team deployment on the Sepolia ENSv2 Beta set (2026-09-26). Addresses read back from chain; registrar source is identical to this repo's src/ (Sourcify-verified, bytecode matches a 0.8.26 build).",
   "chainId": "11155111",
   "universalResolver": "0x5d25c1d6acbb71b7a28aa7899618a3412a8303e3",
   "rootRegistry": "0x9703DBD26dAB89504490994138cF2c575251a9cE",
