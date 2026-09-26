@@ -1,4 +1,4 @@
-name: Deploy web to GitHub Pages
+name: Deploy web and dex to GitHub Pages
 
 on:
   push:
@@ -6,6 +6,11 @@ on:
       - main
     paths:
       - "web/**"
+      - "dex/**"
+      # dex bundles these directly (Vite aliases)
+      - "contract/sdk/**"
+      - "contract/demo/sepolia/klamp-sdk.mjs"
+      - "contract/deployments/**"
       - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
@@ -44,6 +49,18 @@ jobs:
       - name: Build static site
         working-directory: web
         run: pnpm build
+
+      - name: Install dex dependencies
+        working-directory: dex
+        run: pnpm install --frozen-lockfile
+
+      - name: Build dex
+        working-directory: dex
+        run: pnpm build
+
+      # One Pages site per repository: dex is served at /dex/ next to the web export.
+      - name: Add dex under /dex/
+        run: cp -r dex/dist web/out/dex
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v4

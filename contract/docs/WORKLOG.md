@@ -679,3 +679,11 @@ Implementation status and human verification status are tracked separately; each
 - AI-run verification: web `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm build`; dex `pnpm build`. `readSeal` run against Sepolia returned the values above. Screenshots from headless Chromium (browser libraries extracted to a scratch dir) of web steps 1, 4, 5 (seal), 6, 8, 9 and of dex swap, seal panel, look-alike and 390 px mobile were checked by eye.
 - Human verification: Pending human verification.
 
+## DEX3 — Deploy dex with the web site on GitHub Pages
+
+- Date / environment / tools: 2026-09-27 / pnpm 12.6.0, Vite 8, Next.js 15.5 / Claude Code (Opus 5.5)
+- Human decisions/changes: Deploy `dex/` on GitHub Pages as well.
+- AI work: A repository has one Pages site, so `deploy-pages.yml` now builds dex after the web export and copies `dex/dist` to `web/out/dex` (served at `/dex/`). The workflow also triggers on `dex/**` and on the contract files dex bundles (`contract/sdk`, `klamp-sdk.mjs`, `contract/deployments`). dex is pinned to pnpm 12.6.0 like web; its lockfile was re-resolved with pnpm 12 because the default minimum-release-age policy rejected the pnpm 10 lockfile; `@types/node` is pinned to 24.10.1 so no policy exception is needed. Landing page links to `/dex/`; dex links back with `../`.
+- AI-run verification: dex built from a clean `git archive` checkout with no `contract/node_modules`; `pnpm install --frozen-lockfile` and `pnpm build` pass with pnpm 12.6.0; web `pnpm lint` and `pnpm build` pass. The combined `web/out` served locally: `/dex/` 200 (`/dex` 301 to `/dex/`), landing → "Try it with your wallet" → dex loads live KHOOK quotes and the seal badge → "Klamp home" returns to `/`.
+- Human verification: Pending (check the Pages run after pushing).
+

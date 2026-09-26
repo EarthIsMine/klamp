@@ -138,7 +138,7 @@ pnpm lint
 pnpm build
 ```
 
-The web workspace is statically exported and deployed from `main` to GitHub Pages through `.github/workflows/deploy-pages.yml`. Its intended custom domain is `https://klamp.kro.kr`; complete the repository Pages and DNS settings described in [`web/README.md`](web/README.md) before the first production deployment.
+The web workspace is statically exported and deployed from `main` to GitHub Pages through `.github/workflows/deploy-pages.yml`, together with `dex/` at `/dex/`. Its intended custom domain is `https://klamp.kro.kr`; complete the repository Pages and DNS settings described in [`web/README.md`](web/README.md) before the first production deployment.
 
 The UI models the Phase 1 SDK results as `registered`, `not_registered`, or `lookup_failed`, route comparisons as `match`, `mismatch`, or `blocked`, and route verdicts as `allow`, `requote_canonical`, `requote_static`, or `hold`. The trace follows the path A demo on Sepolia (launch, naive quote, ENS lookup, who can still change the record, verdict, requote, verified swap) and reads each step from Sepolia in the browser: the launch tx's `CanonicalRecorded` and `Initialize` events, V4Quoter quotes for both pools, the ENSv2 lookup, the ENSv2 role counts on the namespace, and the team's Klamp-mode swap tx, whose Universal Router calldata is decoded and checked against the judged PoolKey. Each step is labelled `Live · Sepolia #<block>`, or `Recorded snapshot` if a read fails and the recorded value is shown instead; a failed ENS lookup stays `lookup_failed`. Only the final attack outcome is simulated and labelled in the UI. Capped hooks (stage 2) are roadmap only.
 
@@ -153,6 +153,8 @@ cd dex
 pnpm install
 pnpm dev        # http://localhost:5174
 ```
+
+It is deployed with the web workspace: the Pages workflow builds both and serves dex at [`/dex/`](https://klamp.kro.kr/dex/).
 
 ## Known limits
 

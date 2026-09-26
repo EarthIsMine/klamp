@@ -68,6 +68,7 @@ export function App() {
       <footer className="foot">
         <span>Real Sepolia transactions from your wallet. No Uniswap contract changed.</span>
         <span className="links">
+          <a href="../">Klamp home</a>
           {[
             ["Registrar", CONTRACTS.registrar],
             ["DemoLaunchpad", CONTRACTS.launchpad],

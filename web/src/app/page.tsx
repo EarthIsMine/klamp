@@ -36,8 +36,13 @@ const Lead = styled.p`
   font-size: clamp(17px, 1.8vw, 21px); line-height: 1.55; letter-spacing: -.015em; color: ${colors.textSecondary};
   margin: 0; max-width: 620px;
 `;
+const HeroActions = styled.div`display: flex; flex-wrap: wrap; align-items: center; gap: 12px 22px; margin-top: 36px;`;
+const HeroLink = styled.a`
+  font-size: 14px; font-weight: 650; padding: 5px 0; border-bottom: 1px solid ${colors.borderStrong};
+  &:hover { border-color: ${colors.textPrimary}; }
+`;
 const HeroAction = styled.a`
-  display: inline-flex; align-items: center; margin-top: 36px; min-height: 44px; padding: 0 17px;
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 17px;
   background: ${colors.primary}; color: ${colors.textPrimary}; font-size: 14px; font-weight: 650;
   &:hover { background: ${colors.primaryHover}; color: white; }
 `;
@@ -83,14 +88,17 @@ export default function Home() {
     <>
       <Nav>
         <Brand href="#top"><Mark />Klamp</Brand>
-        <NavLinks aria-label="Primary navigation"><a href="#architecture">How it verifies</a><a href="/demo/">View demo</a></NavLinks>
+        <NavLinks aria-label="Primary navigation"><a href="#architecture">How it verifies</a><a href="/demo/">View demo</a><a href="/dex/">Try the DEX</a></NavLinks>
       </Nav>
       <Hero id="top">
         <HeroGrid>
           <HeroCopy>
             <Headline>A token issuer declares one canonical pool.</Headline>
             <Lead>Klamp records it in ENSv2. Routers read it with standard ENS tools and requote around look-alike hook pools before the trader signs.</Lead>
-            <HeroAction href="/demo/">View a verification trace</HeroAction>
+            <HeroActions>
+              <HeroAction href="/demo/">View a verification trace</HeroAction>
+              <HeroLink href="/dex/">Try it with your wallet →</HeroLink>
+            </HeroActions>
           </HeroCopy>
           <LiveLookup />
         </HeroGrid>

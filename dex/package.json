@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@12.6.0",
   "description": "Klamp on a working Sepolia DEX: launch a token with its canonical pool, add a look-alike pool, and swap through Universal Router with or without Klamp routing",
   "scripts": {
     "dev": "vite --port 5174",
@@ -17,7 +18,7 @@
     "viem": "2.56.9"
   },
   "devDependencies": {
-    "@types/node": "^24.19.0",
+    "@types/node": "24.10.1",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^6.0.0",

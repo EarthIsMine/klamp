@@ -27,6 +27,8 @@ pnpm dev        # http://localhost:5174
 pnpm build      # typecheck + static build in dist/
 ```
 
+Deployed at [klamp.kro.kr/dex/](https://klamp.kro.kr/dex/): the GitHub Pages workflow builds this app after the web export and copies `dist/` to `/dex/` (Vite `base: "./"`, so it works under any path). Like `web/`, it uses pnpm 12.6.0.
+
 You need a browser wallet on Sepolia with a little Sepolia ETH (a launch costs about 1M gas). `VITE_SEPOLIA_RPC_URL` overrides the public RPC used for reads; signatures always go through the wallet.
 
 ## A 3-minute walkthrough
