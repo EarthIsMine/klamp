@@ -754,3 +754,12 @@ Implementation status and human verification status are tracked separately; each
 - AI work: README gains "How this repository was built": first commit time, the spec and planning files, the teammate handoff commits (`23e0195`–`e854399`, `4178507`) and where C15 lists them, and the pinned submodules. The team's final spec `final_klamp_organized.md` is now tracked (scanned for keys and API tokens first; none). The top "Live demo" line links `/dex/`; the stale "before the first production deployment" note is gone. The GitHub repository description no longer mentions capped hooks, which are not built.
 - AI-run verification: `git grep` / `grep` for key, mnemonic and API-token patterns found none; README links point to existing paths.
 - Human verification: Pending human verification.
+
+## DEX9 — Show what each swap received
+
+- Date / environment / tools: 2026-09-27 / Vite 8, headless Chromium / Claude Code (Opus 5.5)
+- Human decisions/changes: Make the amount each swap actually received easier to see.
+- AI work: Swaps sent from the dex are recorded in this browser (`lib/history.ts`, localStorage, newest 30) so they survive tab switches and reloads. The Swap tab's right side shows "Your swaps · <token>": the latest best-quote swap and the latest Klamp swap side by side, each with the received amount in large type, its difference from the quote, the quote, the minimum, ETH paid, the pool and an Etherscan link; older swaps are listed below. The card's result box is larger and links the transaction. Received amounts come from the receipt's token transfers to the trader, as before.
+- AI-run verification: `pnpm build` passed. Layout checked at 1440 px and 390 px with two test records injected into localStorage in the headless browser (not committed). Real wallet swaps were not run.
+- Finding: at block time of the check, KHOOK's undeclared pool no longer won the 0.0005 ETH quote (declared 196,041.85, undeclared 195,204.54), so Klamp's verdict was `allow`; recent swaps moved its price.
+- Human verification: Pending human verification.

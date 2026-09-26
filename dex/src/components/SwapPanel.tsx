@@ -1,19 +1,21 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { parseEther, parseEventLogs, type Address } from "viem";
+import { parseEther, parseEventLogs, type Address, type Hex } from "viem";
 import type { PoolKey } from "@klamp/sdk/poolKey";
 import { tokenAbi } from "../lib/abis";
 import { ensureSepolia, errorText, sendTx, short, walletClient, type TxState } from "../lib/chain";
 import { ATTACK_TEST_URL, CONTRACTS, ETH, NETWORK, type KnownToken } from "../lib/config";
 import { discoverPools, feeLabel, fmt, kindOf, planRoute, swapCalldata, tokenInfo, type RoutePlan } from "../lib/pools";
+import { useSwapHistory } from "../lib/history";
 import type { Wallet } from "../lib/wallet";
-import { Ext } from "./Ext";
+import { Ext, txUrl } from "./Ext";
 import { RouteView } from "./RouteView";
+import { SwapReceipts } from "./SwapReceipts";
 import { Contracts } from "./Contracts";
 import { TokenIcon, TokenPicker } from "./TokenPicker";
 import { TxStatus } from "./TxStatus";
 
-type Result = { received: bigint; quoted: bigint; symbol: string; klamp: boolean };
+type Result = { received: bigint; quoted: bigint; symbol: string; klamp: boolean; hash: Hex; pool: string };
 
 export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock }: {
   wallet: Wallet;
@@ -35,6 +37,7 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
   const [balance, setBalance] = useState(0n);
   const [tx, setTx] = useState<TxState>({ status: "idle" });
   const [result, setResult] = useState<Result | null>(null);
+  const history = useSwapHistory();
   const [reload, setReload] = useState(0);
 
   const amountIn = useMemo(() => {
@@ -86,6 +89,9 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
   const swap = chosen && amountIn ? swapCalldata(chosen, amountIn, slippageBps) : null;
   const blocked = klampOn && plan?.klamp && !chosen;
 
+  const canonical = plan?.klamp?.canonical;
+  const kind = chosen ? kindOf(chosen.poolId, chosen.key, canonical) : null;
+
   const onSwap = async () => {
     if (!wallet.account || !swap || !amountIn || !chosen?.out || !swap.check.ok) return;
     const account = wallet.account;
@@ -99,14 +105,18 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
       const received = parseEventLogs({ abi: tokenAbi, eventName: "Transfer", logs: receipt.logs })
         .filter((log) => log.address.toLowerCase() === token.toLowerCase() && log.args.to.toLowerCase() === account.toLowerCase())
         .at(-1)?.args.value ?? 0n; // Universal Router's TAKE_ALL is the last transfer to the trader
-      setResult({ received, quoted: chosen.out, symbol, klamp: klampOn });
+      const pool = klampOn ? (kind === "hooked" ? "undeclared hook" : kind ?? "") : kind === "static" ? "no hook" : "hook pool";
+      setResult({ received, quoted: chosen.out, symbol, klamp: klampOn, hash: receipt.transactionHash, pool });
+      history.add({
+        token, symbol, klamp: klampOn, poolId: chosen.poolId, fee: chosen.key.fee, pool,
+        amountIn: amountIn.toString(), quoted: chosen.out.toString(), minOut: swap.minOut.toString(), received: received.toString(),
+        hash: receipt.transactionHash, at: Date.now(),
+      });
     }
     wallet.refresh();
     setReload((value) => value + 1);
   };
 
-  const canonical = plan?.klamp?.canonical;
-  const kind = chosen ? kindOf(chosen.poolId, chosen.key, canonical) : null;
 
   return (
     <div className="panel-grid">
@@ -170,8 +180,10 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
         <AnimatePresence>
           {result && (
             <motion.div className="result" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
+              <span className="result-label">{result.klamp ? "Klamp swap" : "Swap"} received</span>
               <strong>+{fmt(result.received)} {result.symbol}</strong>
-              <span>quoted {fmt(result.quoted)} · {((Number(result.received) / Number(result.quoted) - 1) * 100).toFixed(2)}%</span>
+              <span>quoted {fmt(result.quoted)} · {((Number(result.received) / Number(result.quoted) - 1) * 100).toFixed(2)}% · {result.pool}</span>
+              <a href={txUrl(result.hash)} target="_blank" rel="noreferrer">View on Etherscan ↗</a>
             </motion.div>
           )}
         </AnimatePresence>
@@ -187,6 +199,7 @@ export function SwapPanel({ wallet, token, setToken, tokens, addToken, fromBlock
               : plan?.klamp?.verdict === "hold" ? "ENS lookup failed. Holding: static pools only." : ""
             : "A normal router takes the largest quote."}
         </p>
+        <SwapReceipts swaps={history.swaps} token={token} />
         <RiskNote plan={plan} klampOn={klampOn} minOut={swap?.minOut ?? null} slippage={slippage} symbol={symbol} />
         <Contracts items={[
           { name: "PoolManager", address: NETWORK.poolManager, use: "Initialize events: every ETH pool of this token", kind: "read" },
