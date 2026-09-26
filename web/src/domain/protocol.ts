@@ -8,7 +8,7 @@ export type PoolKey = {
   hooks: HexAddress;
 };
 
-export type IssuerProof = "create2" | "liquidity_launcher";
+export type IssuerProof = "create2" | "liquidity_launcher" | "liquidity_launcher_via";
 
 export type CanonicalPoolRecord = {
   chainId: number;
@@ -19,6 +19,7 @@ export type CanonicalPoolRecord = {
   issuer: HexAddress;
   creator: HexAddress;
   issuerProof: IssuerProof;
+  registrar: HexAddress;
   resolver: HexAddress;
   textRecord: string;
   dataVerified: true;
@@ -57,20 +58,6 @@ export type RouteHop = {
   tokenOut: HexAddress;
 };
 
-export type RouteCandidate = {
-  id: "official" | "replica";
-  label: string;
-  advertisedFeeBps: number;
-  hook: HexAddress;
-  route: RouteHop[];
-};
-
-export type ProposedRoute = {
-  aggregator: string;
-  router: string;
-  candidates: RouteCandidate[];
-};
-
 export type RouteComparison =
   | { status: "match"; source: "ens" | "launch-event"; checkedHops: number }
   | { status: "mismatch"; branch: number; hop: number }
@@ -79,77 +66,116 @@ export type RouteComparison =
       reason: "invalid-route" | Exclude<CanonicalPoolResult["status"], "registered">;
     };
 
-export type HookAttestation = {
-  ensName: string;
-  hook: HexAddress;
-  capBps: number;
-  capMode: "immutable" | "mutable";
-  codeHash: HexAddress;
-  beforeSwapReturnDelta: boolean;
-  afterSwapReturnDelta: boolean;
-  status: "verified" | "revoked" | "missing";
-};
-
-export type CapQuote = {
-  basis: "current-fee";
-  poolId: HexAddress;
-  currentFeeBps: number;
-  capBps: number;
-  pricedBps: number;
-};
-
-export type RouteForwarding = {
-  poolId: HexAddress;
-  poolManager: HexAddress;
-  status: "accepted";
-};
-
-export type FeeEnforcement = {
-  requestedBps: number;
-  appliedBps: number;
-  capped: boolean;
-  quotedOut: number;
-  receivedOut: number;
-  unguardedAppliedBps: number;
-  unguardedReceivedOut: number;
-};
-
-export type HookRevocation = {
-  ensName: string;
-  resolver: null;
-  attestationStatus: "revoked";
-  routeStatus: "blocked";
-};
-
-export type HookRegistration = {
-  ensName: string;
-  capBps: number;
-  codeHash: HexAddress;
-};
-
+/** One launch through the path A demo launchpad: token, hooked pool, locked liquidity and declaration in one tx. */
 export type LaunchReceipt = {
   txHash: HexAddress;
   blockNumber: number;
   token: HexAddress;
+  symbol: string;
+  launchpad: HexAddress;
+  liquidityLocked: true;
   canonicalPool: CanonicalPoolRecord;
-  hookRegistration: HookRegistration;
+};
+
+/** A candidate v4 pool as a quoting router sees it. `simulated` marks data that is not a live Sepolia pool. */
+export type CandidatePool = {
+  id: "canonical" | "replica";
+  label: string;
+  key: PoolKey;
+  poolId: HexAddress;
+  quotedFeeBps: number;
+  quotedOut: number;
+  hookBehavior: string;
+  simulated: boolean;
+};
+
+export type QuoteBoard = {
+  amountIn: string;
+  tokenIn: string;
+  tokenOut: string;
+  quoter: string;
+  candidates: CandidatePool[];
+};
+
+/** A naive router picks the largest quote and trusts it. */
+export type NaiveSelection = {
+  chosen: CandidatePool["id"];
+  quotedOut: number;
+  slippageBps: number;
+  minOut: number;
+};
+
+export type Verdict = "allow" | "requote_canonical" | "requote_static" | "hold";
+
+export type RouteJudgement = {
+  verdict: Verdict;
+  comparison: RouteComparison;
+  judgedPoolId: HexAddress;
+};
+
+export type Requote = {
+  poolId: HexAddress;
+  key: PoolKey;
+  quoter: string;
+  quotedOut: number;
+  slippageBps: number;
+  minOut: number;
+};
+
+export type SwapExecution = {
+  router: string;
+  actions: string[];
+  calldataVerified: boolean;
+  receivedOut: number;
+};
+
+/** Execution of the naive pick against a replica hook that charges more at swap time than at quote time. */
+export type NaiveOutcome = {
+  quotedOut: number;
+  executedFeeBps: number;
+  minOut: number;
+  receivedOut: number;
+  lossBps: number;
+  simulated: true;
 };
 
 /** Optional presentation-only state used to seek through the local mock trace. */
 export type PresentationSnapshot = {
   launch: LaunchReceipt;
-  proposal: ProposedRoute;
+  board: QuoteBoard;
+  naive: NaiveSelection;
   canonical: Extract<CanonicalPoolResult, { status: "registered" }>;
-  attestation: HookAttestation;
-  quote: CapQuote;
-  forwarding: RouteForwarding;
-  enforcement: FeeEnforcement;
-  revocation: HookRevocation;
+  judgement: RouteJudgement;
+  requote: Requote;
+  execution: SwapExecution;
+  naiveOutcome: NaiveOutcome;
 };
 
 const sameAddress = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 const isAddress = (value: string) => /^0x[0-9a-fA-F]{40}$/.test(value);
 const isPoolId = (value: string) => /^0x[0-9a-fA-F]{64}$/.test(value);
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+export const DYNAMIC_FEE_FLAG = 0x800000;
+
+/** Fee fixed in the PoolKey: no hooks and no dynamic-fee flag. Quoted fee = executed fee. */
+export const isStatic = (key: PoolKey) => sameAddress(key.hooks, ZERO_ADDRESS) && (key.fee & DYNAMIC_FEE_FLAG) === 0;
+
+/**
+ * Mirrors contract/sdk/judge.ts. Only pools that contain `token` are judged.
+ * The SDK hashes each PoolKey; the UI receives the PoolId alongside the key.
+ */
+export function judge(
+  token: HexAddress,
+  canonical: CanonicalPoolResult,
+  route: readonly { key: PoolKey; poolId: HexAddress }[],
+): Verdict {
+  const hops = route.filter(({ key }) => sameAddress(key.currency0, token) || sameAddress(key.currency1, token));
+  const isCanonical = (poolId: HexAddress) => canonical.status === "registered" && sameAddress(poolId, canonical.poolId);
+  if (hops.every(({ key, poolId }) => isStatic(key) || isCanonical(poolId))) return "allow";
+  if (canonical.status === "registered") return "requote_canonical";
+  if (canonical.status === "not_registered") return "requote_static";
+  return "hold";
+}
 
 /** Mirrors contract/sdk/compareRoutes.ts; it validates declared route data, not opaque calldata. */
 export function compareRoutes(

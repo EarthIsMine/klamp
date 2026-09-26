@@ -3,80 +3,49 @@
 import styled from "@emotion/styled";
 import Image from "next/image";
 import { Mark } from "@/components/brand/Mark";
-import { useDemoStore, type DemoStage } from "@/store/demo-store";
+import { demoStageOrder, useDemoStore, type DemoStage } from "@/store/demo-store";
 import { colors, layout, mono } from "@/styles/tokens";
 
-const stageOrder: DemoStage[] = ["idle", "launch", "candidates", "verify", "attest", "forward", "request", "enforce", "revoke", "complete"];
+type Copy = { state: string; title: string; detail: string };
 
-const copy = {
-  idle: { state: "Step 1 of 8", title: "Launch and register protection", detail: "The factory creates the capped hook identity and the issuer records the initialized pool in one launch flow." },
-  launch: { state: "Step 1 complete", title: "Pool and hook identities recorded", detail: "The immutable 1% proxy and canonical PoolId now have separate ENS records under klamp.eth." },
-  candidates: { state: "Step 2 complete", title: "Two pools compete for the route", detail: "The replica advertises 0.05% to beat the issuer pool before either candidate is trusted." },
-  verify: { state: "Step 3 complete", title: "Replica pool excluded", detail: "The guarded router keeps the canonical PoolId and rejects the unregistered dynamic-fee clone." },
-  attest: { state: "Step 4 complete", title: "Official pool quoted at 0.25%", detail: "The replica is gone. The verified pool's current fee is below the wrapper's immutable 1% ceiling." },
-  forward: { state: "Step 5 complete", title: "Verified route reached PoolManager", detail: "Only after both checks does the router forward the canonical PoolKey to the v4 singleton." },
-  request: { state: "Step 6 complete", title: "Attacker injected a 30% fee request", detail: "An external attacker uses a stolen strategy-admin key against the verified official pool." },
-  enforce: { state: "Step 7 complete", title: "Protection changed the outcome", detail: "The earlier quote was 0.25%. Under attack, Klamp limits the official pool to 1% while an unguarded path accepts 30%." },
-  revoke: { state: "Step 8 of 8", title: "Guardian is revoking the identity", detail: "Removing the hook subname makes the resolver return empty and closes the routing gate." },
-  complete: { state: "Trace complete", title: "Revoked hook blocked immediately", detail: "The same pool can no longer pass guarded routing after its ENS hook identity is removed." },
+const copy: Record<DemoStage, Copy> = {
+  idle: { state: "Step 1 of 8", title: "Launch and declare the canonical pool", detail: "A CREATE2 launchpad deploys the token, creates its hooked pool with locked liquidity and declares that pool in the same transaction." },
+  launch: { state: "Step 1 complete", title: "Canonical pool declared once", detail: "The registrar proved the launchpad deployed KHOOK and wrote the pool to ENSv2. Nobody, including us, can change it." },
+  quotes: { state: "Step 2 complete", title: "Two pools quote for the same pair", detail: "A look-alike hook pool quotes 0.05% and beats the declared pool on paper. Anyone can create it; the token issuer did not." },
+  naive: { state: "Step 3 complete", title: "A naive router takes the best quote", detail: "Quoting every pool and picking the largest output sends the trader to the look-alike pool." },
+  lookup: { state: "Step 4 complete", title: "Klamp reads the declared pool from ENS", detail: "Standard ENS resolution through UniversalResolverV2 answers the wildcard name. No Klamp ABI is needed to read it." },
+  judge: { state: "Step 5 complete", title: "The picked hook pool fails the verdict", detail: "It is neither the declared pool nor a static pool, so its quote cannot be trusted. The verdict is requote_canonical." },
+  requote: { state: "Step 6 complete", title: "Requoted on the declared pool", detail: "V4Quoter prices the declared pool directly. The minimum output is set from this quote and the trader's slippage." },
+  execute: { state: "Step 7 complete", title: "Calldata checked, then swapped", detail: "The Universal Router calldata is decoded again before signing and must name the judged PoolKey. The trader received what was quoted." },
+  outcome: { state: "Trace complete", title: "The quoted fee is the fee paid", detail: "The naive route loses almost 10% to a swap-time fee. The Klamp route receives its quote. Traders did nothing extra." },
 };
 
-const launchPendingCopy = {
-  state: "Step 1 of 8",
-  title: "Running the atomic launch flow",
-  detail: "CappedHookFactory deploys the proxy and hook record while the issuer initializes and records the pool.",
-};
-
-const routeBuildPendingCopy = {
-  state: "Step 2 of 8",
-  title: "Discovering route candidates",
-  detail: "The aggregator sees a cheap replica and the issuer pool, but has not sent either to PoolManager.",
-};
-
-const routePendingCopy = {
-  state: "Step 3 of 8",
-  title: "Checking both candidate pools",
-  detail: "The router resolves the canonical record and compares chain, PoolManager, and PoolId before execution.",
-};
-
-const hookPendingCopy = {
-  state: "Step 4 of 8",
-  title: "Verifying the official pool's fee and cap",
-  detail: "Klamp checks the wrapper policy, then quotes the current 0.25% fee beneath its immutable 1% ceiling.",
-};
-
-const forwardPendingCopy = {
-  state: "Step 5 of 8",
-  title: "Forwarding the verified PoolKey",
-  detail: "The guarded router is now sending the accepted canonical route to PoolManager.",
-};
-
-const attackPendingCopy = {
-  state: "Step 6 of 8",
-  title: "Attacker is sending an unauthorized request",
-  detail: "A stolen strategy-admin key is forcing the verified official pool to request a 300,000-pip fee.",
-};
-
-const enforcePendingCopy = {
-  state: "Step 7 of 8",
-  title: "Applying both execution paths",
-  detail: "The protected wrapper clamps the request while the unguarded comparison accepts it unchanged.",
+const pendingCopy: Partial<Record<DemoStage, Copy>> = {
+  launch: { state: "Step 1 of 8", title: "Running the launch transaction", detail: "Deploy the token, initialize the hooked pool, add locked liquidity, then call recordByCreate2." },
+  quotes: { state: "Step 2 of 8", title: "Quoting candidate pools", detail: "The router asks V4Quoter for every pool that trades ETH for KHOOK." },
+  naive: { state: "Step 3 of 8", title: "Naive router choosing a pool", detail: "Only the quoted output decides. The router cannot tell which pool the issuer intended." },
+  lookup: { state: "Step 4 of 8", title: "Resolving the canonical pool", detail: "Klamp resolves 0x<token>.tokens.klamp.eth and checks the pinned resolver, both records and the pool state." },
+  judge: { state: "Step 5 of 8", title: "Judging the proposed route", detail: "Only pools that contain the token are judged: declared or static pools pass, other hook pools are requoted." },
+  requote: { state: "Step 6 of 8", title: "Requoting on the declared pool", detail: "V4Quoter quoteExactInputSingle on the canonical PoolKey." },
+  execute: { state: "Step 7 of 8", title: "Building and verifying the swap", detail: "V4_SWAP with SWAP_EXACT_IN_SINGLE, SETTLE_ALL, TAKE_ALL, checked against the judged route before signing." },
+  outcome: { state: "Step 8 of 8", title: "Comparing both executions", detail: "The naive pick executes against the look-alike hook's swap-time fee." },
 };
 
 const steps = [
-  { stage: "launch" as const, index: "1", title: "Launch", detail: "Two ENS records" },
-  { stage: "candidates" as const, index: "2", title: "Candidates", detail: "Official + replica" },
-  { stage: "verify" as const, index: "3", title: "Filter", detail: "Clone rejected" },
-  { stage: "attest" as const, index: "4", title: "Price", detail: "0.25% · max 1%" },
-  { stage: "forward" as const, index: "5", title: "Forward", detail: "Verified PoolKey" },
-  { stage: "request" as const, index: "6", title: "Attack", detail: "Stolen key · 30%" },
-  { stage: "enforce" as const, index: "7", title: "Compare", detail: "1% vs 30%" },
-  { stage: "revoke" as const, index: "8", title: "Revoke", detail: "Route blocked" },
+  { stage: "launch" as const, index: "1", title: "Launch", detail: "Declared in ENS" },
+  { stage: "quotes" as const, index: "2", title: "Quotes", detail: "Declared + look-alike" },
+  { stage: "naive" as const, index: "3", title: "Naive pick", detail: "Best quote wins" },
+  { stage: "lookup" as const, index: "4", title: "Lookup", detail: "tokens.klamp.eth" },
+  { stage: "judge" as const, index: "5", title: "Judge", detail: "requote_canonical" },
+  { stage: "requote" as const, index: "6", title: "Requote", detail: "Declared pool" },
+  { stage: "execute" as const, index: "7", title: "Execute", detail: "Calldata verified" },
+  { stage: "outcome" as const, index: "8", title: "Outcome", detail: "Quote = paid" },
 ];
 
-function stageIndex(stage: DemoStage) { return stageOrder.indexOf(stage); }
+function stageIndex(stage: DemoStage) { return demoStageOrder.indexOf(stage); }
 function short(value: string) { return `${value.slice(0, 8)}…${value.slice(-6)}`; }
 function amount(value: number) { return new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value); }
+function percent(bps: number) { return `${(bps / 100).toFixed(2)}%`; }
 
 const Shell = styled.section`
   width: 100%; max-width: ${layout.maxWidth}; height: 100%; min-width: 0; min-height: 0; margin: 0 auto; padding: 18px 24px 22px; display: flex;
@@ -92,6 +61,7 @@ const InstrumentHead = styled.div`
 `;
 const TraceName = styled.div`display: flex; align-items: center; gap: 9px; font-weight: 650;`;
 const TraceMark = styled.span<{ complete: boolean }>`width: 8px; height: 8px; background: ${({ complete }) => complete ? colors.primary : colors.textPrimary};`;
+const TraceNote = styled.span`color: ${colors.textMuted}; font-size: 12px;`;
 
 const Progress = styled.ol`
   list-style: none; margin: 0; padding: 0 16px; display: grid; grid-template-columns: repeat(8, 1fr); border-bottom: 1px solid ${colors.border}; overflow-x: auto;
@@ -136,6 +106,10 @@ const Scene = styled.div`
   @media (max-width: 820px) { min-height: 390px; }
 `;
 const SceneLabel = styled.div`color: ${colors.textMuted}; font-size: 13px; margin-bottom: 8px;`;
+const Simulated = styled.span`
+  display: inline-block; margin-left: 8px; padding: 2px 6px; border: 1px solid ${colors.warning}; color: ${colors.warning};
+  font: 600 10px/1.2 ${mono}; text-transform: uppercase; letter-spacing: .04em; vertical-align: middle;
+`;
 
 const LaunchFlow = styled.div`
   width: min(900px, 100%); display: grid; grid-template-columns: 220px 96px minmax(0, 1fr); align-items: center;
@@ -161,7 +135,6 @@ const LaunchReceipt = styled.dl`
   dt, dd { margin: 0; padding: 12px 0; border-bottom: 1px solid ${colors.border}; }
   dt { color: ${colors.textSecondary}; font-size: 13px; }
   dd { font: 500 13px/1.45 ${mono}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  dd[data-complete="true"] { color: ${colors.textPrimary}; }
 `;
 
 const CandidateBoard = styled.div`
@@ -192,29 +165,31 @@ const CandidatePool = styled.div<{ replica?: boolean }>`
   animation: candidateIn .46s ease-out ${({ replica }) => replica ? ".38s" : ".22s"} both;
   h2 { margin: 0 0 5px; font-size: 17px; }
   p { margin: 0; color: ${colors.textSecondary}; font: 500 12px/1.35 ${mono}; }
-  strong { font: 500 28px/1 ${mono}; color: ${({ replica }) => replica ? colors.danger : colors.textPrimary}; }
+  strong { font: 500 24px/1 ${mono}; color: ${({ replica }) => replica ? colors.danger : colors.textPrimary}; }
   span { display: block; margin-top: 4px; color: ${colors.textMuted}; font-size: 11px; text-align: right; }
   @keyframes candidateIn { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: translateX(0); } }
 `;
 
-const FilterBoard = styled.div`
+const DecisionBoard = styled.div`
   width: min(880px, 100%); display: grid; grid-template-columns: 1fr 92px 1fr; align-items: stretch;
   @media (max-width: 680px) { grid-template-columns: 1fr; gap: 14px; }
 `;
-const FilterColumn = styled.div`
+const DecisionColumn = styled.div`
   border-top: 1px solid ${colors.borderStrong};
   h2 { margin: 0; padding: 12px 14px; font-size: 15px; border-bottom: 1px solid ${colors.border}; }
 `;
-const FilterRow = styled.div<{ rejected?: boolean }>`
-  position: relative; padding: 14px; border-bottom: 1px solid ${colors.border}; opacity: ${({ rejected }) => rejected ? .62 : 1};
+type Tone = "pass" | "fail" | "pick" | undefined;
+const DecisionRow = styled.div<{ tone?: Tone; struck?: boolean }>`
+  position: relative; padding: 14px; border-bottom: 1px solid ${colors.border}; opacity: ${({ struck }) => struck ? .62 : 1};
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px;
+  background: ${({ tone }) => tone === "pick" ? colors.dangerSoft : "transparent"};
   strong { font-size: 14px; }
   code { display: block; margin-top: 5px; color: ${colors.textMuted}; font: 500 12px/1.3 ${mono}; }
-  b { color: ${({ rejected }) => rejected ? colors.danger : colors.success}; font-size: 13px; }
-  ${({ rejected }) => rejected ? `&::after { content: ""; position: absolute; left: 10px; right: 10px; top: 50%; height: 2px; background: ${colors.danger}; transform-origin: left; animation: rejectLine .52s ease-out .5s both; }` : ""}
-  @keyframes rejectLine { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  b { color: ${({ tone }) => tone === "fail" || tone === "pick" ? colors.danger : tone === "pass" ? colors.success : colors.textSecondary}; font-size: 13px; }
+  ${({ struck }) => struck ? `&::after { content: ""; position: absolute; left: 10px; right: 10px; top: 50%; height: 2px; background: ${colors.danger}; transform-origin: left; animation: strikeLine .52s ease-out .5s both; }` : ""}
+  @keyframes strikeLine { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 `;
-const GuardGate = styled.div`
+const DecisionGate = styled.div`
   display: grid; place-items: center; position: relative;
   &::before { content: ""; position: absolute; top: 12%; bottom: 12%; width: 3px; background: ${colors.primary}; animation: gateDrop .4s ease-out .3s both; }
   img { position: relative; z-index: 1; padding: 7px; background: white; }
@@ -222,9 +197,44 @@ const GuardGate = styled.div`
   @media (max-width: 680px) { min-height: 54px; &::before { top: 50%; left: 18%; right: 18%; bottom: auto; width: auto; height: 3px; transform-origin: left; } }
 `;
 
+const RecordProof = styled.div`
+  width: min(900px, 100%); display: grid; grid-template-columns: minmax(0, 1fr) 360px; column-gap: 48px; row-gap: 22px; align-items: center;
+  @media (max-width: 760px) { grid-template-columns: 1fr; gap: 20px; }
+`;
+const RecordIdentity = styled.div`
+  display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 24px; align-items: center;
+  h2 { margin: 0 0 8px; font-size: 23px; }
+  p { margin: 0; color: ${colors.textSecondary}; font: 500 13px/1.5 ${mono}; overflow-wrap: anywhere; }
+`;
+const Metrics = styled.div`
+  display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid ${colors.borderStrong}; border-bottom: 1px solid ${colors.borderStrong};
+  > div + div { border-left: 1px solid ${colors.borderStrong}; }
+  @media (max-width: 430px) { grid-template-columns: 1fr; > div + div { border-left: 0; border-top: 1px solid ${colors.border}; } }
+`;
+const Metric = styled.div<{ ready: boolean; muted?: boolean }>`
+  min-width: 0; padding: 15px 18px 16px;
+  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 8px; }
+  strong { display: block; font: 500 clamp(26px, 3vw, 36px)/1 ${mono}; letter-spacing: -.05em; color: ${({ muted }) => muted ? colors.textSecondary : colors.primaryHover}; overflow-wrap: anywhere; }
+  p { margin: 8px 0 0; color: ${colors.textSecondary}; font-size: 12px; line-height: 1.35; }
+  opacity: ${({ ready }) => ready ? 1 : .35}; animation: ${({ ready }) => ready ? "metricIn .44s ease-out .22s both" : "none"};
+  @keyframes metricIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
+`;
+const Checks = styled.div`
+  grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid ${colors.borderStrong};
+  div { padding: 13px 0; min-width: 0; }
+  div + div { border-left: 1px solid ${colors.border}; padding-left: 22px; }
+  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 4px; }
+  strong { font-size: 14px; }
+  @media (max-width: 700px) {
+    grid-template-columns: 1fr 1fr;
+    div:nth-of-type(3) { border-left: 0; border-top: 1px solid ${colors.border}; }
+    div:nth-of-type(4) { border-top: 1px solid ${colors.border}; }
+  }
+`;
+
 const RouteJourney = styled.div`width: min(920px, 100%);`;
 const RoutePipeline = styled.div`
-  width: min(920px, 100%); display: grid; grid-template-columns: 170px minmax(44px, 1fr) 150px minmax(44px, 1fr) 180px;
+  width: min(920px, 100%); display: grid; grid-template-columns: 170px minmax(44px, 1fr) 170px minmax(44px, 1fr) 180px;
   align-items: center; margin-bottom: 24px;
   @media (max-width: 680px) { grid-template-columns: 1fr 32px 1fr 32px 1fr; margin-bottom: 20px; }
 `;
@@ -235,10 +245,7 @@ const RouteActor = styled.div<{ delay?: number }>`
   span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 3px; }
   strong { display: block; font-size: 14px; }
   @keyframes actorIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
-  @media (max-width: 680px) {
-    grid-template-columns: 1fr; justify-items: center; text-align: center; gap: 6px;
-    img { width: 38px; height: 38px; }
-  }
+  @media (max-width: 680px) { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: 6px; img { width: 38px; height: 38px; } }
 `;
 const RouteEndpoint = styled(RouteActor)`
   padding: 9px 11px; border: 1px solid ${colors.borderStrong};
@@ -254,56 +261,11 @@ const RouteRail = styled.div<{ delay: number }>`
   @media (max-width: 680px) { margin: 0 4px; }
 `;
 const RouteHandoff = styled.div`
-  width: min(720px, 100%); display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid ${colors.borderStrong};
+  width: min(760px, 100%); display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid ${colors.borderStrong};
   div { padding: 13px 18px 0; min-width: 0; }
   div + div { border-left: 1px solid ${colors.border}; }
   span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 4px; }
   strong { display: block; font: 600 13px/1.35 ${mono}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-`;
-
-const HookProof = styled.div`
-  width: min(900px, 100%); display: grid; grid-template-columns: minmax(0, 1fr) 360px; column-gap: 48px; row-gap: 22px; align-items: center;
-  @media (max-width: 760px) { grid-template-columns: 1fr; gap: 20px; }
-`;
-const HookIdentity = styled.div`
-  display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 24px; align-items: center;
-  h2 { margin: 0 0 8px; font-size: 23px; }
-  p { margin: 0; color: ${colors.textSecondary}; font: 500 13px/1.5 ${mono}; overflow-wrap: anywhere; }
-`;
-const HookMetrics = styled.div`
-  display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid ${colors.borderStrong}; border-bottom: 1px solid ${colors.borderStrong};
-  > div + div { border-left: 1px solid ${colors.borderStrong}; }
-  @media (max-width: 430px) {
-    grid-template-columns: 1fr;
-    > div + div { border-left: 0; border-top: 1px solid ${colors.border}; }
-  }
-`;
-const HookCap = styled.div<{ verified: boolean }>`
-  min-width: 0; padding: 15px 18px 16px; text-align: left;
-  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 8px; }
-  strong { display: block; font: 500 clamp(38px, 4vw, 50px)/1 ${mono}; letter-spacing: -.06em; color: ${colors.primaryHover}; animation: ${({ verified }) => verified ? "capReveal .5s cubic-bezier(.2,.8,.3,1) both" : "none"}; }
-  p { margin: 8px 0 0; color: ${colors.textSecondary}; font-size: 12px; line-height: 1.35; }
-  @keyframes capReveal { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: scale(1); } }
-`;
-const QuoteBasis = styled.div<{ ready: boolean }>`
-  min-width: 0; padding: 15px 18px 16px;
-  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 8px; }
-  strong { display: block; font: 500 clamp(38px, 4vw, 50px)/1 ${mono}; letter-spacing: -.06em; color: ${colors.primaryHover}; }
-  p { margin: 8px 0 0; color: ${colors.textSecondary}; font-size: 12px; line-height: 1.35; }
-  opacity: ${({ ready }) => ready ? 1 : .35}; animation: ${({ ready }) => ready ? "quoteIn .44s ease-out .22s both" : "none"};
-  @keyframes quoteIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
-`;
-const HookChecks = styled.div`
-  grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid ${colors.borderStrong};
-  div { padding: 13px 0; }
-  div + div { border-left: 1px solid ${colors.border}; padding-left: 22px; }
-  span { display: block; color: ${colors.textMuted}; font-size: 12px; margin-bottom: 4px; }
-  strong { font-size: 14px; }
-  @media (max-width: 700px) {
-    grid-template-columns: 1fr 1fr;
-    div:nth-of-type(3) { border-left: 0; border-top: 1px solid ${colors.border}; }
-    div:nth-of-type(4) { border-top: 1px solid ${colors.border}; }
-  }
 `;
 
 const OutcomeComparison = styled.div`
@@ -318,94 +280,11 @@ const Outcome = styled.div<{ guarded?: boolean }>`
   dl { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 9px 16px; }
   dt { color: ${colors.textSecondary}; font-size: 13px; }
   dd { margin: 0; font: 600 14px/1.3 ${mono}; }
-  strong { display: block; margin-top: 18px; font: 500 clamp(38px, 5vw, 58px)/1 ${mono}; color: ${({ guarded }) => guarded ? colors.primaryHover : colors.danger}; }
+  strong { display: block; margin-top: 18px; font: 500 clamp(34px, 4.5vw, 52px)/1 ${mono}; color: ${({ guarded }) => guarded ? colors.primaryHover : colors.danger}; }
   p { margin: 7px 0 0; color: ${colors.textSecondary}; font-size: 13px; }
   @keyframes safeOutcome { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: translateX(0); } }
   @keyframes unsafeOutcome { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
 `;
-
-const RevocationBoard = styled.div`
-  width: min(900px, 100%); display: grid; grid-template-columns: 190px minmax(70px, 1fr) minmax(300px, 1.4fr); align-items: center;
-  @media (max-width: 700px) { grid-template-columns: 1fr; gap: 18px; text-align: center; }
-`;
-const Guardian = styled.div`
-  padding: 18px; background: ${colors.textPrimary}; color: white;
-  span { color: ${colors.border}; font-size: 12px; }
-  strong { display: block; margin-top: 7px; font-size: 18px; }
-  code { display: block; margin-top: 8px; color: ${colors.primary}; font: 500 12px/1.3 ${mono}; }
-`;
-const RevokeRail = styled.div`
-  position: relative; height: 3px; background: ${colors.borderStrong};
-  &::after { content: ""; position: absolute; top: -5px; left: 0; width: 13px; height: 13px; background: ${colors.danger}; animation: revokePacket .84s cubic-bezier(.15,.7,.3,1) .22s both; }
-  @keyframes revokePacket { from { opacity: 0; left: 0; } 15% { opacity: 1; } to { opacity: 1; left: calc(100% - 13px); } }
-  @media (max-width: 700px) { width: 3px; height: 48px; justify-self: center; &::after { top: 0; left: -5px; animation: revokePacketDown .66s ease-out both; } @keyframes revokePacketDown { from { opacity: 0; top: 0; } to { opacity: 1; top: calc(100% - 13px); } } }
-`;
-const RevokedRecord = styled.div<{ revoked: boolean }>`
-  position: relative; padding: 18px 20px; border: 1px solid ${({ revoked }) => revoked ? colors.danger : colors.borderStrong};
-  h2 { margin: 0 0 8px; font-size: 18px; }
-  p { margin: 0; color: ${colors.textSecondary}; font: 500 12px/1.5 ${mono}; overflow-wrap: anywhere; }
-  dl { margin: 16px 0 0; display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; }
-  dt { color: ${colors.textMuted}; font-size: 12px; }
-  dd { margin: 0; font-size: 13px; font-weight: 650; color: ${({ revoked }) => revoked ? colors.danger : colors.textPrimary}; }
-  ${({ revoked }) => revoked ? `animation: recordRevoke .46s ease-out both; &::after { content: "REVOKED"; position: absolute; right: 18px; top: 16px; color: ${colors.danger}; font: 700 12px/1 ${mono}; }` : ""}
-  @keyframes recordRevoke { 0% { transform: translateX(0); } 35% { transform: translateX(7px); } 70% { transform: translateX(-4px); } 100% { transform: translateX(0); } }
-`;
-
-const AttackSequence = styled.div`
-  width: min(940px, 100%); display: grid; grid-template-columns: 180px minmax(150px, 1fr) minmax(270px, auto); align-items: center;
-  animation: impactShake .28s linear .78s both;
-  @keyframes impactShake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-7px); }
-    55% { transform: translateX(5px); }
-    78% { transform: translateX(-2px); }
-  }
-  @media (max-width: 720px) { grid-template-columns: 1fr; gap: 18px; text-align: center; }
-`;
-const AttackOrigin = styled.div`
-  padding: 16px 18px; background: ${colors.textPrimary}; color: white; animation: attackerIn .34s ease-out both;
-  span { display: block; color: ${colors.border}; font-size: 12px; margin-bottom: 7px; }
-  strong { display: block; font-size: 17px; }
-  p { margin: 7px 0 0; color: ${colors.border}; font-size: 12px; line-height: 1.4; }
-  code { display: block; margin-top: 7px; color: ${colors.primary}; font: 500 12px/1.3 ${mono}; }
-  @keyframes attackerIn { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: translateX(0); } }
-`;
-const AttackRail = styled.div`
-  position: relative; height: 76px; overflow: hidden;
-  &::before {
-    content: ""; position: absolute; top: 50%; left: 0; width: 100%; height: 3px; background: ${colors.danger};
-    transform: scaleX(0); transform-origin: left; animation: attackLine .46s ease-in .24s forwards;
-  }
-  i { position: absolute; top: calc(50% - 8px); width: 16px; height: 16px; background: ${colors.danger}; transform: rotate(45deg); opacity: 0; }
-  i:nth-of-type(1) { animation: packetRush .54s ease-in .26s forwards; }
-  i:nth-of-type(2) { animation: packetRush .54s ease-in .37s forwards; }
-  i:nth-of-type(3) { animation: packetRush .54s ease-in .48s forwards; }
-  @keyframes attackLine { to { transform: scaleX(1); } }
-  @keyframes packetRush {
-    0% { left: -16px; opacity: 0; }
-    15% { opacity: 1; }
-    82% { opacity: 1; }
-    100% { left: calc(100% - 16px); opacity: 0; }
-  }
-  @media (max-width: 720px) { height: 34px; transform: rotate(90deg); width: 76px; justify-self: center; margin: -18px 0; }
-`;
-const AttackPayload = styled.div`
-  position: relative; text-align: center; padding-left: 28px; animation: payloadStrike .82s cubic-bezier(.15,.72,.2,1.16) .22s both;
-  &::before {
-    content: ""; position: absolute; inset: -14px auto -14px 0; width: 5px; background: ${colors.danger};
-    animation: impactBar .22s ease-out .78s both;
-  }
-  @keyframes payloadStrike {
-    0% { opacity: 0; transform: translateX(-110px) scale(.68); }
-    62% { opacity: 1; transform: translateX(13px) scale(1.08); }
-    78% { transform: translateX(-6px) scale(.98); }
-    100% { opacity: 1; transform: translateX(0) scale(1); }
-  }
-  @keyframes impactBar { from { transform: scaleY(.1); } to { transform: scaleY(1); } }
-  @media (max-width: 720px) { padding: 18px 0 0; &::before { inset: 0 12% auto; width: auto; height: 5px; } }
-`;
-const FeeValue = styled.div`font: 500 clamp(64px, 9vw, 112px)/.9 ${mono}; letter-spacing: -.075em; color: ${colors.danger};`;
-const FeeCaption = styled.p`margin: 20px 0 0; color: ${colors.textSecondary}; font-size: 16px;`;
 
 const Bottom = styled.div`
   min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 20px;
@@ -441,131 +320,55 @@ const ReducedMotion = styled.div`
 `;
 
 function actionLabel(stage: DemoStage, busy: boolean) {
-  if (busy && stage === "launch") return "Launching…";
-  if (busy && stage === "candidates") return "Discovering candidates…";
-  if (busy && stage === "verify") return "Filtering candidates…";
-  if (busy && stage === "attest") return "Verifying and pricing…";
-  if (busy && stage === "forward") return "Forwarding PoolKey…";
-  if (busy && stage === "request") return "Sending request…";
-  if (busy && stage === "enforce") return "Comparing outcomes…";
-  if (busy && stage === "revoke") return "Revoking identity…";
-  if (stage === "idle") return "Launch and register";
-  if (stage === "launch") return "Discover route candidates";
-  if (stage === "candidates") return "Filter malicious replica";
-  if (stage === "verify") return "Verify 0.25% quote and cap";
-  if (stage === "attest") return "Forward verified PoolKey";
-  if (stage === "forward") return "Simulate admin-key attack";
-  if (stage === "request") return "Compare protected execution";
-  if (stage === "enforce") return "Revoke hook identity";
-  if (stage === "complete") return "Start over";
-  return "Working…";
-}
-
-function poolStatus(recorded: boolean) {
-  return recorded ? "Written once" : "Not started";
-}
-
-function routeStatus(stage: DemoStage, busy: boolean, proposed: boolean, matched: boolean, forwarded: boolean, revoked: boolean) {
-  if (revoked) return "Blocked after revoke";
-  if (forwarded) return "Accepted by PoolManager";
-  if (matched) return "Replica excluded";
-  if (proposed) return stage === "verify" && busy ? "Checking both pools" : "Two candidates";
-  if (stage === "candidates") return "Discovering";
-  if (stageIndex(stage) >= stageIndex("verify")) return "Checking";
-  return "Not started";
-}
-
-function feeCapStatus(stage: DemoStage, verified: boolean, enforced: boolean) {
-  if (enforced) return "Applied at 1%";
-  if (verified) return "Verified at 1%";
-  return "Not started";
+  if (busy) {
+    const working: Partial<Record<DemoStage, string>> = {
+      launch: "Launching…", quotes: "Quoting pools…", naive: "Picking best quote…", lookup: "Resolving ENS…",
+      judge: "Judging route…", requote: "Requoting…", execute: "Swapping…", outcome: "Comparing…",
+    };
+    return working[stage] ?? "Working…";
+  }
+  const next: Record<DemoStage, string> = {
+    idle: "Launch and declare", launch: "Quote candidate pools", quotes: "Run the naive router", naive: "Look up the canonical pool",
+    lookup: "Judge the naive route", judge: "Requote on the declared pool", requote: "Verify calldata and swap", execute: "Compare both executions",
+    outcome: "Start over",
+  };
+  return next[stage];
 }
 
 export function DemoTerminal() {
-  const { stage, busy, launchStep, launch, proposal, canonical, comparison, attestation, quote, forwarding, enforcement, revocation, advance, goBack, goToStage, reset } = useDemoStore();
+  const { stage, busy, launchStep, launch, board, naive, canonical, judgement, requote, execution, naiveOutcome, advance, goBack, goToStage, reset } = useDemoStore();
   const current = stageIndex(stage);
-  const view = stage === "launch" && busy
-    ? launchPendingCopy
-    : stage === "candidates" && busy
-      ? routeBuildPendingCopy
-      : stage === "verify" && busy
-        ? routePendingCopy
-        : stage === "attest" && busy
-          ? hookPendingCopy
-          : stage === "forward" && busy
-            ? forwardPendingCopy
-            : stage === "request" && busy
-              ? attackPendingCopy
-              : stage === "enforce" && busy
-                ? enforcePendingCopy
-                : copy[stage];
-  const found = canonical?.status === "registered";
-  const matched = comparison?.status === "match";
-  const hookVerified = attestation?.status === "verified";
-  const hookCompliant = Boolean(
-    hookVerified &&
-    attestation?.capMode === "immutable" &&
-    !attestation.beforeSwapReturnDelta &&
-    !attestation.afterSwapReturnDelta,
-  );
+  const view = (busy && pendingCopy[stage]) || copy[stage];
   const record = launch?.canonicalPool ?? null;
-  const official = proposal?.candidates.find((candidate) => candidate.id === "official") ?? null;
-  const replica = proposal?.candidates.find((candidate) => candidate.id === "replica") ?? null;
-  const proposedHop = official?.route[0] ?? null;
-  const hookMatches = Boolean(attestation && hookVerified && record && attestation.hook.toLowerCase() === record.key.hooks.toLowerCase());
-  const enforced = enforcement !== null;
-  const revoked = revocation?.routeStatus === "blocked";
-  const visibleMatched = current >= stageIndex("verify") && matched;
-  const visibleHookCompliant = current >= stageIndex("attest") && hookCompliant;
-  const visibleForwarding = current >= stageIndex("forward") && Boolean(forwarding);
-  const visibleEnforced = current >= stageIndex("enforce") && enforced;
-  const visibleRevoked = stage === "complete" && revoked;
-  const capBps = attestation?.capBps ?? 100;
-  const capPercent = (capBps / 100).toFixed(2);
-  const poolId = found ? canonical.poolId : record?.poolId;
-  const manager = found ? short(canonical.poolManager) : "Resolving after declaration";
+  const declared = board?.candidates.find((candidate) => candidate.id === "canonical") ?? null;
+  const replica = board?.candidates.find((candidate) => candidate.id === "replica") ?? null;
+  const registered = canonical?.status === "registered" ? canonical : null;
   const tokenReady = Boolean(record) || launchStep === "initializing" || launchStep === "recording" || launchStep === "complete";
   const poolReady = Boolean(record) || launchStep === "recording" || launchStep === "complete";
-  const tokenValue = record ? short(record.token) : launchStep === "deploying" ? "Deploying…" : tokenReady ? "Complete" : "Waiting";
+  const tokenValue = record ? `${launch?.symbol} · ${short(record.token)}` : launchStep === "deploying" ? "Deploying with CREATE2…" : tokenReady ? "Complete" : "Waiting";
   const poolValue = record ? short(record.poolId) : launchStep === "initializing" ? "Initializing…" : poolReady ? "Complete" : "Waiting";
-  const ensValue = record?.ensName ?? (launchStep === "recording" ? "Writing…" : launchStep === "idle" ? "0x<token>.tokens.klamp.eth" : "Waiting");
-  const hookEnsValue = launch?.hookRegistration.ensName ?? (launchStep === "recording" ? "Issuing…" : launchStep === "idle" ? "0x<hook>.hooks.klamp.eth" : "Waiting");
-  const sceneKey = stage === "idle" || stage === "launch"
-    ? "launch-flow"
-    : stage === "candidates"
-      ? "candidate-build"
-      : stage === "verify"
-        ? "candidate-filter"
-        : stage === "attest"
-          ? "hook-verification"
-          : stage === "forward"
-            ? "route-forwarding"
-            : stage === "enforce"
-              ? "outcome-comparison"
-              : stage === "revoke" || stage === "complete"
-                ? "hook-revocation"
-                : stage;
+  const ensValue = record?.ensName ?? (launchStep === "recording" ? "recordByCreate2…" : launchStep === "idle" ? "0x<token>.tokens.klamp.eth" : "Waiting");
+  const sceneKey = stage === "idle" ? "launch" : stage;
+  const recordStatus = record ? "Declared once" : "Not declared";
+  const routeStatus = execution ? "Declared pool" : requote ? "Requoted" : judgement ? judgement.verdict : naive ? "Naive pick: look-alike" : board ? "Two candidates" : "Not started";
+  const executionStatus = naiveOutcome ? "Compared" : execution ? "Received = quote" : "Not started";
 
   return (
     <ReducedMotion>
       <Shell>
         <Instrument>
           <InstrumentHead>
-            <TraceName><TraceMark complete={stage === "complete"} />Verification trace 01</TraceName>
+            <TraceName><TraceMark complete={stage === "outcome" && !busy} />Klamp routing trace · Path A (KHOOK, Sepolia)</TraceName>
+            <TraceNote>Presentation trace: canonical values from Sepolia, look-alike pool simulated</TraceNote>
           </InstrumentHead>
           <Progress aria-label="Trace progress">
             {steps.map((item) => {
               const index = stageIndex(item.stage);
-              const active = stage === "idle" ? item.stage === "launch" : stage === "complete" ? item.stage === "revoke" : stage === item.stage;
-              const done = stage === "complete" || current > index || (current === index && !busy);
+              const active = stage === "idle" ? item.stage === "launch" : stage === item.stage;
+              const done = current > index || (current === index && !busy);
               return (
                 <ProgressItem key={item.stage} active={active} done={done} aria-current={active ? "step" : undefined}>
-                  <ProgressButton
-                    type="button"
-                    disabled={busy}
-                    onClick={() => goToStage(item.stage)}
-                    aria-label={`Go to step ${item.index}: ${item.title}`}
-                  >
+                  <ProgressButton type="button" disabled={busy} onClick={() => goToStage(item.stage)} aria-label={`Go to step ${item.index}: ${item.title}`}>
                     <StepNumber>{item.index}</StepNumber><StepTitle>{item.title}</StepTitle><StepDetail>{item.detail}</StepDetail>
                   </ProgressButton>
                 </ProgressItem>
@@ -582,149 +385,168 @@ export function DemoTerminal() {
               <Scene key={sceneKey}>
                 <LaunchFlow>
                   <LaunchActor>
-                    <SceneLabel>Atomic launch actors</SceneLabel>
-                    <h2>Launcher + hook factory</h2>
-                    <p>Deploy proxy, initialize pool, issue hook identity, then seal the canonical record.</p>
+                    <SceneLabel>Path A · one launch transaction</SceneLabel>
+                    <h2>DemoLaunchpad</h2>
+                    <p>Deploy the token with CREATE2, create the hooked pool with locked liquidity, then declare it through the registrar.</p>
                   </LaunchActor>
                   <LaunchBridge active={stage === "launch"}><Mark size={62} /></LaunchBridge>
                   <LaunchReceipt>
-                    <dt>Token deployed</dt><dd data-complete={tokenReady}>{tokenValue}</dd>
-                    <dt>Pool initialized</dt><dd data-complete={poolReady}>{poolValue}</dd>
-                    <dt>Pool hook</dt><dd data-complete={poolReady}>{poolReady ? "CappedHookProxy · 1% max" : "Waiting"}</dd>
-                    <dt>Hook identity issued</dt><dd data-complete={Boolean(record)}>{hookEnsValue}</dd>
-                    <dt>Canonical pool recorded</dt><dd data-complete={Boolean(record)}>{ensValue}</dd>
+                    <dt>Token deployed</dt><dd>{tokenValue}</dd>
+                    <dt>Pool initialized</dt><dd>{poolValue}</dd>
+                    <dt>Pool hook</dt><dd>{poolReady ? "DeltaFeeHook · 1% delta fee" : "Waiting"}</dd>
+                    <dt>Issuer proof</dt><dd>{record ? `CREATE2(launchpad ${short(record.issuer)})` : "Waiting"}</dd>
+                    <dt>Canonical pool</dt><dd>{ensValue}</dd>
                   </LaunchReceipt>
                 </LaunchFlow>
               </Scene>
             )}
 
-            {stage === "candidates" && (
+            {stage === "quotes" && (
               <Scene key={sceneKey}>
                 <CandidateBoard>
-                  <CandidateSource><Image src="/aggregator.svg" width={54} height={54} alt="" aria-hidden /><strong>Aggregator</strong><span>Quote discovery only</span></CandidateSource>
+                  <CandidateSource><Image src="/aggregator.svg" width={54} height={54} alt="" aria-hidden /><strong>{board?.quoter ?? "V4Quoter"}</strong><span>{board ? `${board.amountIn} → ${board.tokenOut}` : "Quoting…"}</span></CandidateSource>
                   <ForkRail aria-hidden="true"><i /><i /></ForkRail>
                   <CandidateList>
                     <CandidatePool>
-                      <div><h2>{official?.label ?? "Issuer pool"}</h2><p>{official ? short(official.route[0].poolId) : "Discovering…"}</p></div>
-                      <div><strong>{official ? `${(official.advertisedFeeBps / 100).toFixed(2)}%` : "…"}</strong><span>advertised</span></div>
+                      <div><h2>{declared?.label ?? "Declared pool"}</h2><p>{declared ? `${short(declared.poolId)} · ${declared.hookBehavior}` : "Quoting…"}</p></div>
+                      <div><strong>{declared ? amount(declared.quotedOut) : "…"}</strong><span>{declared ? `quoted ${percent(declared.quotedFeeBps)}` : ""}</span></div>
                     </CandidatePool>
                     <CandidatePool replica>
-                      <div><h2>{replica?.label ?? "Replica pool"}</h2><p>{replica ? short(replica.route[0].poolId) : "Discovering…"}</p></div>
-                      <div><strong>{replica ? `${(replica.advertisedFeeBps / 100).toFixed(2)}%` : "…"}</strong><span>bait quote</span></div>
+                      <div><h2>{replica?.label ?? "Look-alike pool"}{replica?.simulated && <Simulated>Simulated</Simulated>}</h2><p>{replica ? `${short(replica.poolId)} · ${replica.hookBehavior}` : "Quoting…"}</p></div>
+                      <div><strong>{replica ? amount(replica.quotedOut) : "…"}</strong><span>{replica ? `quoted ${percent(replica.quotedFeeBps)}` : ""}</span></div>
                     </CandidatePool>
                   </CandidateList>
                 </CandidateBoard>
               </Scene>
             )}
 
-            {stage === "verify" && (
+            {stage === "naive" && (
               <Scene key={sceneKey}>
-                <FilterBoard>
-                  <FilterColumn>
-                    <h2>Candidate pools</h2>
-                    <FilterRow><div><strong>Issuer pool</strong><code>{official ? short(official.route[0].poolId) : "Checking…"}</code></div><b>CHECK</b></FilterRow>
-                    <FilterRow rejected={matched}><div><strong>Replica pool</strong><code>{replica ? short(replica.route[0].poolId) : "Checking…"}</code></div><b>{matched ? "REJECT" : "CHECK"}</b></FilterRow>
-                  </FilterColumn>
-                  <GuardGate><Mark size={58} /></GuardGate>
-                  <FilterColumn>
-                    <h2>Guarded Router decision</h2>
-                    <FilterRow><div><strong>Canonical PoolId</strong><code>{poolId ? short(poolId) : "Resolving…"}</code></div><b>{found ? "REGISTERED" : "WAIT"}</b></FilterRow>
-                    <FilterRow><div><strong>Issuer pool</strong><code>Chain 11155111 · {manager}</code></div><b>{matched ? "ALLOW" : "WAIT"}</b></FilterRow>
-                  </FilterColumn>
-                </FilterBoard>
+                <DecisionBoard>
+                  <DecisionColumn>
+                    <h2>Quoted output (KHOOK)</h2>
+                    <DecisionRow struck={Boolean(naive)}><div><strong>Declared pool</strong><code>{declared ? amount(declared.quotedOut) : "…"}</code></div><b>{naive ? "SKIPPED" : "…"}</b></DecisionRow>
+                    <DecisionRow tone={naive ? "pick" : undefined}><div><strong>Look-alike pool</strong><code>{replica ? amount(replica.quotedOut) : "…"}</code></div><b>{naive ? "CHOSEN" : "…"}</b></DecisionRow>
+                  </DecisionColumn>
+                  <DecisionGate><Image src="/router.svg" width={54} height={54} alt="" aria-hidden /></DecisionGate>
+                  <DecisionColumn>
+                    <h2>Naive router</h2>
+                    <DecisionRow><div><strong>Rule</strong><code>largest quoted output wins</code></div><b>BEST</b></DecisionRow>
+                    <DecisionRow><div><strong>Minimum output</strong><code>{naive ? `${amount(naive.minOut)} · ${percent(naive.slippageBps)} slippage` : "…"}</code></div><b>{naive ? "SET" : "…"}</b></DecisionRow>
+                  </DecisionColumn>
+                </DecisionBoard>
               </Scene>
             )}
 
-            {stage === "attest" && (
+            {stage === "lookup" && (
               <Scene key={sceneKey}>
-                <HookProof>
-                  <HookIdentity>
+                <RecordProof>
+                  <RecordIdentity>
                     <Mark size={72} />
                     <div>
-                      <SceneLabel>Hook identity record</SceneLabel>
-                      <h2>{hookVerified ? "Verified capped proxy" : "Resolving hook identity…"}</h2>
-                      <p>{attestation?.ensName ?? `${record?.key.hooks.toLowerCase()}.hooks.klamp.eth`}</p>
+                      <SceneLabel>ENSv2 wildcard name · UniversalResolverV2</SceneLabel>
+                      <h2>{registered ? "registered" : "Resolving…"}</h2>
+                      <p>{record?.ensName ?? "0x<token>.tokens.klamp.eth"}</p>
                     </div>
-                  </HookIdentity>
-                  <HookMetrics>
-                    <QuoteBasis ready={Boolean(quote)}><span>Current quote</span><strong>{quote ? `${(quote.pricedBps / 100).toFixed(2)}%` : "…"}</strong><p>Official pool fee · below cap</p></QuoteBasis>
-                    <HookCap verified={hookCompliant}><span>Immutable maximum</span><strong>{hookCompliant ? `${capPercent}%` : "…"}</strong><p>Fixed in the wrapper</p></HookCap>
-                  </HookMetrics>
-                  <HookChecks>
-                    <div><span>ENS identity</span><strong>{hookVerified ? "Verified" : "Checking"}</strong></div>
-                    <div><span>PoolKey hook</span><strong>{hookMatches ? "Address match" : "Checking"}</strong></div>
-                    <div><span>Runtime code</span><strong>{attestation ? short(attestation.codeHash) : "Checking"}</strong></div>
-                    <div><span>Return deltas</span><strong>{attestation && !attestation.beforeSwapReturnDelta && !attestation.afterSwapReturnDelta ? "Both disabled" : "Checking"}</strong></div>
-                  </HookChecks>
-                </HookProof>
+                  </RecordIdentity>
+                  <Metrics>
+                    <Metric ready={Boolean(registered)}><span>{`text("pool")`}</span><strong>{registered ? short(registered.poolId) : "…"}</strong><p>eip155:{record?.chainId ?? "…"}:&lt;poolId&gt;</p></Metric>
+                    <Metric ready={Boolean(registered)} muted><span>{`data("pool")`}</span><strong>{registered ? `fee ${registered.key.fee}` : "…"}</strong><p>abi.encode(chainId, PoolKey)</p></Metric>
+                  </Metrics>
+                  <Checks>
+                    <div><span>Pinned resolver</span><strong>{registered && record ? short(record.resolver) : "Checking"}</strong></div>
+                    <div><span>text vs data</span><strong>{registered ? "PoolId matches" : "Checking"}</strong></div>
+                    <div><span>Pool state</span><strong>{registered ? "Initialized" : "Checking"}</strong></div>
+                    <div><span>Klamp ABI needed</span><strong>{registered ? "None" : "…"}</strong></div>
+                  </Checks>
+                </RecordProof>
               </Scene>
             )}
 
-            {stage === "forward" && (
+            {stage === "judge" && (
+              <Scene key={sceneKey}>
+                <DecisionBoard>
+                  <DecisionColumn>
+                    <h2>Naive route · look-alike hop</h2>
+                    <DecisionRow tone={judgement ? "fail" : undefined}><div><strong>Static pool?</strong><code>{replica ? `hooks ${short(replica.key.hooks)} · dynamic fee` : "…"}</code></div><b>{judgement ? "NO" : "…"}</b></DecisionRow>
+                    <DecisionRow tone={judgement ? "fail" : undefined}><div><strong>Declared pool?</strong><code>{replica && registered ? `${short(replica.poolId)} ≠ ${short(registered.poolId)}` : "…"}</code></div><b>{judgement ? judgement.comparison.status.toUpperCase() : "…"}</b></DecisionRow>
+                  </DecisionColumn>
+                  <DecisionGate><Mark size={58} /></DecisionGate>
+                  <DecisionColumn>
+                    <h2>judge()</h2>
+                    <DecisionRow><div><strong>Lookup</strong><code>{canonical?.status ?? "…"}</code></div><b>{registered ? "OK" : "…"}</b></DecisionRow>
+                    <DecisionRow tone={judgement ? "pass" : undefined}><div><strong>Verdict</strong><code>declared and static pools pass; other hook pools are requoted</code></div><b>{judgement?.verdict ?? "…"}</b></DecisionRow>
+                  </DecisionColumn>
+                </DecisionBoard>
+              </Scene>
+            )}
+
+            {stage === "requote" && (
+              <Scene key={sceneKey}>
+                <RecordProof>
+                  <RecordIdentity>
+                    <Mark size={72} />
+                    <div>
+                      <SceneLabel>{requote?.quoter ?? "V4Quoter"}</SceneLabel>
+                      <h2>{requote ? "Declared pool requoted" : "Requoting…"}</h2>
+                      <p>{registered ? `PoolKey(ETH, KHOOK, ${registered.key.fee}, ${registered.key.tickSpacing}, ${short(registered.key.hooks)})` : "…"}</p>
+                    </div>
+                  </RecordIdentity>
+                  <Metrics>
+                    <Metric ready={Boolean(requote)}><span>Requoted output</span><strong>{requote ? amount(requote.quotedOut) : "…"}</strong><p>Declared pool, same fee at swap time</p></Metric>
+                    <Metric ready={Boolean(requote)} muted><span>Minimum output</span><strong>{requote ? amount(requote.minOut) : "…"}</strong><p>{requote ? `${percent(requote.slippageBps)} slippage` : "…"}</p></Metric>
+                  </Metrics>
+                  <Checks>
+                    <div><span>Naive quote</span><strong>{naive ? amount(naive.quotedOut) : "…"}</strong></div>
+                    <div><span>Why lower</span><strong>Real fee, not bait</strong></div>
+                    <div><span>Trader action</span><strong>None</strong></div>
+                    <div><span>Pool</span><strong>{requote ? short(requote.poolId) : "…"}</strong></div>
+                  </Checks>
+                </RecordProof>
+              </Scene>
+            )}
+
+            {stage === "execute" && (
               <Scene key={sceneKey}>
                 <RouteJourney>
-                  <RoutePipeline aria-label="Verified router to PoolManager flow">
-                    <RouteActor><Mark size={44} /><div><span>Klamp checks</span><strong>Route + cap passed</strong></div></RouteActor>
+                  <RoutePipeline aria-label="Klamp SDK to Universal Router to PoolManager">
+                    <RouteActor><Mark size={44} /><div><span>Klamp SDK</span><strong>buildSwap · verifySwapCalldata</strong></div></RouteActor>
                     <RouteRail delay={0.22} aria-hidden="true" />
-                    <RouteActor delay={0.42}><Image src="/router.svg" width={44} height={44} alt="" aria-hidden /><div><span>Guarded Router</span><strong>{forwarding ? "PoolKey sent" : "Encoding calldata"}</strong></div></RouteActor>
+                    <RouteActor delay={0.42}><Image src="/router.svg" width={44} height={44} alt="" aria-hidden /><div><span>{execution?.router ?? "Universal Router"}</span><strong>{execution ? "V4_SWAP executed" : "Encoding V4_SWAP"}</strong></div></RouteActor>
                     <RouteRail delay={0.65} aria-hidden="true" />
-                    <RouteEndpoint delay={0.86}><Image src="/pool-manager.svg" width={38} height={38} alt="" aria-hidden /><div><span>PoolManager</span><strong>{forwarding ? "Route accepted" : "Waiting for proof"}</strong></div></RouteEndpoint>
+                    <RouteEndpoint delay={0.86}><Image src="/pool-manager.svg" width={38} height={38} alt="" aria-hidden /><div><span>PoolManager</span><strong>{execution ? "Declared pool swapped" : "Waiting"}</strong></div></RouteEndpoint>
                   </RoutePipeline>
                   <RouteHandoff>
-                    <div><span>Selected branch</span><strong>Issuer pool · 1 hop</strong></div>
-                    <div><span>Current quote</span><strong>{quote ? `${(quote.pricedBps / 100).toFixed(2)}% fee` : "Verified"}</strong></div>
-                    <div><span>PoolId</span><strong>{proposedHop ? short(proposedHop.poolId) : "Waiting…"}</strong></div>
+                    <div><span>Actions</span><strong>{execution ? execution.actions.join(" → ") : "…"}</strong></div>
+                    <div><span>Calldata PoolKey</span><strong>{execution?.calldataVerified ? "= judged route" : "Checking…"}</strong></div>
+                    <div><span>Received</span><strong>{execution ? `${amount(execution.receivedOut)} KHOOK` : "…"}</strong></div>
                   </RouteHandoff>
                 </RouteJourney>
               </Scene>
             )}
 
-            {stage === "request" && (
-              <Scene key={sceneKey}>
-                <AttackSequence>
-                  <AttackOrigin><span>External attacker</span><strong>Stolen strategy-admin key</strong><p>Targets the verified official pool</p><code>unauthorized setFee(300_000)</code></AttackOrigin>
-                  <AttackRail aria-hidden="true"><i /><i /><i /></AttackRail>
-                  <AttackPayload><SceneLabel>Unauthorized strategy output</SceneLabel><FeeValue>30.00%</FeeValue><FeeCaption>The attacker makes the official pool request 3,000 bps.</FeeCaption></AttackPayload>
-                </AttackSequence>
-              </Scene>
-            )}
-
-            {stage === "enforce" && (
+            {stage === "outcome" && (
               <Scene key={sceneKey}>
                 <OutcomeComparison>
                   <Outcome guarded>
-                    <h2>Guarded route</h2>
-                    <dl><dt>Earlier quote</dt><dd>{quote ? `${(quote.pricedBps / 100).toFixed(2)}%` : "0.25%"}</dd><dt>Attack request</dt><dd>30.00%</dd><dt>Applied fee</dt><dd>{enforced ? `${(enforcement.appliedBps / 100).toFixed(2)}%` : "Applying…"}</dd></dl>
-                    <strong>{enforced ? amount(enforcement.receivedOut) : "—"}</strong><p>The fee rose from the quote, but the wrapper held it to 1%. A tighter minimum can still revert.</p>
+                    <h2>Klamp route · declared pool</h2>
+                    <dl><dt>Quoted</dt><dd>{requote ? amount(requote.quotedOut) : "…"}</dd><dt>Fee at swap</dt><dd>same as quoted</dd><dt>Minimum</dt><dd>{requote ? amount(requote.minOut) : "…"}</dd></dl>
+                    <strong>{execution ? amount(execution.receivedOut) : "—"}</strong><p>Received exactly the quote.</p>
                   </Outcome>
                   <Outcome>
-                    <h2>Unguarded route</h2>
-                    <dl><dt>Earlier quote</dt><dd>{quote ? `${(quote.pricedBps / 100).toFixed(2)}%` : "0.25%"}</dd><dt>Attack request</dt><dd>30.00%</dd><dt>Applied fee</dt><dd>{enforced ? `${(enforcement.unguardedAppliedBps / 100).toFixed(2)}%` : "Applying…"}</dd></dl>
-                    <strong>{enforced ? amount(enforcement.unguardedReceivedOut) : "—"}</strong><p>30% fee accepted; output falls below the quoted amount.</p>
+                    <h2>Naive route · look-alike pool<Simulated>Simulated</Simulated></h2>
+                    <dl><dt>Quoted</dt><dd>{naiveOutcome ? amount(naiveOutcome.quotedOut) : "…"}</dd><dt>Fee at swap</dt><dd>{naiveOutcome ? percent(naiveOutcome.executedFeeBps) : "…"}</dd><dt>Minimum</dt><dd>{naiveOutcome ? amount(naiveOutcome.minOut) : "…"}</dd></dl>
+                    <strong>{naiveOutcome ? amount(naiveOutcome.receivedOut) : "—"}</strong><p>{naiveOutcome ? `−${percent(naiveOutcome.lossBps)} versus its quote, still above the slippage floor.` : "Executing…"}</p>
                   </Outcome>
                 </OutcomeComparison>
               </Scene>
             )}
 
-            {(stage === "revoke" || stage === "complete") && (
-              <Scene key={sceneKey}>
-                <RevocationBoard>
-                  <Guardian><span>Guardian multisig</span><strong>Revoke hook identity</strong><code>unregister(labelhash)</code></Guardian>
-                  <RevokeRail aria-hidden="true" />
-                  <RevokedRecord revoked={revoked}>
-                    <h2>hooks.klamp.eth</h2>
-                    <p>{revocation?.ensName ?? launch?.hookRegistration.ensName ?? "Resolving hook identity…"}</p>
-                    <dl><dt>Resolver</dt><dd>{revoked ? "0x0" : "Removing…"}</dd><dt>Attestation</dt><dd>{revoked ? "Revoked" : "Pending"}</dd><dt>Guarded route</dt><dd>{revoked ? "Blocked" : "Closing"}</dd></dl>
-                  </RevokedRecord>
-                </RevocationBoard>
-              </Scene>
-            )}
-
             <Bottom>
               <Statuses>
-                <Status><span>Pool record</span><strong>{poolStatus(Boolean(record))}</strong></Status>
-                <Status><span>Route</span><strong>{routeStatus(stage, busy, Boolean(proposal), visibleMatched, visibleForwarding, visibleRevoked)}</strong></Status>
-                <Status><span>Hook cap</span><strong>{feeCapStatus(stage, visibleHookCompliant, visibleEnforced)}</strong></Status>
+                <Status><span>Canonical pool</span><strong>{recordStatus}</strong></Status>
+                <Status><span>Route</span><strong>{routeStatus}</strong></Status>
+                <Status><span>Execution</span><strong>{executionStatus}</strong></Status>
               </Statuses>
               <Actions>
                 {stage !== "idle" && <Reset onClick={reset} disabled={busy}>Reset</Reset>}

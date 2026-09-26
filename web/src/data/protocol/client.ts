@@ -1,161 +1,168 @@
 import type {
-  CanonicalPoolResult,
+  CandidatePool,
   CanonicalPoolRecord,
-  CapQuote,
-  FeeEnforcement,
-  HookAttestation,
-  HookRevocation,
+  CanonicalPoolResult,
   HexAddress,
   LaunchReceipt,
-  PresentationSnapshot,
+  NaiveOutcome,
+  NaiveSelection,
   PoolKey,
-  ProposedRoute,
-  RouteForwarding,
-  RouteHop,
+  PresentationSnapshot,
+  QuoteBoard,
+  Requote,
+  SwapExecution,
 } from "@/domain/protocol";
 
 /**
- * The UI only talks to this port. A viem/wagmi-backed Sepolia adapter can replace
- * the mock without changing demo components or Zustand state.
+ * The UI only talks to this port. A viem-backed Sepolia adapter (contract/demo/sepolia/klamp-sdk.mjs)
+ * can replace the mock without changing demo components or Zustand state.
  */
 export interface ProtocolClient {
   launchToken(): Promise<LaunchReceipt>;
-  buildRoute(token: HexAddress): Promise<ProposedRoute>;
+  quoteCandidates(token: HexAddress): Promise<QuoteBoard>;
+  naivePick(board: QuoteBoard): Promise<NaiveSelection>;
   resolveCanonicalPool(token: HexAddress): Promise<CanonicalPoolResult>;
-  resolveHookAttestation(hook: string): Promise<HookAttestation>;
-  quoteVerifiedPool(poolId: HexAddress, currentFeeBps: number, capBps: number): Promise<CapQuote>;
-  forwardVerifiedRoute(route: RouteHop): Promise<RouteForwarding>;
-  simulateFeeRequest(requestedBps: number, quotedBps: number, quotedOut: number): Promise<FeeEnforcement>;
-  revokeHook(hook: HexAddress): Promise<HookRevocation>;
+  requoteCanonical(key: PoolKey, poolId: HexAddress): Promise<Requote>;
+  buildAndExecute(requote: Requote): Promise<SwapExecution>;
+  executeNaive(selection: NaiveSelection): Promise<NaiveOutcome>;
   getPresentationSnapshot?(): PresentationSnapshot;
 }
 
-export const DEMO_POOL_KEY: PoolKey = {
-  currency0: "0x0000000000000000000000000000000000000000",
-  currency1: "0x7A4b2F65c84A51D9A96c98f3cA7f5881eB02d135",
-  fee: 0x800000,
-  tickSpacing: 25,
-  hooks: "0xC4A9906718d27DB7b3f0AbB2d9E62188C3A70080",
-};
+/*
+ * Sepolia values from the team deployment (contract/deployments/sepolia.phase1.json, demo-pathA.json)
+ * and the read-only demo CLI run for 0.0005 ETH. The replica pool and its swap-time fee are simulated:
+ * the attack pool is not deployed yet.
+ */
+const ZERO: HexAddress = "0x0000000000000000000000000000000000000000";
+const KHOOK: HexAddress = "0x4cB41E85e1E16D7de576e2a262fF1b96eE948b96";
+const DELTA_FEE_HOOK: HexAddress = "0x8CcDe930348ecA47D39A0104807acb0e16F6c044";
+const DEMO_LAUNCHPAD: HexAddress = "0x8FEf655cA19cAf33C92E3627ff9FA0E35bAf3260";
+const REGISTRAR: HexAddress = "0x820bE7B9aCdc7293A96cf7D4E10fd5e42fB1B36f";
+const TOKENS_RESOLVER: HexAddress = "0xa783344Fa423AC738D99cdfcaF1cB2Bc6B5ddC18";
+const POOL_MANAGER: HexAddress = "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543";
+const CREATOR: HexAddress = "0xFdE8F95394e7C4ae5d7D6667EE6582587494a9e1";
+const CANONICAL_POOL_ID: HexAddress = "0xcd973bc92799db8b453d1b4d897a44b6fd35f1990f153c3ff0a05e140cce95f6";
+const REPLICA_POOL_ID: HexAddress = "0x93e858d08aafd523583e476f5ba44490f4d14a7cb7ac91cdb8a5bed452ea6da1";
+const REPLICA_HOOK: HexAddress = "0xB665A4B5C889DA8ACF911378a9DB3497792C00C0";
+const CHAIN_ID = 11155111;
+
+export const CANONICAL_KEY: PoolKey = { currency0: ZERO, currency1: KHOOK, fee: 3000, tickSpacing: 60, hooks: DELTA_FEE_HOOK };
+const REPLICA_KEY: PoolKey = { currency0: ZERO, currency1: KHOOK, fee: 0x800000, tickSpacing: 60, hooks: REPLICA_HOOK };
+
+const AMOUNT_IN = "0.0005 ETH";
+const SLIPPAGE_BPS = 1500; // A meme trader's wide tolerance: the replica's 10% fee still executes.
+const CANONICAL_OUT = 196_119.71;
+const REPLICA_QUOTE_OUT = 198_597.46;
+const REPLICA_RECEIVED_OUT = 178_827.13;
+const minOut = (quoted: number) => Math.round(quoted * (1 - SLIPPAGE_BPS / 10_000) * 100) / 100;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const DEMO_DELAY_MS = {
   launch: 1450,
-  routeBuild: 1200,
-  canonicalVerification: 1325,
-  hookVerification: 1325,
-  capQuote: 1200,
-  routeForwarding: 1350,
-  feeEnforcement: 1550,
-  guardianRevocation: 1450,
+  quotes: 1200,
+  naive: 900,
+  lookup: 1325,
+  requote: 1200,
+  execute: 1450,
+  naiveExecute: 1300,
 } as const;
 
-const DEMO_POOL_ID =
-  "0x4692066cc525b9e3c28f2d7d6cbfc36c44836ca0112c586185f250fa0bd0cfbc" as const;
-const REPLICA_POOL_ID =
-  "0x93e858d08aafd523583e476f5ba44490f4d14a7cb7ac91cdb8a5bed452ea6da1" as const;
-const REPLICA_HOOK = "0xB665A4B5C889DA8ACF911378a9DB3497792C00C0" as const;
-const HOOK_CODE_HASH = "0x5f4d8e0fd234981581724f806c09120e6daaf6cad89e2ba75148274268a66291" as const;
-
-const DEMO_CANONICAL: CanonicalPoolRecord = {
-  chainId: 11155111,
-  ensName: "0x7a4b2f65c84a51d9a96c98f3ca7f5881eb02d135.tokens.klamp.eth",
-  token: DEMO_POOL_KEY.currency1,
-  poolId: DEMO_POOL_ID,
-  key: DEMO_POOL_KEY,
-  issuer: "0x23f8209572b4a1C2AD88A42749E830791Fb027f1",
-  creator: "0x2D08f5a5E3cA02D38B7aCf67B92fE4B29Cef5510",
+const CANONICAL_RECORD: CanonicalPoolRecord = {
+  chainId: CHAIN_ID,
+  ensName: `${KHOOK.toLowerCase()}.tokens.klamp.eth`,
+  token: KHOOK,
+  poolId: CANONICAL_POOL_ID,
+  key: CANONICAL_KEY,
+  issuer: DEMO_LAUNCHPAD,
+  creator: CREATOR,
   issuerProof: "create2",
-  resolver: "0x6B2A681e01D5E623b1A5f03c15485f04b718D9a2",
-  textRecord: `eip155:11155111:${DEMO_POOL_ID}`,
+  registrar: REGISTRAR,
+  resolver: TOKENS_RESOLVER,
+  textRecord: `eip155:${CHAIN_ID}:${CANONICAL_POOL_ID}`,
   dataVerified: true,
 };
 
 const launchReceipt = (): LaunchReceipt => ({
-  txHash: "0x7c093f9c52a4b974d8ca3c2491fe0446b68b92aef32f7640d3133cf96b8ab47e",
-  blockNumber: 9241851,
-  token: DEMO_POOL_KEY.currency1,
-  canonicalPool: DEMO_CANONICAL,
-  hookRegistration: {
-    ensName: `${DEMO_POOL_KEY.hooks.toLowerCase()}.hooks.klamp.eth`,
-    capBps: 100,
-    codeHash: HOOK_CODE_HASH,
-  },
+  txHash: "0x88939990e4361d2a422ce1abad0a3d41f6372a71bb89b6bed2789de86db5e682",
+  blockNumber: 11786120,
+  token: KHOOK,
+  symbol: "KHOOK",
+  launchpad: DEMO_LAUNCHPAD,
+  liquidityLocked: true,
+  canonicalPool: CANONICAL_RECORD,
 });
 
-const proposedRoute = (token: HexAddress): ProposedRoute => ({
-  aggregator: "Mock route aggregator",
-  router: "Universal Router",
-  candidates: [
-    {
-      id: "official",
-      label: "Issuer pool",
-      advertisedFeeBps: 25,
-      hook: DEMO_POOL_KEY.hooks,
-      route: [{
-        chainId: 11155111n,
-        poolManager: "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543",
-        poolId: DEMO_POOL_ID,
-        tokenIn: DEMO_POOL_KEY.currency0,
-        tokenOut: token,
-      }],
-    },
-    {
-      id: "replica",
-      label: "Replica pool",
-      advertisedFeeBps: 5,
-      hook: REPLICA_HOOK,
-      route: [{
-        chainId: 11155111n,
-        poolManager: "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543",
-        poolId: REPLICA_POOL_ID,
-        tokenIn: DEMO_POOL_KEY.currency0,
-        tokenOut: token,
-      }],
-    },
-  ],
+const candidates = (): CandidatePool[] => [
+  {
+    id: "canonical",
+    label: "Declared launch pool",
+    key: CANONICAL_KEY,
+    poolId: CANONICAL_POOL_ID,
+    quotedFeeBps: 130,
+    quotedOut: CANONICAL_OUT,
+    hookBehavior: "0.30% LP + 1% delta fee, same at quote and swap",
+    simulated: false,
+  },
+  {
+    id: "replica",
+    label: "Look-alike hook pool",
+    key: REPLICA_KEY,
+    poolId: REPLICA_POOL_ID,
+    quotedFeeBps: 5,
+    quotedOut: REPLICA_QUOTE_OUT,
+    hookBehavior: "0.05% when quoted, 10% when swapped",
+    simulated: true,
+  },
+];
+
+const quoteBoard = (): QuoteBoard => ({
+  amountIn: AMOUNT_IN,
+  tokenIn: "ETH",
+  tokenOut: "KHOOK",
+  quoter: "V4Quoter",
+  candidates: candidates(),
+});
+
+const naiveSelection = (): NaiveSelection => ({
+  chosen: "replica",
+  quotedOut: REPLICA_QUOTE_OUT,
+  slippageBps: SLIPPAGE_BPS,
+  minOut: minOut(REPLICA_QUOTE_OUT),
 });
 
 const canonicalResult = (): Extract<CanonicalPoolResult, { status: "registered" }> => ({
   status: "registered",
   source: "ens",
-  key: DEMO_POOL_KEY,
-  chainId: 11155111n,
-  poolManager: "0xE03A1074c86CFeDd5C142C4F04F1a1536e203543",
-  poolId: DEMO_POOL_ID,
+  chainId: BigInt(CHAIN_ID),
+  poolManager: POOL_MANAGER,
+  poolId: CANONICAL_POOL_ID,
+  key: CANONICAL_KEY,
 });
 
-const hookAttestation = (hook: string): HookAttestation => ({
-  ensName: `${hook.toLowerCase()}.hooks.klamp.eth`,
-  hook: hook as HookAttestation["hook"],
-  capBps: 100,
-  capMode: "immutable",
-  codeHash: HOOK_CODE_HASH,
-  beforeSwapReturnDelta: false,
-  afterSwapReturnDelta: false,
-  status: "verified",
+const requote = (): Requote => ({
+  poolId: CANONICAL_POOL_ID,
+  key: CANONICAL_KEY,
+  quoter: "V4Quoter.quoteExactInputSingle",
+  quotedOut: CANONICAL_OUT,
+  slippageBps: SLIPPAGE_BPS,
+  minOut: minOut(CANONICAL_OUT),
 });
 
-const feeEnforcement = (requestedBps: number, quotedBps: number, quotedOut: number): FeeEnforcement => {
-  const appliedBps = Math.min(requestedBps, 100);
-  const grossOut = quotedOut / (1 - quotedBps / 10_000);
-  return {
-    requestedBps,
-    appliedBps,
-    capped: appliedBps < requestedBps,
-    quotedOut,
-    receivedOut: grossOut * (1 - appliedBps / 10_000),
-    unguardedAppliedBps: requestedBps,
-    unguardedReceivedOut: grossOut * (1 - requestedBps / 10_000),
-  };
-};
+const execution = (): SwapExecution => ({
+  router: "Universal Router",
+  actions: ["SWAP_EXACT_IN_SINGLE", "SETTLE_ALL", "TAKE_ALL"],
+  calldataVerified: true,
+  receivedOut: CANONICAL_OUT,
+});
 
-const hookRevocation = (hook: HexAddress): HookRevocation => ({
-  ensName: `${hook.toLowerCase()}.hooks.klamp.eth`,
-  resolver: null,
-  attestationStatus: "revoked",
-  routeStatus: "blocked",
+const naiveOutcome = (): NaiveOutcome => ({
+  quotedOut: REPLICA_QUOTE_OUT,
+  executedFeeBps: 1000,
+  minOut: minOut(REPLICA_QUOTE_OUT),
+  receivedOut: REPLICA_RECEIVED_OUT,
+  lossBps: Math.round((1 - REPLICA_RECEIVED_OUT / REPLICA_QUOTE_OUT) * 10_000),
+  simulated: true,
 });
 
 export const mockProtocolClient: ProtocolClient = {
@@ -163,50 +170,48 @@ export const mockProtocolClient: ProtocolClient = {
     await wait(DEMO_DELAY_MS.launch);
     return launchReceipt();
   },
-  async buildRoute(token) {
-    await wait(DEMO_DELAY_MS.routeBuild);
-    return proposedRoute(token);
+  async quoteCandidates() {
+    await wait(DEMO_DELAY_MS.quotes);
+    return quoteBoard();
+  },
+  async naivePick() {
+    await wait(DEMO_DELAY_MS.naive);
+    return naiveSelection();
   },
   async resolveCanonicalPool() {
-    await wait(DEMO_DELAY_MS.canonicalVerification);
+    await wait(DEMO_DELAY_MS.lookup);
     return canonicalResult();
   },
-  async resolveHookAttestation(hook) {
-    await wait(DEMO_DELAY_MS.hookVerification);
-    return hookAttestation(hook);
+  async requoteCanonical() {
+    await wait(DEMO_DELAY_MS.requote);
+    return requote();
   },
-  async quoteVerifiedPool(poolId, currentFeeBps, capBps) {
-    await wait(DEMO_DELAY_MS.capQuote);
-    return { basis: "current-fee", poolId, currentFeeBps, capBps, pricedBps: Math.min(currentFeeBps, capBps) };
+  async buildAndExecute() {
+    await wait(DEMO_DELAY_MS.execute);
+    return execution();
   },
-  async forwardVerifiedRoute(route) {
-    await wait(DEMO_DELAY_MS.routeForwarding);
-    return { poolId: route.poolId, poolManager: route.poolManager, status: "accepted" };
-  },
-  async simulateFeeRequest(requestedBps, quotedBps, quotedOut) {
-    await wait(DEMO_DELAY_MS.feeEnforcement);
-    return feeEnforcement(requestedBps, quotedBps, quotedOut);
-  },
-  async revokeHook(hook) {
-    await wait(DEMO_DELAY_MS.guardianRevocation);
-    return hookRevocation(hook);
+  async executeNaive() {
+    await wait(DEMO_DELAY_MS.naiveExecute);
+    return naiveOutcome();
   },
   getPresentationSnapshot() {
     const launch = launchReceipt();
-    const proposal = proposedRoute(launch.token);
+    const board = quoteBoard();
     const canonical = canonicalResult();
-    const attestation = hookAttestation(launch.canonicalPool.key.hooks);
-    const official = proposal.candidates[0].route[0];
-    const quote: CapQuote = { basis: "current-fee", poolId: canonical.poolId, currentFeeBps: 25, capBps: attestation.capBps, pricedBps: 25 };
+    const replica = board.candidates.find((candidate) => candidate.id === "replica")!;
     return {
       launch,
-      proposal,
+      board,
+      naive: naiveSelection(),
       canonical,
-      attestation,
-      quote,
-      forwarding: { poolId: official.poolId, poolManager: official.poolManager, status: "accepted" },
-      enforcement: feeEnforcement(3000, quote.pricedBps, 42159.16),
-      revocation: hookRevocation(launch.canonicalPool.key.hooks),
+      judgement: {
+        verdict: "requote_canonical",
+        comparison: { status: "mismatch", branch: 0, hop: 0 },
+        judgedPoolId: replica.poolId,
+      },
+      requote: requote(),
+      execution: execution(),
+      naiveOutcome: naiveOutcome(),
     };
   },
 };

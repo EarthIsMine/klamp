@@ -1,24 +1,24 @@
 import { create } from "zustand";
 import {
   compareRoutes,
-  type CapQuote,
+  judge,
   type CanonicalPoolResult,
-  type FeeEnforcement,
-  type HookAttestation,
-  type HookRevocation,
   type LaunchReceipt,
-  type ProposedRoute,
-  type RouteComparison,
-  type RouteForwarding,
+  type NaiveOutcome,
+  type NaiveSelection,
+  type QuoteBoard,
+  type Requote,
+  type RouteJudgement,
+  type SwapExecution,
 } from "@/domain/protocol";
 import { mockProtocolClient, type ProtocolClient } from "@/data/protocol/client";
 
-export type DemoStage = "idle" | "launch" | "candidates" | "verify" | "attest" | "forward" | "request" | "enforce" | "revoke" | "complete";
+export type DemoStage = "idle" | "launch" | "quotes" | "naive" | "lookup" | "judge" | "requote" | "execute" | "outcome";
 export type LaunchVisualStep = "idle" | "deploying" | "initializing" | "recording" | "complete";
 
-const demoStageOrder: DemoStage[] = ["idle", "launch", "candidates", "verify", "attest", "forward", "request", "enforce", "revoke", "complete"];
-const laterStage = (current: DemoStage, candidate: DemoStage) =>
-  demoStageOrder.indexOf(candidate) > demoStageOrder.indexOf(current) ? candidate : current;
+export const demoStageOrder: DemoStage[] = ["idle", "launch", "quotes", "naive", "lookup", "judge", "requote", "execute", "outcome"];
+const indexOf = (stage: DemoStage) => demoStageOrder.indexOf(stage);
+const laterStage = (current: DemoStage, candidate: DemoStage) => (indexOf(candidate) > indexOf(current) ? candidate : current);
 
 type DemoState = {
   stage: DemoStage;
@@ -26,14 +26,13 @@ type DemoState = {
   busy: boolean;
   launchStep: LaunchVisualStep;
   launch: LaunchReceipt | null;
-  proposal: ProposedRoute | null;
+  board: QuoteBoard | null;
+  naive: NaiveSelection | null;
   canonical: CanonicalPoolResult | null;
-  comparison: RouteComparison | null;
-  attestation: HookAttestation | null;
-  quote: CapQuote | null;
-  forwarding: RouteForwarding | null;
-  enforcement: FeeEnforcement | null;
-  revocation: HookRevocation | null;
+  judgement: RouteJudgement | null;
+  requote: Requote | null;
+  execution: SwapExecution | null;
+  naiveOutcome: NaiveOutcome | null;
   advance: (client?: ProtocolClient) => Promise<void>;
   goBack: () => void;
   goToStage: (stage: DemoStage, client?: ProtocolClient) => void;
@@ -46,184 +45,139 @@ const initial = {
   busy: false,
   launchStep: "idle" as LaunchVisualStep,
   launch: null,
-  proposal: null,
+  board: null,
+  naive: null,
   canonical: null,
-  comparison: null,
-  attestation: null,
-  quote: null,
-  forwarding: null,
-  enforcement: null,
-  revocation: null,
+  judgement: null,
+  requote: null,
+  execution: null,
+  naiveOutcome: null,
 };
 
 const wait = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const LAUNCH_SEQUENCE_INTERVAL_MS = 420;
-const ATTACK_SEQUENCE_MS = 1050;
+
+/** Judge the naive router's pick the way the Klamp terminal does before signing. */
+function judgeNaivePick(launch: LaunchReceipt, board: QuoteBoard, naive: NaiveSelection, canonical: CanonicalPoolResult): RouteJudgement | null {
+  const picked = board.candidates.find((candidate) => candidate.id === naive.chosen);
+  if (!picked) return null;
+  const verdict = judge(launch.token, canonical, [{ key: picked.key, poolId: picked.poolId }]);
+  const comparison = compareRoutes(launch.token, canonical, [[{
+    chainId: BigInt(launch.canonicalPool.chainId),
+    // Unused unless registered: compareRoutes blocks every other lookup state first.
+    poolManager: canonical.status === "registered" ? canonical.poolManager : "0x0000000000000000000000000000000000000000",
+    poolId: picked.poolId,
+    tokenIn: picked.key.currency0,
+    tokenOut: launch.token,
+  }]]);
+  return { verdict, comparison, judgedPoolId: picked.poolId };
+}
 
 export const useDemoStore = create<DemoState>((set, get) => ({
   ...initial,
   async advance(client = mockProtocolClient) {
     const state = get();
     if (state.busy) return;
+    const reach = (stage: DemoStage) => laterStage(get().furthestStage, stage);
 
     if (state.stage === "idle") {
       set({ ...initial, stage: "launch", busy: true, launchStep: "deploying" });
       const launchRequest = client.launchToken();
-
       await wait(LAUNCH_SEQUENCE_INTERVAL_MS);
       if (get().stage === "launch" && get().busy) set({ launchStep: "initializing" });
-
       await wait(LAUNCH_SEQUENCE_INTERVAL_MS);
       if (get().stage === "launch" && get().busy) set({ launchStep: "recording" });
-
       const launch = await launchRequest;
       if (get().stage !== "launch" || !get().busy) return;
-      set({ launch, launchStep: "complete", stage: "launch", furthestStage: laterStage(state.furthestStage, "launch"), busy: false });
+      set({ launch, launchStep: "complete", furthestStage: reach("launch"), busy: false });
       return;
     }
 
     if (state.stage === "launch" && state.launch) {
-      set({ stage: "candidates", busy: true });
-      const proposal = await client.buildRoute(state.launch.token);
-      set({ proposal, stage: "candidates", furthestStage: laterStage(state.furthestStage, "candidates"), busy: false });
+      set({ stage: "quotes", busy: true });
+      const board = await client.quoteCandidates(state.launch.token);
+      set({ board, furthestStage: reach("quotes"), busy: false });
       return;
     }
 
-    if (state.stage === "candidates" && state.launch && state.proposal) {
-      set({ stage: "verify", busy: true });
+    if (state.stage === "quotes" && state.board) {
+      set({ stage: "naive", busy: true });
+      const naive = await client.naivePick(state.board);
+      set({ naive, furthestStage: reach("naive"), busy: false });
+      return;
+    }
+
+    if (state.stage === "naive" && state.launch) {
+      set({ stage: "lookup", busy: true });
       const canonical = await client.resolveCanonicalPool(state.launch.token);
-      if (canonical.status !== "registered") {
-        set({ canonical, stage: "complete", busy: false });
-        return;
-      }
-      const official = state.proposal.candidates.find((candidate) => candidate.id === "official");
-      const comparison = compareRoutes(state.launch.token, canonical, official ? [official.route] : []);
-      set({ canonical, comparison, stage: "verify", furthestStage: laterStage(state.furthestStage, "verify"), busy: false });
+      set({ canonical, furthestStage: reach("lookup"), busy: false });
       return;
     }
 
-    if (state.stage === "verify" && state.launch) {
-      set({ stage: "attest", busy: true });
-      const attestation = await client.resolveHookAttestation(state.launch.canonicalPool.key.hooks);
-      if (
-        attestation.status !== "verified" ||
-        attestation.capMode !== "immutable" ||
-        attestation.beforeSwapReturnDelta ||
-        attestation.afterSwapReturnDelta
-      ) {
-        set({ attestation, stage: "complete", busy: false });
-        return;
-      }
-      const quote = await client.quoteVerifiedPool(state.launch.canonicalPool.poolId, 25, attestation.capBps);
-      set({ attestation, quote, stage: "attest", furthestStage: laterStage(state.furthestStage, "attest"), busy: false });
+    if (state.stage === "lookup" && state.launch && state.board && state.naive && state.canonical) {
+      set({ stage: "judge", busy: true });
+      await wait(700);
+      const judgement = judgeNaivePick(state.launch, state.board, state.naive, state.canonical);
+      set({ judgement, furthestStage: reach("judge"), busy: false });
       return;
     }
 
-    if (state.stage === "attest") {
-      const official = state.proposal?.candidates.find((candidate) => candidate.id === "official");
-      const route = official?.route[0];
-      if (!route) return;
-      set({ stage: "forward", busy: true });
-      const forwarding = await client.forwardVerifiedRoute(route);
-      set({ forwarding, stage: "forward", furthestStage: laterStage(state.furthestStage, "forward"), busy: false });
+    if (state.stage === "judge" && state.canonical?.status === "registered" && state.judgement?.verdict === "requote_canonical") {
+      set({ stage: "requote", busy: true });
+      const requote = await client.requoteCanonical(state.canonical.key, state.canonical.poolId);
+      set({ requote, furthestStage: reach("requote"), busy: false });
       return;
     }
 
-    if (state.stage === "forward") {
-      set({ stage: "request", busy: true });
-      await wait(ATTACK_SEQUENCE_MS);
-      if (get().stage === "request" && get().busy) set({ furthestStage: laterStage(state.furthestStage, "request"), busy: false });
+    if (state.stage === "requote" && state.requote) {
+      set({ stage: "execute", busy: true });
+      const execution = await client.buildAndExecute(state.requote);
+      set({ execution, furthestStage: reach("execute"), busy: false });
       return;
     }
 
-    if (state.stage === "request" && state.quote) {
-      set({ stage: "enforce", busy: true });
-      const enforcement = await client.simulateFeeRequest(3000, state.quote.pricedBps, 42159.16);
-      set({ enforcement, stage: "enforce", furthestStage: laterStage(state.furthestStage, "enforce"), busy: false });
+    if (state.stage === "execute" && state.naive) {
+      set({ stage: "outcome", busy: true });
+      const naiveOutcome = await client.executeNaive(state.naive);
+      set({ naiveOutcome, furthestStage: reach("outcome"), busy: false });
       return;
     }
 
-    if (state.stage === "enforce" && state.launch) {
-      set({ stage: "revoke", busy: true });
-      const revocation = await client.revokeHook(state.launch.canonicalPool.key.hooks);
-      set({ revocation, stage: "complete", furthestStage: laterStage(state.furthestStage, "complete"), busy: false });
-      return;
-    }
-
-    if (state.stage === "complete") set(initial);
+    if (state.stage === "outcome") set(initial);
   },
   goBack: () => {
     const state = get();
-    if (state.busy) return;
-
+    if (state.busy || state.stage === "idle") return;
     if (state.stage === "launch") {
       set(initial);
       return;
     }
-    if (state.stage === "candidates") {
-      set({ stage: "launch" });
-      return;
-    }
-    if (state.stage === "verify") {
-      set({ stage: "candidates" });
-      return;
-    }
-    if (state.stage === "attest") {
-      set({ stage: "verify" });
-      return;
-    }
-    if (state.stage === "forward") {
-      set({ stage: "attest" });
-      return;
-    }
-    if (state.stage === "request") {
-      set({ stage: "forward" });
-      return;
-    }
-    if (state.stage === "enforce") {
-      set({ stage: "request" });
-      return;
-    }
-    if (state.stage === "revoke" || state.stage === "complete") {
-      set({ stage: "enforce" });
-    }
+    set({ stage: demoStageOrder[indexOf(state.stage) - 1] });
   },
   goToStage: (target, client = mockProtocolClient) => {
     const state = get();
     if (state.busy) return;
-
-    const targetIndex = demoStageOrder.indexOf(target);
-    if (targetIndex <= demoStageOrder.indexOf(state.furthestStage)) {
-      if (target === "revoke" && state.revocation) {
-        set({ stage: "complete" });
-        return;
-      }
+    if (indexOf(target) <= indexOf(state.furthestStage)) {
       set({ stage: target });
       return;
     }
 
     const snapshot = client.getPresentationSnapshot?.();
     if (!snapshot) return;
-
-    const reached = (stage: DemoStage) => targetIndex >= demoStageOrder.indexOf(stage);
-    const official = snapshot.proposal.candidates.find((candidate) => candidate.id === "official");
-    const comparison = compareRoutes(snapshot.launch.token, snapshot.canonical, official ? [official.route] : []);
-    const isRevocation = target === "revoke" || target === "complete";
-
+    const reached = (stage: DemoStage) => indexOf(target) >= indexOf(stage);
     set({
-      stage: isRevocation ? "complete" : target,
-      furthestStage: isRevocation ? "complete" : target,
+      stage: target,
+      furthestStage: target,
       busy: false,
       launchStep: "complete",
       launch: snapshot.launch,
-      proposal: reached("candidates") ? snapshot.proposal : null,
-      canonical: reached("verify") ? snapshot.canonical : null,
-      comparison: reached("verify") ? comparison : null,
-      attestation: reached("attest") ? snapshot.attestation : null,
-      quote: reached("attest") ? snapshot.quote : null,
-      forwarding: reached("forward") ? snapshot.forwarding : null,
-      enforcement: reached("enforce") ? snapshot.enforcement : null,
-      revocation: isRevocation ? snapshot.revocation : null,
+      board: reached("quotes") ? snapshot.board : null,
+      naive: reached("naive") ? snapshot.naive : null,
+      canonical: reached("lookup") ? snapshot.canonical : null,
+      judgement: reached("judge") ? snapshot.judgement : null,
+      requote: reached("requote") ? snapshot.requote : null,
+      execution: reached("execute") ? snapshot.execution : null,
+      naiveOutcome: reached("outcome") ? snapshot.naiveOutcome : null,
     });
   },
   reset: () => set(initial),
